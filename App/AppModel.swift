@@ -143,11 +143,11 @@ final class AppModel: ObservableObject {
                !MRNGCrypto.passwordIsCorrect(protectedBase64: parsed.protected,
                                              password: MRNGCrypto.defaultPassword,
                                              iterations: parsed.kdfIterations) {
-                self.loadError = "Fisierul foloseste o parola master proprie (neimplementat inca)."
+                self.loadError = t("Error.CustomMaster")
             }
         } catch {
             self.doc = nil
-            self.loadError = "Nu am putut parsa: \(error)"
+            self.loadError = String(format: t("Error.ParseFailed"), "\(error)")
         }
     }
 
@@ -180,12 +180,12 @@ final class AppModel: ObservableObject {
     }
 
     func addConnection() {
-        let node = MRNGNode.makeConnection(name: "Conexiune noua")
+        let node = MRNGNode.makeConnection(name: t("Connection.NewConnectionName"))
         insertNew(node)
     }
 
     func addFolder() {
-        let node = MRNGNode.makeContainer(name: "Folder nou")
+        let node = MRNGNode.makeContainer(name: t("Connection.NewFolderName"))
         insertNew(node)
     }
 
@@ -389,7 +389,7 @@ final class AppModel: ObservableObject {
             externalTools = [
                 ExternalTool(name: "Ping", commandLine: "ping -c 5 %Host%"),
                 ExternalTool(name: "Traceroute", commandLine: "traceroute %Host%"),
-                ExternalTool(name: "Deschide in browser", commandLine: "open http://%Host%"),
+                ExternalTool(name: "Open in browser", commandLine: "open http://%Host%"),
             ]
         }
     }
@@ -429,7 +429,7 @@ final class AppModel: ObservableObject {
         selectedPanel = session.panel
     }
 
-    func addTool() { externalTools.append(ExternalTool(name: "Unealta noua", commandLine: "")) }
+    func addTool() { externalTools.append(ExternalTool(name: "New tool", commandLine: "")) }
     func deleteTool(_ tool: ExternalTool) { externalTools.removeAll { $0.id == tool.id } }
 
     /// Deschide un tab SFTP (terminal cu sftp) pentru o conexiune SSH.
@@ -464,12 +464,12 @@ final class AppModel: ObservableObject {
 
     func promptAndRename(_ session: Session) {
         let alert = NSAlert()
-        alert.messageText = "Redenumeste tab"
+        alert.messageText = t("Rename.Title")
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
         field.stringValue = session.title
         alert.accessoryView = field
         alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Anuleaza")
+        alert.addButton(withTitle: t("Delete.Cancel"))
         if alert.runModal() == .alertFirstButtonReturn {
             renameSession(session.id, to: field.stringValue)
         }

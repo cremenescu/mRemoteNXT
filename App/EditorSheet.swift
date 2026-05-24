@@ -13,11 +13,7 @@ struct EditorSheet: View {
     let nodeID: String
 
     enum Category: String, CaseIterable, Identifiable {
-        case general    = "General"
-        case connection = "Conexiune"
-        case credentials = "Credentiale"
-        case appearance = "Aspect"
-        case advanced   = "Avansat"
+        case general, connection, credentials, appearance, advanced
         var id: String { rawValue }
         var symbol: String {
             switch self {
@@ -26,6 +22,15 @@ struct EditorSheet: View {
             case .credentials: return "key"
             case .appearance: return "paintpalette"
             case .advanced: return "slider.horizontal.3"
+            }
+        }
+        var localizedName: String {
+            switch self {
+            case .general:    return t("Editor.Category.General")
+            case .connection: return t("Editor.Category.Connection")
+            case .credentials: return t("Editor.Category.Credentials")
+            case .appearance: return t("Editor.Category.Appearance")
+            case .advanced:   return t("Editor.Category.Advanced")
             }
         }
     }
@@ -67,7 +72,7 @@ struct EditorSheet: View {
             HStack(spacing: 10) {
                 NodeIconView(node: node).frame(width: 22, height: 22)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(node.isContainer ? "Setari folder" : "Setari conexiune")
+                    Text(node.isContainer ? t("Editor.FolderSettings") : t("Editor.ConnectionSettings"))
                         .font(.headline)
                     Text(node.name)
                         .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
@@ -88,7 +93,7 @@ struct EditorSheet: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: cat.symbol).frame(width: 16)
-                        Text(cat.rawValue)
+                        Text(cat.localizedName)
                         Spacer()
                     }
                     .padding(.horizontal, 12).padding(.vertical, 7)
@@ -126,12 +131,12 @@ struct EditorSheet: View {
     }
 
     @ViewBuilder private func generalSection(_ node: MRNGNode) -> some View {
-        sectionTitle("General")
-        field("Nume", attr(node, "Name"))
-        field("Descriere", attr(node, "Descr", inherit: "InheritDescription"))
+        sectionTitle(t("Editor.Category.General"))
+        field(t("Editor.Field.Name"), attr(node, "Name"))
+        field(t("Editor.Field.Description"), attr(node, "Descr", inherit: "InheritDescription"))
         if !node.isContainer {
             HStack {
-                label("Iconita")
+                label(t("Editor.Field.Icon"))
                 Picker("", selection: attr(node, "Icon", inherit: "InheritIcon")) {
                     ForEach(IconLibrary.names, id: \.self) { n in
                         HStack {
@@ -146,36 +151,35 @@ struct EditorSheet: View {
             }
         }
         if node.isContainer {
-            Text("\(node.children.count) elemente").foregroundStyle(.secondary)
+            Text(String(format: t("Editor.ItemsCount"), node.children.count)).foregroundStyle(.secondary)
         }
     }
 
     @ViewBuilder private func connectionSection(_ node: MRNGNode) -> some View {
         if node.isContainer {
-            Text("Folderele nu au conexiune proprie. Aceste setari se mostenesc de copii.")
-                .foregroundStyle(.secondary)
+            Text(t("Editor.ContainerNote")).foregroundStyle(.secondary)
         }
-        sectionTitle("Conexiune")
+        sectionTitle(t("Editor.Category.Connection"))
         HStack {
-            label("Protocol")
+            label(t("Editor.Field.Protocol"))
             Picker("", selection: attr(node, "Protocol", inherit: "InheritProtocol")) {
                 ForEach(protocols, id: \.self) { Text($0).tag($0) }
             }.labelsHidden().frame(width: 140)
-            label("Port").frame(width: 40, alignment: .trailing)
+            label(t("Editor.Field.Port")).frame(width: 40, alignment: .trailing)
             TextField("", text: attr(node, "Port", inherit: "InheritPort"))
                 .textFieldStyle(.roundedBorder).frame(width: 80)
             Spacer()
         }
-        field("Host", attr(node, "Hostname"))
-        field("Panel", attr(node, "Panel", inherit: "InheritPanel"))
+        field(t("Editor.Field.Host"), attr(node, "Hostname"))
+        field(t("Editor.Field.Panel"), attr(node, "Panel", inherit: "InheritPanel"))
     }
 
     @ViewBuilder private func credentialsSection(_ node: MRNGNode) -> some View {
-        sectionTitle("Credentiale")
-        field("Utilizator", attr(node, "Username", inherit: "InheritUsername"))
-        field("Domeniu", attr(node, "Domain", inherit: "InheritDomain"))
+        sectionTitle(t("Editor.Category.Credentials"))
+        field(t("Editor.Field.Username"), attr(node, "Username", inherit: "InheritUsername"))
+        field(t("Editor.Field.Domain"), attr(node, "Domain", inherit: "InheritDomain"))
         HStack {
-            label("Parola")
+            label(t("Editor.Field.Password"))
             SecureField("", text: $passwordPlain)
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 320)
@@ -189,16 +193,16 @@ struct EditorSheet: View {
                 NSPasteboard.general.setString(passwordPlain, forType: .string)
             } label: { Image(systemName: "doc.on.doc") }
             .buttonStyle(.borderless)
-            .help("Copiaza parola")
+            .help(t("Editor.CopyPassword"))
             .disabled(passwordPlain.isEmpty)
             Spacer()
         }
     }
 
     @ViewBuilder private func appearanceSection(_ node: MRNGNode) -> some View {
-        sectionTitle("Aspect")
+        sectionTitle(t("Editor.Category.Appearance"))
         HStack {
-            label("Iconita")
+            label(t("Editor.Field.Icon"))
             Picker("", selection: attr(node, "Icon", inherit: "InheritIcon")) {
                 ForEach(IconLibrary.names, id: \.self) { n in
                     HStack {
@@ -214,8 +218,8 @@ struct EditorSheet: View {
     }
 
     @ViewBuilder private func advancedSection(_ node: MRNGNode) -> some View {
-        sectionTitle("Avansat")
-        Text("Atributele brute ale nodului (read-only pentru moment).")
+        sectionTitle(t("Editor.Category.Advanced"))
+        Text(t("Editor.AdvancedNote"))
             .foregroundStyle(.secondary).font(.callout)
         let keys = node.attributes.keys.sorted()
         VStack(alignment: .leading, spacing: 4) {
@@ -238,9 +242,9 @@ struct EditorSheet: View {
     private var footer: some View {
         HStack(spacing: 10) {
             Spacer()
-            Button("Renunta") { discard() }
+            Button(t("Editor.Discard")) { discard() }
                 .keyboardShortcut(.cancelAction)
-            Button("Aplica si inchide") { apply() }
+            Button(t("Editor.ApplyClose")) { apply() }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
         }
@@ -333,21 +337,22 @@ struct ConnectionStatusBar: View {
                         Text(f).font(.caption2).foregroundStyle(.green)
                     }
                 }
-                row(icon: "network", label: "Host", value: node.hostname, display: hostString(node))
-                row(icon: "person", label: "User", value: node.username)
-                row(icon: "key", label: "Pass", value: model.decryptedPassword(for: node), masked: !model.showPasswordPlain)
+                row(icon: "network", label: t("StatusBar.Host"), value: node.hostname, display: hostString(node))
+                row(icon: "person", label: t("StatusBar.User"), value: node.username)
+                row(icon: "key", label: t("StatusBar.Pass"), value: model.decryptedPassword(for: node), masked: !model.showPasswordPlain)
             }
         } else if let node = model.node(byID: model.selectedNodeID), node.isContainer {
             HStack(spacing: 6) {
                 Image(systemName: "folder.fill").foregroundStyle(Color.accentColor)
                 Text(node.name).lineLimit(1)
                 Spacer()
-                Text("\(node.children.count) el.").font(.caption).foregroundStyle(.secondary)
+                Text(String(format: t("StatusBar.Elements"), node.children.count))
+                    .font(.caption).foregroundStyle(.secondary)
             }
         } else {
             HStack {
                 Image(systemName: "rectangle.dashed").foregroundStyle(.secondary)
-                Text("Nicio conexiune selectata").foregroundStyle(.secondary).font(.callout)
+                Text(t("StatusBar.NoSelection")).foregroundStyle(.secondary).font(.callout)
                 Spacer()
             }
         }
@@ -378,15 +383,16 @@ struct ConnectionStatusBar: View {
                 Button {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(value, forType: .string)
-                    flash = "\(label) copiat"
+                    let msg = String(format: t("StatusBar.Copied"), label)
+                    flash = msg
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                        if flash == "\(label) copiat" { flash = nil }
+                        if flash == msg { flash = nil }
                     }
                 } label: {
                     Image(systemName: "doc.on.doc").font(.caption)
                 }
                 .buttonStyle(.borderless)
-                .help("Copiaza \(label.lowercased())")
+                .help(String(format: t("StatusBar.CopyHint"), label.lowercased()))
             }
         }
         .contentShape(Rectangle())

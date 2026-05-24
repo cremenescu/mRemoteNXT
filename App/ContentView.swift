@@ -61,21 +61,21 @@ struct ContentView: View {
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
                 Button { model.addConnection() } label: { Image(systemName: "plus.rectangle") }
-                    .help("Conexiune noua")
+                    .help(t("Toolbar.NewConnection"))
                 Button { model.addFolder() } label: { Image(systemName: "folder.badge.plus") }
-                    .help("Folder nou")
+                    .help(t("Toolbar.NewFolder"))
                 Button { model.save() } label: {
                     Image(systemName: model.dirty ? "square.and.arrow.down.fill" : "square.and.arrow.down")
-                }.help("Salveaza (Cmd+S)").disabled(!model.dirty)
+                }.help(t("Toolbar.Save")).disabled(!model.dirty)
                 Button { model.expandAll() } label: { Image(systemName: "arrow.up.backward.and.arrow.down.forward") }
-                    .help("Expandeaza tot")
+                    .help(t("Toolbar.ExpandAll"))
                 Button { model.collapseAll() } label: { Image(systemName: "arrow.down.forward.and.arrow.up.backward") }
-                    .help("Restrange tot")
+                    .help(t("Toolbar.CollapseAll"))
                 Button { model.sortAlphabetical() } label: { Image(systemName: "arrow.up.arrow.down") }
-                    .help("Sorteaza alfabetic (conexiuni, apoi foldere)")
+                    .help(t("Toolbar.SortAlphabetical"))
                 Button { if model.selectedNodeID != nil { model.editorVisible = true } } label: {
                     Image(systemName: "slider.horizontal.3")
-                }.help("Editeaza conexiunea selectata...")
+                }.help(t("Toolbar.EditSelected"))
                 .disabled(model.selectedNodeID == nil)
             }
             ToolbarItem(placement: .principal) {
@@ -84,15 +84,15 @@ struct ContentView: View {
         }
         .navigationTitle("")
         .confirmationDialog(
-            "Stergi \"\(model.pendingDelete?.name ?? "")\"?",
+            String(format: t("Delete.Title"), model.pendingDelete?.name ?? ""),
             isPresented: Binding(get: { model.pendingDelete != nil },
                                  set: { if !$0 { model.pendingDelete = nil } }),
             presenting: model.pendingDelete
         ) { node in
-            Button("Sterge", role: .destructive) { model.deleteNode(node); model.pendingDelete = nil }
-            Button("Anuleaza", role: .cancel) { model.pendingDelete = nil }
+            Button(t("Delete.Confirm"), role: .destructive) { model.deleteNode(node); model.pendingDelete = nil }
+            Button(t("Delete.Cancel"), role: .cancel) { model.pendingDelete = nil }
         } message: { node in
-            Text(node.isContainer ? "Folderul si tot continutul vor fi sterse (nesalvat pana la Salvare)." : "Conexiunea va fi stearsa.")
+            Text(node.isContainer ? t("Delete.Folder") : t("Delete.Connection"))
         }
         .sheet(isPresented: $model.editorVisible) {
             if let id = model.selectedNodeID {
@@ -114,7 +114,7 @@ struct ContentView: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .environment(\.defaultMinListRowHeight, model.rowHeight)
-                .searchable(text: $model.searchText, placement: .sidebar, prompt: "Cauta conexiuni")
+                .searchable(text: $model.searchText, placement: .sidebar, prompt: Text(t("Search.Placeholder")))
                 .frame(maxHeight: .infinity)
 
                 // Status bar (read-only) cu IP/User/Pass + click-to-copy.
@@ -124,9 +124,9 @@ struct ContentView: View {
             VStack(spacing: 8) {
                 Image(systemName: "tray")
                     .font(.largeTitle).foregroundStyle(.secondary)
-                Text(model.loadError ?? "Niciun fisier incarcat")
+                Text(model.loadError ?? t("Placeholder.NoFile"))
                     .foregroundStyle(.secondary)
-                Button("Deschide confCons.xml...") { model.openFilePanel() }
+                Button(t("Menu.OpenFile")) { model.openFilePanel() }
             }
             .padding()
         }
@@ -154,25 +154,11 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder private var editorInspector: some View {
-        if let node = model.node(byID: model.selectedNodeID) {
-            NodeDetailView(node: node)
-        } else {
-            VStack(spacing: 8) {
-                Image(systemName: "slider.horizontal.3").font(.title).foregroundStyle(.secondary)
-                Text("Selecteaza o conexiune ca s-o editezi").foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding()
-        }
-    }
-
     private var placeholder: some View {
         VStack(spacing: 8) {
             Image(systemName: "rectangle.connected.to.line.below")
                 .font(.system(size: 40)).foregroundStyle(.secondary)
-            Text("Selecteaza o conexiune din arbore")
+            Text(t("Placeholder.SelectConnection"))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -251,19 +237,19 @@ struct TreeRow: View {
         .onHover { hovering = $0 }
         .onTapGesture { model.selectedNodeID = node.id }
         .contextMenu {
-            Button("Editeaza...") {
+            Button(t("Context.Edit")) {
                 model.selectedNodeID = node.id
                 model.editorVisible = true
             }
             .keyboardShortcut(.return)
             Divider()
             if !node.isContainer {
-                Button("Conecteaza") { model.connect(node) }
+                Button(t("Context.Connect")) { model.connect(node) }
                 if node.protocolType.hasPrefix("SSH") {
-                    Button("Transfer fisiere (SFTP)") { model.openSFTP(node) }
+                    Button(t("Context.SFTP")) { model.openSFTP(node) }
                 }
                 if !model.externalTools.isEmpty {
-                    Menu("Unelte externe") {
+                    Menu(t("Context.ExternalToolsSubmenu")) {
                         ForEach(model.externalTools) { tool in
                             Button(tool.name) { model.runTool(tool, on: node) }
                         }
@@ -271,10 +257,10 @@ struct TreeRow: View {
                 }
                 Divider()
             }
-            Button("Conexiune noua aici") { model.selectedNodeID = node.id; model.addConnection() }
-            Button("Folder nou aici") { model.selectedNodeID = node.id; model.addFolder() }
+            Button(t("Context.NewConnectionHere")) { model.selectedNodeID = node.id; model.addConnection() }
+            Button(t("Context.NewFolderHere")) { model.selectedNodeID = node.id; model.addFolder() }
             Divider()
-            Button("Sterge", role: .destructive) { model.pendingDelete = node }
+            Button(t("Context.Delete"), role: .destructive) { model.pendingDelete = node }
         }
         .simultaneousGesture(TapGesture(count: 2).onEnded {
             model.selectedNodeID = node.id
@@ -395,110 +381,6 @@ struct NodeRow: View {
     }
 }
 
-struct NodeDetailView: View {
-    @EnvironmentObject var model: AppModel
-    let node: MRNGNode
-    @State private var passwordPlain: String = ""
-
-    private let protocols = ["RDP", "SSH2", "SSH1", "Telnet", "VNC", "HTTP", "HTTPS", "IntApp"]
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    NodeIconView(node: node).frame(width: 16, height: 16)
-                    Text(node.isContainer ? "Folder" : "Conexiune")
-                        .font(.callout).foregroundStyle(.secondary)
-                }
-                .padding(.bottom, 2)
-
-                field("Nume", attr("Name"))
-
-                if node.isContainer {
-                    Text("\(node.children.count) elemente").foregroundStyle(.secondary).padding(.top, 4)
-                } else {
-                    HStack {
-                        Text("Protocol").font(.callout).frame(width: 75, alignment: .trailing).foregroundStyle(.secondary)
-                        Picker("", selection: attr("Protocol", inherit: "InheritProtocol")) {
-                            ForEach(protocols, id: \.self) { Text($0).tag($0) }
-                        }.labelsHidden()
-                        Spacer()
-                    }
-                    HStack {
-                        Text("Iconita").font(.callout).frame(width: 75, alignment: .trailing).foregroundStyle(.secondary)
-                        Picker("", selection: attr("Icon", inherit: "InheritIcon")) {
-                            ForEach(IconLibrary.names, id: \.self) { n in
-                                HStack {
-                                    if let img = IconLibrary.image(n) {
-                                        Image(nsImage: img).resizable().frame(width: 14, height: 14)
-                                    }
-                                    Text(n)
-                                }.tag(n)
-                            }
-                        }.labelsHidden()
-                        Spacer()
-                    }
-                    field("Host", attr("Hostname"))
-                    field("Port", attr("Port", inherit: "InheritPort"))
-                    field("Utilizator", attr("Username", inherit: "InheritUsername"))
-                    field("Domeniu", attr("Domain", inherit: "InheritDomain"))
-                    HStack {
-                        Text("Parola").font(.callout).frame(width: 75, alignment: .trailing).foregroundStyle(.secondary)
-                        SecureField("", text: $passwordPlain)
-                            .textFieldStyle(.roundedBorder).frame(maxWidth: .infinity)
-                            .onChange(of: passwordPlain) { _, newValue in
-                                node.attributes["Password"] = newValue.isEmpty ? "" : model.encrypt(newValue)
-                                node.attributes["InheritPassword"] = "false"
-                                model.markDirty()
-                            }
-                    }
-                    field("Descriere", attr("Descr", inherit: "InheritDescription"))
-                    field("Panel", attr("Panel", inherit: "InheritPanel"))
-
-                    Button { model.connect(node) } label: {
-                        Label("Conecteaza", systemImage: "bolt.horizontal.circle")
-                    }
-                    .buttonStyle(.bordered).padding(.top, 6)
-                }
-
-                Divider().padding(.vertical, 6)
-                Button { model.save() } label: {
-                    Label(model.dirty ? "Salveaza modificarile" : "Salvat",
-                          systemImage: model.dirty ? "square.and.arrow.down" : "checkmark.circle")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!model.dirty)
-                .keyboardShortcut("s")
-                Spacer()
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .controlSize(.small)
-        }
-        .onAppear { passwordPlain = model.decryptedPassword(for: node) }
-        .id(node.id)
-    }
-
-    private func field(_ label: String, _ binding: Binding<String>) -> some View {
-        HStack(spacing: 6) {
-            Text(label).font(.callout).frame(width: 75, alignment: .trailing).foregroundStyle(.secondary)
-            TextField("", text: binding).textFieldStyle(.roundedBorder).frame(maxWidth: .infinity)
-        }
-    }
-
-    private func attr(_ key: String, inherit: String? = nil) -> Binding<String> {
-        Binding(
-            get: { node.attributes[key] ?? "" },
-            set: { v in
-                node.attributes[key] = v
-                if let inherit { node.attributes[inherit] = "false" }
-                model.markDirty()
-            })
-    }
-}
-
 struct PanelTabBar: View {
     @EnvironmentObject var model: AppModel
     var body: some View {
@@ -545,18 +427,18 @@ struct SessionTabBar: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .onTapGesture { model.selectedSessionID = session.id }
                     .contextMenu {
-                        Button("Reconecteaza") { model.reconnect(session) }
-                        Button("Deconecteaza") { model.closeSession(session.id) }
+                        Button(t("Context.Reconnect")) { model.reconnect(session) }
+                        Button(t("Context.Disconnect")) { model.closeSession(session.id) }
                         if session.kind == .rdp {
                             Divider()
-                            Button("Trimite Ctrl+Alt+Del") { model.sendCtrlAltDel(session) }
+                            Button(t("Context.SendCtrlAltDel")) { model.sendCtrlAltDel(session) }
                         }
                         Divider()
-                        Button("Redenumeste tab...") { model.promptAndRename(session) }
-                        Button("Duplica tab") { model.duplicate(session) }
+                        Button(t("Context.RenameTab")) { model.promptAndRename(session) }
+                        Button(t("Context.DuplicateTab")) { model.duplicate(session) }
                         if !session.password.isEmpty {
                             Divider()
-                            Button("Copiaza parola") { model.copyPassword(session) }
+                            Button(t("Context.CopyPassword")) { model.copyPassword(session) }
                         }
                     }
                 }
@@ -586,9 +468,9 @@ struct SessionView: View {
             HTTPContainer(session: session)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .externalApp:
-            unsupported("Aplicatie externa (IntApp) urmeaza.")
+            unsupported(t("Error.ExternalAppPending"))
         case .unsupported:
-            unsupported("Protocol nesuportat: \(session.node.protocolType)")
+            unsupported(String(format: t("Error.NotImplemented"), session.node.protocolType))
         }
     }
 

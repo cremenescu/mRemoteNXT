@@ -7,9 +7,10 @@ import SwiftUI
 @main
 struct MRemoteApp: App {
     @StateObject private var model = AppModel()
+    @StateObject private var lang = LanguageManager.shared
 
     init() {
-        // Tooltip-uri mai rapide (default macOS ~2s).
+        // Faster tooltips (macOS default is ~2s).
         UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 500])
     }
 
@@ -17,22 +18,23 @@ struct MRemoteApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(model)
+                .environmentObject(lang)
                 .frame(minWidth: 900, minHeight: 560)
         }
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("Deschide confCons.xml...") { model.openFilePanel() }
+                Button(t("Menu.OpenFile")) { model.openFilePanel() }
                     .keyboardShortcut("o")
             }
             CommandGroup(after: .saveItem) {
-                Button("Salveaza") { model.save() }
+                Button(t("Menu.Save")) { model.save() }
                     .keyboardShortcut("s")
                     .disabled(!model.dirty)
             }
             CommandGroup(after: .toolbar) {
-                Button("Mareste textul terminalului") { model.zoomTerminal(+1) }
+                Button(t("Menu.ZoomIn")) { model.zoomTerminal(+1) }
                     .keyboardShortcut("=", modifiers: .command)
-                Button("Micsoreaza textul terminalului") { model.zoomTerminal(-1) }
+                Button(t("Menu.ZoomOut")) { model.zoomTerminal(-1) }
                     .keyboardShortcut("-", modifiers: .command)
             }
         }
@@ -40,6 +42,7 @@ struct MRemoteApp: App {
         Settings {
             SettingsView()
                 .environmentObject(model)
+                .environmentObject(lang)
         }
     }
 }
@@ -48,11 +51,13 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             AppearanceSettings()
-                .tabItem { Label("Aspect", systemImage: "paintbrush") }
+                .tabItem { Label(t("Settings.Appearance"), systemImage: "paintbrush") }
             ToolsSettings()
-                .tabItem { Label("Unelte externe", systemImage: "wrench.and.screwdriver") }
+                .tabItem { Label(t("Settings.Tools"), systemImage: "wrench.and.screwdriver") }
+            LanguageSettings()
+                .tabItem { Label(t("Settings.Language"), systemImage: "globe") }
         }
-        .frame(width: 460, height: 400)
+        .frame(width: 460, height: 420)
     }
 }
 
@@ -60,25 +65,25 @@ struct AppearanceSettings: View {
     @EnvironmentObject var model: AppModel
     var body: some View {
         Form {
-            Section("Aspect") {
+            Section(t("Settings.Appearance")) {
                 VStack(alignment: .leading) {
-                    Text("Marime text interfata: \(Int(model.uiFontSize))")
+                    Text(String(format: t("Settings.UIFontSize"), Int(model.uiFontSize)))
                     Slider(value: $model.uiFontSize, in: 10...22, step: 1)
                 }
                 VStack(alignment: .leading) {
-                    Text("Marime text terminal: \(Int(model.terminalFontSize))")
+                    Text(String(format: t("Settings.TerminalFontSize"), Int(model.terminalFontSize)))
                     Slider(value: $model.terminalFontSize, in: 8...28, step: 1)
                 }
-                Picker("Tema terminal", selection: $model.terminalTheme) {
+                Picker(t("Settings.TerminalTheme"), selection: $model.terminalTheme) {
                     ForEach(TerminalThemes.names, id: \.self) { Text($0).tag($0) }
                 }
                 VStack(alignment: .leading) {
-                    Text("Inaltime rand: \(Int(model.rowHeight))")
+                    Text(String(format: t("Settings.RowHeight"), Int(model.rowHeight)))
                     Slider(value: $model.rowHeight, in: 16...44, step: 1)
                 }
-                Toggle("Arata tip protocol (RDP/SSH) in lista", isOn: $model.showProtocol)
-                Toggle("Inchide tab-ul la deconectare (RDP)", isOn: $model.closeTabOnDisconnect)
-                Toggle("Arata parola in clar in status bar", isOn: $model.showPasswordPlain)
+                Toggle(t("Settings.ShowProtocol"), isOn: $model.showProtocol)
+                Toggle(t("Settings.CloseTabOnDisconnect"), isOn: $model.closeTabOnDisconnect)
+                Toggle(t("Settings.ShowPasswordPlain"), isOn: $model.showPasswordPlain)
             }
         }
         .formStyle(.grouped)
@@ -89,25 +94,44 @@ struct ToolsSettings: View {
     @EnvironmentObject var model: AppModel
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Macro-uri disponibile: %Host% %Username% %Port% %Password% %Domain% %Name%")
+            Text(t("Settings.ToolsMacros"))
                 .font(.caption).foregroundStyle(.secondary)
             List {
                 ForEach($model.externalTools) { $tool in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            TextField("Nume", text: $tool.name)
+                            TextField(t("Settings.ToolNamePlaceholder"), text: $tool.name)
                             Button(role: .destructive) { model.deleteTool(tool) } label: {
                                 Image(systemName: "trash")
                             }.buttonStyle(.borderless)
                         }
-                        TextField("Comanda (ex: ping -c 5 %Host%)", text: $tool.commandLine)
+                        TextField(t("Settings.ToolCommandPlaceholder"), text: $tool.commandLine)
                             .font(.system(.callout, design: .monospaced))
                     }
                     .padding(.vertical, 2)
                 }
             }
-            Button { model.addTool() } label: { Label("Adauga unealta", systemImage: "plus") }
+            Button { model.addTool() } label: { Label(t("Settings.ToolAdd"), systemImage: "plus") }
         }
         .padding()
+    }
+}
+
+struct LanguageSettings: View {
+    @EnvironmentObject var lang: LanguageManager
+    var body: some View {
+        Form {
+            Section(t("Settings.Language")) {
+                Picker(t("Settings.LanguagePicker"), selection: $lang.choice) {
+                    ForEach(LanguageManager.Choice.allCases) { c in
+                        Text(c.displayName).tag(c)
+                    }
+                }
+                .pickerStyle(.inline)
+                Text(t("Settings.LanguageNote"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
     }
 }

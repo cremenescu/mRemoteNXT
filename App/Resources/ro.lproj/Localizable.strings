@@ -1,0 +1,124 @@
+/* Etichete picker limba */
+"Language.Auto" = "Implicit sistem";
+
+/* Toolbar / meniuri */
+"Toolbar.NewConnection" = "Conexiune noua";
+"Toolbar.NewFolder" = "Folder nou";
+"Toolbar.Save" = "Salveaza (Cmd+S)";
+"Toolbar.ExpandAll" = "Expandeaza tot";
+"Toolbar.CollapseAll" = "Restrange tot";
+"Toolbar.SortAlphabetical" = "Sorteaza alfabetic (conexiuni, apoi foldere)";
+"Toolbar.EditSelected" = "Editeaza conexiunea selectata...";
+
+/* Meniuri */
+"Menu.OpenFile" = "Deschide confCons.xml...";
+"Menu.Save" = "Salveaza";
+"Menu.ZoomIn" = "Mareste textul terminalului";
+"Menu.ZoomOut" = "Micsoreaza textul terminalului";
+"Menu.Appearance" = "Aspect";
+"Menu.ExternalTools" = "Unelte externe";
+
+/* Setari */
+"Settings.Appearance" = "Aspect";
+"Settings.Tools" = "Unelte externe";
+"Settings.Language" = "Limba";
+"Settings.UIFontSize" = "Marime text interfata: %d";
+"Settings.TerminalFontSize" = "Marime text terminal: %d";
+"Settings.TerminalTheme" = "Tema terminal";
+"Settings.RowHeight" = "Inaltime rand: %d";
+"Settings.ShowProtocol" = "Arata tip protocol (RDP/SSH) in lista";
+"Settings.CloseTabOnDisconnect" = "Inchide tab-ul la deconectare (RDP)";
+"Settings.ShowPasswordPlain" = "Arata parola in clar in status bar";
+"Settings.LanguagePicker" = "Limba interfetei";
+"Settings.LanguageNote" = "Unele etichete se vor actualiza la urmatoarea redesenare.";
+"Settings.ToolsMacros" = "Macro-uri disponibile: %Host% %Username% %Port% %Password% %Domain% %Name%";
+"Settings.ToolNamePlaceholder" = "Nume";
+"Settings.ToolCommandPlaceholder" = "Comanda (ex: ping -c 5 %Host%)";
+"Settings.ToolDelete" = "Sterge";
+"Settings.ToolAdd" = "Adauga unealta";
+
+/* Meniu contextual */
+"Context.Edit" = "Editeaza...";
+"Context.Connect" = "Conecteaza";
+"Context.SFTP" = "Transfer fisiere (SFTP)";
+"Context.ExternalToolsSubmenu" = "Unelte externe";
+"Context.NewConnectionHere" = "Conexiune noua aici";
+"Context.NewFolderHere" = "Folder nou aici";
+"Context.Delete" = "Sterge";
+"Context.Reconnect" = "Reconecteaza";
+"Context.Disconnect" = "Deconecteaza";
+"Context.SendCtrlAltDel" = "Trimite Ctrl+Alt+Del";
+"Context.RenameTab" = "Redenumeste tab...";
+"Context.DuplicateTab" = "Duplica tab";
+"Context.CopyPassword" = "Copiaza parola";
+
+/* Cautare sidebar */
+"Search.Placeholder" = "Cauta conexiuni";
+
+/* Placeholdere */
+"Placeholder.NoFile" = "Niciun fisier incarcat";
+"Placeholder.SelectConnection" = "Selecteaza o conexiune din arbore";
+"Placeholder.SelectToEdit" = "Selecteaza o conexiune ca s-o editezi";
+
+/* Status bar */
+"StatusBar.NoSelection" = "Nicio conexiune selectata";
+"StatusBar.Host" = "Host";
+"StatusBar.User" = "User";
+"StatusBar.Pass" = "Pass";
+"StatusBar.Copied" = "%@ copiat";
+"StatusBar.CopyHint" = "Copiaza %@";
+"StatusBar.Elements" = "%d el.";
+
+/* Editor */
+"Editor.Category.General" = "General";
+"Editor.Category.Connection" = "Conexiune";
+"Editor.Category.Credentials" = "Credentiale";
+"Editor.Category.Appearance" = "Aspect";
+"Editor.Category.Advanced" = "Avansat";
+"Editor.FolderSettings" = "Setari folder";
+"Editor.ConnectionSettings" = "Setari conexiune";
+"Editor.Discard" = "Renunta";
+"Editor.ApplyClose" = "Aplica si inchide";
+"Editor.Field.Name" = "Nume";
+"Editor.Field.Description" = "Descriere";
+"Editor.Field.Icon" = "Iconita";
+"Editor.Field.Protocol" = "Protocol";
+"Editor.Field.Port" = "Port";
+"Editor.Field.Host" = "Host";
+"Editor.Field.Panel" = "Panel";
+"Editor.Field.Username" = "Utilizator";
+"Editor.Field.Domain" = "Domeniu";
+"Editor.Field.Password" = "Parola";
+"Editor.ContainerNote" = "Folderele nu au conexiune proprie. Aceste setari se mostenesc de copii.";
+"Editor.ItemsCount" = "%d elemente";
+"Editor.AdvancedNote" = "Atributele brute ale nodului (read-only pentru moment).";
+"Editor.CopyPassword" = "Copiaza parola";
+
+/* Conexiune / salvare */
+"Connection.NewConnectionName" = "Conexiune noua";
+"Connection.NewFolderName" = "Folder nou";
+"Connection.SaveButton" = "Salveaza modificarile";
+"Connection.Saved" = "Salvat";
+"Connection.Connect" = "Conecteaza";
+"Connection.Element" = "%d element";
+"Connection.Elements" = "%d elemente";
+
+/* Dialog stergere */
+"Delete.Title" = "Stergi \"%@\"?";
+"Delete.Folder" = "Folderul si tot continutul vor fi sterse (nesalvat pana la Salvare).";
+"Delete.Connection" = "Conexiunea va fi stearsa.";
+"Delete.Confirm" = "Sterge";
+"Delete.Cancel" = "Anuleaza";
+
+/* Erori / incarcare */
+"Error.ParseFailed" = "Nu am putut parsa: %@";
+"Error.CustomMaster" = "Fisierul foloseste o parola master proprie (neimplementat inca).";
+"Error.NotImplemented" = "Protocol nesuportat: %@";
+"Error.ExternalAppPending" = "Aplicatie externa (IntApp) urmeaza.";
+
+/* Dialog rename tab */
+"Rename.Title" = "Redenumeste tab";
+
+/* Tip folder/conexiune */
+"Type.Folder" = "Folder";
+"Type.Connection" = "Conexiune";

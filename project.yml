@@ -27,6 +27,8 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleIconFile: AppIcon
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, ro]
         LSMinimumSystemVersion: "14.0"
         NSHighResolutionCapable: true
         LSApplicationCategoryType: public.app-category.utilities
