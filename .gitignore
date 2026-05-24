@@ -2,7 +2,6 @@
 .build/
 .build-xcode/
 DerivedData/
-build/
 *.xcodeproj/
 *.app/
 *.dmg
@@ -24,3 +23,7 @@ backups/
 .vscode/
 .idea/
 *.swp
+
+## Release packaging output
+.build-release/
+.dist/

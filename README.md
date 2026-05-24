@@ -63,14 +63,27 @@ and the tabs+panels layout.
 
 ## Installation
 
-No pre-built release yet. See [BUILD.md](BUILD.md) for a local build.
+### Option A: pre-built `.dmg` (recommended)
 
-If you ever download a `.dmg` from Releases, it is ad-hoc signed — you'll
-need to allow execution:
+Download the latest `mRemoteNXT-vX.Y.Z-alpha.dmg` from
+[Releases](https://github.com/cremenescu/mRemoteNXT/releases),
+open it, drag the app to the Applications shortcut.
+
+Because the bundle is ad-hoc signed (no paid Apple Developer ID yet),
+macOS Gatekeeper shows a "damaged / can't be opened" warning on first
+launch. Clear it once with:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/mRemoteNXT.app
 ```
+
+Then open mRemoteNXT.app from /Applications. No Homebrew install
+required — FreeRDP and friends are bundled inside the app.
+
+### Option B: build from source
+
+See [BUILD.md](BUILD.md). Requires Xcode, Homebrew, `freerdp`,
+`xcodegen`. Run `./build/package.sh` to produce your own `.dmg`.
 
 ## License
 
