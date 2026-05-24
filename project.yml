@@ -29,6 +29,8 @@ targets:
         CFBundleIconFile: AppIcon
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [en, ro]
+        CFBundleShortVersionString: "0.1.0"
+        NSHumanReadableCopyright: "Copyright © 2026 Razvan Cremenescu. Released under GPL-2.0-or-later."
         LSMinimumSystemVersion: "14.0"
         NSHighResolutionCapable: true
         LSApplicationCategoryType: public.app-category.utilities

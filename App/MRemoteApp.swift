@@ -22,6 +22,28 @@ struct MRemoteApp: App {
                 .frame(minWidth: 900, minHeight: 560)
         }
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button(t("Menu.About")) { AboutPanel.show() }
+            }
+            CommandGroup(replacing: .help) {
+                Button(t("Menu.HelpWindow")) { HelpWindow.show() }
+                Divider()
+                Button(t("Menu.ViewOnGitHub")) {
+                    if let u = URL(string: "https://github.com/cremenescu/mRemoteNXT") {
+                        NSWorkspace.shared.open(u)
+                    }
+                }
+                Button(t("Menu.ReportIssue")) {
+                    if let u = URL(string: "https://github.com/cremenescu/mRemoteNXT/issues/new") {
+                        NSWorkspace.shared.open(u)
+                    }
+                }
+                Button(t("Menu.EmailAuthor")) {
+                    if let u = URL(string: "mailto:razvan@cremenescu.ro") {
+                        NSWorkspace.shared.open(u)
+                    }
+                }
+            }
             CommandGroup(replacing: .newItem) {
                 Button(t("Menu.NewFile")) { model.newDocumentPanel() }
                     .keyboardShortcut("n")

@@ -126,3 +126,31 @@
 /* Tip folder/conexiune */
 "Type.Folder" = "Folder";
 "Type.Connection" = "Conexiune";
+
+/* Meniuri About / Help */
+"Menu.About" = "Despre mRemoteNXT";
+"Menu.HelpWindow" = "Ajutor mRemoteNXT";
+"Menu.ViewOnGitHub" = "Vezi sursa pe GitHub";
+"Menu.ReportIssue" = "Raporteaza o problema...";
+"Menu.EmailAuthor" = "Trimite email autorului";
+
+/* Fereastra Help */
+"Help.WindowTitle" = "Ajutor mRemoteNXT";
+"Help.Tagline" = "Client nativ macOS multi-protocol pentru conexiuni remote";
+"Help.WhatIs.Title" = "Ce este mRemoteNXT?";
+"Help.WhatIs.Body" = "Un manager cu tab-uri pentru conexiuni remote pe macOS care importa direct fisierul confCons.xml din mRemoteNG — inclusiv parolele criptate, arborele de foldere, mostenirea atributelor si panel-urile. Embed-uieste sesiuni SSH, Telnet, SFTP, RDP si HTTP/HTTPS direct in tab-uri, fara sa fie nevoie de un terminal sau client RDP separat.";
+"Help.GettingStarted.Title" = "Cum incepi";
+"Help.GettingStarted.Body" = "La prima pornire app-ul e gol. Fisier > Configuratie noua... (Cmd+N) creeaza un confCons.xml proaspat, sau Fisier > Deschide confCons.xml... (Cmd+O) incarca unul existent (al tau sau exportat din mRemoteNG pe Windows). La urmatoarea pornire app-ul redeschide automat acelasi fisier. Fisier > Inchide configuratia (Cmd+Shift+W) sterge totul.";
+"Help.Connecting.Title" = "Conectare la un host";
+"Help.Connecting.Body" = "Dublu-click pe o conexiune in sidebar o deschide intr-un tab nou. Sesiunile raman vii la schimbarea tab-urilor — procesul ssh/RDP din spate nu reporneste. Click-dreapta pe o conexiune SSH pentru actiuni suplimentare: transfer SFTP, unelte externe, reconectare, trimite Ctrl+Alt+Del (pentru RDP), copiere parola.";
+"Help.Editing.Title" = "Editare conexiuni";
+"Help.Editing.Body" = "Click-dreapta pe o conexiune > Editeaza..., sau selecteaz-o si apasa iconita slider din toolbar. Editorul e un modal stil Royal TSX cu categorii in stanga (General / Conexiune / Credentiale / Aspect / Avansat) si formular in dreapta. Aplica salveaza modificarile, Renunta le anuleaza. In josul arborelui apare un status bar cu host / user / parola al nodului curent — click pe orice rand copiaza valoarea.";
+"Help.Shortcuts.Title" = "Scurtaturi tastatura";
+"Help.Shortcuts.Body" = "Cmd+N — Configuratie noua\nCmd+O — Deschide configuratie\nCmd+Shift+W — Inchide configuratie\nCmd+S — Salveaza\nCmd+= / Cmd+- — Zoom terminal\nCmd+, — Setari\nEnter — Editeaza conexiunea selectata\nDublu-click — Deschide conexiunea in tab nou";
+"Help.Tips.Title" = "Sfaturi";
+"Help.Tips.Body" = "• Trage conexiuni si foldere pentru reordonare. Da drop pe un folder pentru a muta nodul inauntru.\n• Foloseste campul de cautare din sidebar pentru a filtra dupa nume, host, protocol sau descriere.\n• Panel-urile (bara de tab-uri de sus) grupeaza conexiunile — seteaza atributul Panel pe o conexiune ca s-o pui in alt grup.\n• Instaleaza sshpass prin Homebrew (brew install hudochenkov/sshpass/sshpass) ca mRemoteNXT sa auto-completeze parolele SSH. Fara el, SSH foloseste cheia din agent sau prompt interactiv.\n• Fiecare salvare creeaza un backup cu timestamp in backups/ langa confCons.xml — nu poti pierde date din greseala.";
+"Help.Limitations.Title" = "Limitari cunoscute";
+"Help.Limitations.Body" = "• FullFileEncryption=true (criptare integrala a XML-ului) nu e inca suportata.\n• Versiunile de schema mai noi de 2.6 nu au fost testate.\n• Redirect clipboard imagine RDP, redirect drive / sunet si vizibilitate cursor remote nu sunt implementate.\n• VNC si IntApp (lansare aplicatie externa) sunt planificate dar neimplementate.\n• App-ul e ad-hoc signed — macOS afiseaza un warning Gatekeeper la prima pornire. Ruleaza: xattr -dr com.apple.quarantine /Applications/mRemoteNXT.app";
+"Help.MoreInfo" = "Mai multe informatii";
+"Help.OpenIssue" = "Raporteaza un bug sau cere o functie";
+"Help.Email" = "Trimite email autorului: razvan@cremenescu.ro";

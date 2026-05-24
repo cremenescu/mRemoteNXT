@@ -11,6 +11,11 @@
 "Toolbar.EditSelected" = "Edit selected connection...";
 
 /* Menus */
+"Menu.About" = "About mRemoteNXT";
+"Menu.HelpWindow" = "mRemoteNXT Help";
+"Menu.ViewOnGitHub" = "View Source on GitHub";
+"Menu.ReportIssue" = "Report an Issue...";
+"Menu.EmailAuthor" = "Email the Author";
 "Menu.NewFile" = "New configuration...";
 "Menu.OpenFile" = "Open confCons.xml...";
 "Menu.CloseFile" = "Close configuration";
@@ -126,3 +131,24 @@
 /* Folder/conn type display */
 "Type.Folder" = "Folder";
 "Type.Connection" = "Connection";
+
+/* Help window */
+"Help.WindowTitle" = "mRemoteNXT Help";
+"Help.Tagline" = "Native macOS multi-protocol remote connection client";
+"Help.WhatIs.Title" = "What is mRemoteNXT?";
+"Help.WhatIs.Body" = "A tabbed remote-connection manager for macOS that imports mRemoteNG's confCons.xml file as-is — including encrypted passwords, the folder tree, attribute inheritance and panels. It embeds SSH, Telnet, SFTP, RDP and HTTP/HTTPS sessions directly in tabs, so you don't need a separate terminal or RDP client open.";
+"Help.GettingStarted.Title" = "Getting started";
+"Help.GettingStarted.Body" = "On first launch the app is empty. Use File > New configuration... (Cmd+N) to create a fresh confCons.xml, or File > Open confCons.xml... (Cmd+O) to load an existing one (your own, or one exported from mRemoteNG on Windows). The next time you start the app it reopens the same file automatically. Use File > Close configuration (Cmd+Shift+W) to clear the workspace.";
+"Help.Connecting.Title" = "Connecting to a host";
+"Help.Connecting.Body" = "Double-click a connection in the sidebar to open it in a new tab. Sessions stay alive when you switch tabs — the underlying ssh/RDP process is not restarted. Right-click an SSH connection for additional actions: SFTP file transfer, external tools, reconnect, send Ctrl+Alt+Del (for RDP), copy password.";
+"Help.Editing.Title" = "Editing connections";
+"Help.Editing.Body" = "Right-click a connection > Edit..., or select it and press the slider icon in the toolbar. The editor is a Royal TSX-style modal with categories on the left (General / Connection / Credentials / Appearance / Advanced) and a form on the right. Click Apply to save changes, Discard to revert. A bottom status bar below the tree shows the current node's host / user / password with click-to-copy.";
+"Help.Shortcuts.Title" = "Keyboard shortcuts";
+"Help.Shortcuts.Body" = "Cmd+N — New configuration\nCmd+O — Open configuration\nCmd+Shift+W — Close configuration\nCmd+S — Save\nCmd+= / Cmd+- — Zoom terminal text\nCmd+, — Settings\nReturn — Edit selected connection\nDouble-click — Open connection in new tab";
+"Help.Tips.Title" = "Tips";
+"Help.Tips.Body" = "• Drag connections and folders to reorder them. Drop a node on a folder to move it inside.\n• Use the search field in the sidebar to filter by name, host, protocol or description.\n• Panels (the tab bar at the top of the window) group connections — set the Panel attribute on a connection to put it in a different tab group.\n• Install sshpass via Homebrew (brew install hudochenkov/sshpass/sshpass) to let mRemoteNXT auto-fill SSH passwords. Without it, SSH falls back to your agent key or interactive prompt.\n• Every save creates a timestamped backup in backups/ next to your confCons.xml — you can never accidentally lose data.";
+"Help.Limitations.Title" = "Known limitations";
+"Help.Limitations.Body" = "• FullFileEncryption=true (whole-XML encryption) is not yet supported.\n• Schema versions newer than 2.6 are untested.\n• RDP image-clipboard, drive / sound redirect and remote-cursor visibility are not implemented.\n• VNC and IntApp (external application launching) are planned but not implemented.\n• The app is ad-hoc signed — macOS shows a Gatekeeper warning on first launch. Run: xattr -dr com.apple.quarantine /Applications/mRemoteNXT.app";
+"Help.MoreInfo" = "More information";
+"Help.OpenIssue" = "Report a bug or request a feature";
+"Help.Email" = "Email the author: razvan@cremenescu.ro";
