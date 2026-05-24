@@ -6,11 +6,12 @@ import Foundation
 import CryptoKit
 import CommonCrypto
 
-/// Replica schemei de criptare mRemoteNG (EncryptionEngine="AES", BlockCipherMode="GCM").
-/// Format blob (dupa base64-decode): [salt 16B][nonce 16B][ciphertext ...][tag 16B].
-/// Cheie: PBKDF2-HMAC-SHA1(parola, salt, iteratii) -> 32B. AAD = salt.
+/// Reimplementation of mRemoteNG's encryption scheme
+/// (EncryptionEngine="AES", BlockCipherMode="GCM").
+/// Blob layout (after base64-decode): [salt 16B][nonce 16B][ciphertext ...][tag 16B].
+/// Key: PBKDF2-HMAC-SHA1(password, salt, iterations) -> 32B. AAD = salt.
 public enum MRNGCrypto {
-    /// Passphrase implicita folosita de mRemoteNG cand userul nu seteaza una proprie.
+    /// Default passphrase used by mRemoteNG when the user has not set a custom one.
     public static let defaultPassword = "mR3m"
 
     public static func pbkdf2SHA1(password: String, salt: Data, iterations: Int, keyLength: Int) -> Data {
@@ -26,12 +27,12 @@ public enum MRNGCrypto {
                 UInt32(iterations),
                 out.bindMemory(to: UInt8.self).baseAddress, keyLength)
         }
-        precondition(status == kCCSuccess, "PBKDF2 a esuat: \(status)")
+        precondition(status == kCCSuccess, "PBKDF2 failed: \(status)")
         return derived
     }
 
-    /// Decripteaza un camp criptat (base64). Returneaza nil daca parola e gresita
-    /// (tag GCM invalid) sau formatul e corupt.
+    /// Decrypt a base64-encoded encrypted field. Returns nil if the password is
+    /// wrong (GCM tag mismatch) or the blob is malformed.
     public static func decrypt(base64: String, password: String, iterations: Int) -> String? {
         guard let blob = Data(base64Encoded: base64), blob.count > 16 + 16 + 16 else { return nil }
         let salt = blob.prefix(16)
@@ -51,12 +52,12 @@ public enum MRNGCrypto {
         }
     }
 
-    /// Verifica daca o parola decripteaza cu succes atributul `Protected` din root.
+    /// Checks whether a password successfully decrypts the root `Protected` attribute.
     public static func passwordIsCorrect(protectedBase64: String, password: String, iterations: Int) -> Bool {
         return decrypt(base64: protectedBase64, password: password, iterations: iterations) != nil
     }
 
-    /// Cripteaza un text in formatul mRemoteNG (citibil inapoi de mRemoteNG):
+    /// Encrypt a string in the mRemoteNG format (read back by mRemoteNG itself):
     /// [salt 16B][nonce 16B][ciphertext][tag 16B] -> base64. AAD = salt.
     public static func encrypt(plaintext: String, password: String, iterations: Int) -> String {
         let salt = randomBytes(16)

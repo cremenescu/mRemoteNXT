@@ -9,7 +9,7 @@ import UniformTypeIdentifiers
 extension MRNGNode {
     var sfSymbol: String { iconInfo.symbol }
 
-    /// Mapare nume iconita mRemoteNG -> (SF Symbol, culoare). Fallback pe protocol.
+    /// Map an mRemoteNG icon name -> (SF Symbol, color). Falls back per-protocol.
     var iconInfo: (symbol: String, color: Color) {
         if isContainer { return ("folder.fill", .accentColor) }
         switch icon {
@@ -119,7 +119,7 @@ struct ContentView: View {
                 .searchable(text: $model.searchText, placement: .sidebar, prompt: Text(t("Search.Placeholder")))
                 .frame(maxHeight: .infinity)
 
-                // Status bar (read-only) cu IP/User/Pass + click-to-copy.
+                // Read-only status bar with Host/User/Pass + click-to-copy.
                 ConnectionStatusBar()
             }
         } else {
@@ -141,7 +141,7 @@ struct ContentView: View {
                 Divider()
             }
             ZStack {
-                // Sesiunile raman vii in ierarhie -> procesul ssh nu reporneste la schimbarea tab-ului.
+                // Sessions stay alive in the hierarchy -> the ssh process doesn't restart when switching tabs.
                 ForEach(model.sessions) { session in
                     SessionView(session: session,
                                 isActive: session.id == model.selectedSessionID,
@@ -186,7 +186,7 @@ struct TreeRow: View {
     var body: some View {
         let node = row.node
         HStack(spacing: 4) {
-            // Linii de ghidaj pentru arbore (ca in mRemoteNG Windows).
+            // Tree guide lines (like mRemoteNG on Windows).
             ForEach(0..<row.depth, id: \.self) { _ in
                 Color.clear.frame(width: 14)
                     .overlay(alignment: .leading) {
@@ -291,11 +291,11 @@ struct TreeRow: View {
                 Circle().fill(Color.accentColor).frame(width: 6, height: 6).offset(x: -2)
             }
             .padding(.leading, CGFloat(row.depth) * 14 + 18)
-            .allowsHitTesting(false) // sa nu intercepteze drop-ul -> performDrop se declanseaza, curatare instant
+            .allowsHitTesting(false) // don't intercept the drop -> performDrop fires, cleanup is instant
     }
 }
 
-/// Drop cu pozitie (deasupra / dedesubt / in folder), in functie de cursor.
+/// Drop with positioning (above / below / into folder) based on cursor location.
 struct RowDropDelegate: DropDelegate {
     let node: MRNGNode
     let rowHeight: CGFloat
@@ -336,10 +336,10 @@ struct RowDropDelegate: DropDelegate {
     }
 }
 
-/// Iconita unui nod: folder pentru containere, iconita reala mRemoteNG dupa atributul Icon,
-/// fallback la SF Symbol pe protocol.
+/// Icon for a node: folder for containers, the real mRemoteNG icon per the Icon attribute,
+/// falling back to an SF Symbol based on the protocol.
 struct NodeIconView: View {
-    // Valori (nu obiectul) ca SwiftUI sa re-randeze cand se schimba iconita.
+    // Pass values (not the node object) so SwiftUI re-renders on icon change.
     let isContainer: Bool
     let iconName: String
     let fallbackSymbol: String

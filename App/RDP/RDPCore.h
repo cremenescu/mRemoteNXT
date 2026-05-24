@@ -3,8 +3,8 @@
  * See LICENSE for full text.
  */
 
-// Interfata pur C peste FreeRDP. NU include headere Foundation/Cocoa aici, ca sa nu
-// se loveasca typedef-ul IID al WinPR de cel din CoreFoundation (CFPlugInCOM).
+// Pure C interface over FreeRDP. Do NOT include Foundation/Cocoa headers here, so
+// WinPR's IID typedef doesn't collide with CoreFoundation's (CFPlugInCOM).
 #ifndef RDPCORE_H
 #define RDPCORE_H
 
@@ -19,12 +19,12 @@ typedef struct RDPCore RDPCore;
 
 typedef struct {
     void (*onConnected)(void *ctx, int width, int height);
-    // bgra = buffer live (valid doar in timpul apelului); consumatorul copiaza sincron.
+    // bgra = live buffer (valid only during the callback); the consumer copies synchronously.
     void (*onImage)(void *ctx, const uint8_t *bgra, int width, int height, int stride);
     void (*onDisconnected)(void *ctx, const char *error); // error == NULL => normal
 } RDPCoreCallbacks;
 
-// Coduri taste speciale (trebuie sa coincida cu RDPSpecialKey din RDPClient.h).
+// Special key codes (must match RDPSpecialKey in RDPClient.h).
 enum {
     RDPCORE_KEY_ENTER = 1, RDPCORE_KEY_BACKSPACE, RDPCORE_KEY_TAB, RDPCORE_KEY_ESCAPE,
     RDPCORE_KEY_SPACE, RDPCORE_KEY_UP, RDPCORE_KEY_DOWN, RDPCORE_KEY_LEFT, RDPCORE_KEY_RIGHT,
@@ -38,7 +38,7 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
 void rdpcore_start(RDPCore *core);
 void rdpcore_stop(RDPCore *core);
 void rdpcore_free(RDPCore *core);
-// Redimensionare live a desktop-ului RDP (canalul Display Control).
+// Live resize of the RDP desktop (via the Display Control channel).
 void rdpcore_resize(RDPCore *core, int width, int height, int scalePercent);
 
 void rdpcore_mouse_move(RDPCore *core, int x, int y);

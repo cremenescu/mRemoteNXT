@@ -7,8 +7,8 @@ import WebKit
 import AppKit
 import MRNGCore
 
-/// WKWebView care accepta certificate self-signed (uz intern pe LAN) si
-/// auto-completeaza user/parola din confCons.xml la incarcarea paginii.
+/// WKWebView that accepts self-signed certificates (intended for LAN use)
+/// and auto-fills username/password from confCons.xml on page load.
 final class HTTPSWebView: WKWebView, WKNavigationDelegate {
     var autofillUser: String = ""
     var autofillPass: String = ""
@@ -16,13 +16,13 @@ final class HTTPSWebView: WKWebView, WKNavigationDelegate {
     func webView(_ webView: WKWebView,
                  didReceive challenge: URLAuthenticationChallenge,
                  completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        // Self-signed pe LAN.
+        // Self-signed certificate on LAN.
         if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
            let trust = challenge.protectionSpace.serverTrust {
             completionHandler(.useCredential, URLCredential(trust: trust))
             return
         }
-        // HTTP Basic / Digest -> trimite credentialele nodului daca le avem.
+        // HTTP Basic / Digest -> send the node's credentials if we have any.
         if challenge.previousFailureCount == 0,
            !autofillUser.isEmpty,
            (challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodHTTPBasic
@@ -39,9 +39,9 @@ final class HTTPSWebView: WKWebView, WKNavigationDelegate {
         injectAutofill()
     }
 
-    /// Detecteaza primul <input type="password"> si campul de user adiacent;
-    /// completeaza valorile si dispatch-uieste evenimente input/change pentru
-    /// frameworks (React/Vue) ca sa "vada" modificarea. NU face submit automat.
+    /// Detects the first <input type="password"> and the nearest user field;
+    /// fills the values and dispatches input/change events so JS frameworks
+    /// (React/Vue) "see" the change. Does NOT auto-submit.
     private func injectAutofill() {
         guard !autofillUser.isEmpty || !autofillPass.isEmpty else { return }
         let u = jsString(autofillUser)
@@ -55,13 +55,13 @@ final class HTTPSWebView: WKWebView, WKNavigationDelegate {
           var USER = \(u), PASS = \(p);
           var hasUser = \(hasUser), hasPass = \(hasPass);
           var filledPw = false, filledUser = false;
-          var attempts = 0, maxAttempts = 60; // ~18s la 300ms
+          var attempts = 0, maxAttempts = 60; // ~18s at 300ms
 
           function visible(el){
             if (!el) return false;
             if (el.disabled || el.readOnly) return false;
             if (el.offsetParent === null && el.type !== 'hidden') {
-              // unele input-uri sunt pozitionate fixed -> offsetParent null dar vizibile
+              // some inputs are position:fixed -> offsetParent is null but they are visible
               var r = el.getBoundingClientRect();
               if (r.width === 0 || r.height === 0) return false;
             }
@@ -79,7 +79,7 @@ final class HTTPSWebView: WKWebView, WKNavigationDelegate {
             el.dispatchEvent(new KeyboardEvent('keyup', {bubbles:true}));
           }
           function findUserField(pw){
-            // Strategia 1: input vizibil inainte de pw (in form sau document)
+            // Strategy 1: visible input before pw (in the form, or in the document)
             var scope = pw.form || document;
             var inputs = Array.prototype.slice.call(scope.querySelectorAll('input'));
             var before = null;
@@ -90,14 +90,14 @@ final class HTTPSWebView: WKWebView, WKNavigationDelegate {
               if (visible(inputs[i])) before = inputs[i];
             }
             if (before) return before;
-            // Strategia 2: input vizibil DUPA pw (rar, dar exista)
+            // Strategy 2: visible input AFTER pw (rare, but it happens)
             var idx = inputs.indexOf(pw);
             for (var j = idx + 1; j < inputs.length; j++) {
               var t2 = (inputs[j].type || 'text').toLowerCase();
               if (t2 === 'password' || t2 === 'hidden' || t2 === 'submit' || t2 === 'button' || t2 === 'checkbox' || t2 === 'radio') continue;
               if (visible(inputs[j])) return inputs[j];
             }
-            // Strategia 3: cauta dupa atribute (name/id/autocomplete)
+            // Strategy 3: match by attributes (name/id/autocomplete/placeholder)
             var hints = ['username','user','login','email','account','userid','uid'];
             for (var k = 0; k < inputs.length; k++) {
               var el = inputs[k];
@@ -126,7 +126,7 @@ final class HTTPSWebView: WKWebView, WKNavigationDelegate {
           var iv = setInterval(function(){
             if (tryFill() || attempts >= maxAttempts) clearInterval(iv);
           }, 300);
-          // MutationObserver pt SPA-uri care monteaza form-ul lazy
+          // MutationObserver for SPAs that mount the form lazily
           try {
             var mo = new MutationObserver(function(){ if (tryFill()) mo.disconnect(); });
             mo.observe(document.documentElement, {childList:true, subtree:true});
@@ -138,7 +138,7 @@ final class HTTPSWebView: WKWebView, WKNavigationDelegate {
     }
 
     private func jsString(_ s: String) -> String {
-        // JSON-encode ca sa scape corect quote-uri, backslash, unicode.
+        // JSON-encode so quotes, backslashes and unicode are properly escaped.
         if let data = try? JSONSerialization.data(withJSONObject: [s], options: []),
            let str = String(data: data, encoding: .utf8) {
             // [\"...\"] -> \"...\"
@@ -165,13 +165,13 @@ struct HTTPContainer: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: HTTPSWebView, context: Context) {
-        // Daca s-au schimbat credentialele in inspector cat tab-ul era deschis.
+        // Pick up credentials if they changed in the editor while the tab was open.
         nsView.autofillUser = session.node.username
         nsView.autofillPass = session.password
     }
 
     static func url(for node: MRNGNode) -> URL? {
-        let scheme = node.protocolType.lowercased() // "http" sau "https"
+        let scheme = node.protocolType.lowercased() // "http" or "https"
         let host = node.hostname
         guard !host.isEmpty else { return nil }
         let defaultPort = (scheme == "https") ? 443 : 80

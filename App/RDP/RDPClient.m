@@ -8,7 +8,7 @@
 
 @interface RDPClient () {
     RDPCore *_core;
-    CGImageRef _pendingImage;   // ultimul cadru, livrat coalesced pe main
+    CGImageRef _pendingImage;   // most recent frame, delivered coalesced on main
     BOOL _updateScheduled;
 }
 - (void)enqueueImage:(CGImageRef)img;
@@ -46,14 +46,14 @@ static void core_onImage(void *ctx, const uint8_t *bgra, int w, int h, int strid
     CGDataProviderRelease(provider);
     CGColorSpaceRelease(cs);
     if (!img) return;
-    [self enqueueImage:img]; // coalescing: pastreaza doar ultimul cadru pt main
+    [self enqueueImage:img]; // coalescing: keep only the latest frame for main
     CGImageRelease(img);
 }
 
 static void core_onDisconnected(void *ctx, const char *err) {
     NSString *msg = err ? [NSString stringWithUTF8String:err] : nil;
-    // Transferam retain-ul detinut de core inapoi in ARC: dupa acest callback, clientul
-    // se poate elibera in siguranta (thread-ul s-a terminat).
+    // Transfer the +1 retain held by core back to ARC: after this callback the
+    // client can be safely deallocated (the thread is done).
     RDPClient *self = (__bridge_transfer RDPClient *)ctx;
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.delegate rdpClient:self didDisconnectWithError:msg];
@@ -81,7 +81,8 @@ static void core_onDisconnected(void *ctx, const char *err) {
 - (void)start {
     if (_core) return;
     RDPCoreCallbacks cb = { core_onConnected, core_onImage, core_onDisconnected };
-    // core detine un +1 pe self pe durata conexiunii (eliberat in core_onDisconnected).
+    // core holds a +1 retain on self for the lifetime of the connection
+    // (released in core_onDisconnected).
     void *ctx = (__bridge_retained void *)self;
     _core = rdpcore_create(self.host.UTF8String, self.port,
                            self.username.UTF8String, self.domain.UTF8String,
@@ -98,11 +99,11 @@ static void core_onDisconnected(void *ctx, const char *err) {
 }
 
 - (void)dealloc {
-    if (_core) rdpcore_free(_core); // thread deja terminat (onDisconnected a transferat retain-ul)
+    if (_core) rdpcore_free(_core); // thread already finished (onDisconnected transferred the retain)
     if (_pendingImage) CGImageRelease(_pendingImage);
 }
 
-// Coalescing: daca main e ocupat, cadrele intermediare se inlocuiesc -> afisam doar ultimul.
+// Coalescing: if main is busy, intermediate frames are replaced -> we only show the latest.
 - (void)enqueueImage:(CGImageRef)img {
     @synchronized (self) {
         if (_pendingImage) CGImageRelease(_pendingImage);

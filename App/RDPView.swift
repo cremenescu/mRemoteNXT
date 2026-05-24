@@ -6,7 +6,7 @@ import SwiftUI
 import AppKit
 import MRNGCore
 
-/// NSView care afiseaza framebuffer-ul RDP (CGImage in layer) si trimite input.
+/// NSView that displays the RDP framebuffer (CGImage in a layer) and sends input.
 extension Notification.Name {
     static let mrngSendCAD = Notification.Name("MRNG.SendCtrlAltDel")
 }
@@ -18,7 +18,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
     private var didConnectOnce = false
     private var lastModifierFlags: NSEvent.ModifierFlags = []
     private var cadObserver: NSObjectProtocol?
-    /// Apelat la deconectare DUPA o conectare reusita (nu la fail de conectare).
+    /// Called on disconnect AFTER a successful connection (not on connect failure).
     var onDisconnect: (() -> Void)?
 
     private let session: Session
@@ -30,7 +30,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
         wantsLayer = true
         layer?.backgroundColor = NSColor.black.cgColor
         layer?.contentsGravity = .resizeAspect
-        showStatus("Se conecteaza la \(session.node.hostname)...")
+        showStatus("Connecting to \(session.node.hostname)...")
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) unsupported") }
@@ -43,14 +43,14 @@ final class RDPNSView: NSView, RDPClientDelegate {
 
     private var resizeWork: DispatchWorkItem?
 
-    // Conecteaza dupa ce view-ul are dimensiune reala -> rezolutia RDP = pixelii tab-ului (Retina-aware).
+    // Connect only after the view has a real size -> RDP resolution = tab pixels (Retina-aware).
     override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); startIfNeeded() }
     override func layout() {
         super.layout()
         if !didStart { startIfNeeded() } else { scheduleResize() }
     }
 
-    /// Dimensiunea desktop-ului RDP in pixeli (Retina-aware), pe baza bounds-ului curent.
+    /// Desired RDP desktop size in pixels (Retina-aware), based on current bounds.
     private func targetPixels() -> (w: Int, h: Int, scalePct: Int) {
         let scale = window?.backingScaleFactor ?? 2.0
         var w = Int((bounds.width * scale).rounded())
@@ -84,7 +84,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
         client = c
         c.start()
 
-        // Observa cererile de Ctrl+Alt+Del pt aceasta sesiune.
+        // Observe Ctrl+Alt+Del requests for this session.
         let sessionID = session.id
         cadObserver = NotificationCenter.default.addObserver(
             forName: .mrngSendCAD, object: nil, queue: .main) { [weak self] note in
@@ -93,7 +93,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
         }
     }
 
-    /// Trimite secventa Ctrl+Alt+Del catre sesiunea RDP.
+    /// Sends the Ctrl+Alt+Del sequence to the RDP session.
     func sendCtrlAltDel() {
         let ctrl = RDPSpecialKey.keyControl.rawValue
         let alt = RDPSpecialKey.keyAlt.rawValue
@@ -106,7 +106,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
         client?.keySpecial(ctrl, down: false)
     }
 
-    /// Trimite noua rezolutie serverului (debounced) cand fereastra se redimensioneaza.
+    /// Sends a new resolution to the server (debounced) when the window resizes.
     private func scheduleResize() {
         guard didStart, window != nil, bounds.width > 100, bounds.height > 100 else { return }
         let t = targetPixels()
@@ -151,11 +151,11 @@ final class RDPNSView: NSView, RDPClientDelegate {
     }
 
     func rdpClient(_ client: RDPClient, didDisconnectWithError error: String?) {
-        showStatus(error ?? "Deconectat.")
+        showStatus(error ?? "Disconnected.")
         if didConnectOnce { onDisconnect?() }
     }
 
-    // MARK: - Coordonate (aspect-fit view -> desktop RDP)
+    // MARK: - Coordinates (aspect-fit view -> RDP desktop)
 
     private func rdpPoint(_ event: NSEvent) -> (Int32, Int32) {
         let p = convert(event.locationInWindow, from: nil)
@@ -167,7 +167,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
         if viewAspect > imgAspect { drawW = vh * imgAspect; offX = (vw - drawW) / 2 }
         else { drawH = vw / imgAspect; offY = (vh - drawH) / 2 }
         let nx = (p.x - offX) / drawW
-        let ny = 1 - (p.y - offY) / drawH // NSView e bottom-left, RDP top-left
+        let ny = 1 - (p.y - offY) / drawH // NSView is bottom-left, RDP is top-left
         let x = Int32((nx * desktop.width).rounded())
         let y = Int32((ny * desktop.height).rounded())
         return (max(0, min(Int32(desktop.width) - 1, x)), max(0, min(Int32(desktop.height) - 1, y)))
@@ -189,7 +189,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
     override func otherMouseUp(with e: NSEvent)  { let (x, y) = rdpPoint(e); client?.mouseButton(3, down: false, x: x, y: y) }
     override func scrollWheel(with e: NSEvent)   { let (x, y) = rdpPoint(e); client?.scrollSteps(Int32(e.deltaY.rounded()), x: x, y: y) }
 
-    // Trimite si mouseMoved chiar fara buton apasat.
+    // Report mouseMoved even without a pressed button.
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
@@ -199,13 +199,13 @@ final class RDPNSView: NSView, RDPClientDelegate {
         addTrackingArea(ta)
     }
 
-    // MARK: - Tastatura
+    // MARK: - Keyboard
 
     override func keyDown(with e: NSEvent) { handleKey(e, down: true) }
     override func keyUp(with e: NSEvent)   { handleKey(e, down: false) }
 
-    /// Mapeaza schimbarile de modificatori (Shift/Ctrl/Option/Cmd) la scancode-urile RDP.
-    /// Cmd este "virtualizat" ca Ctrl ca shortcut-urile Mac (Cmd+C) sa devina Ctrl+C in Windows.
+    /// Maps modifier changes (Shift/Ctrl/Option/Cmd) to RDP scancodes.
+    /// Cmd is "virtualized" as Ctrl so Mac shortcuts (Cmd+C) become Ctrl+C in Windows.
     override func flagsChanged(with event: NSEvent) {
         let interesting: NSEvent.ModifierFlags = [.shift, .control, .option, .command]
         let newFlags = event.modifierFlags.intersection(interesting)
@@ -268,7 +268,7 @@ struct RDPContainer: NSViewRepresentable {
         guard isActive else { return }
         DispatchQueue.main.async {
             guard let w = nsView.window else { return }
-            // Nu fura focus daca userul scrie intr-un camp de text (ex. search).
+            // Don't steal focus while the user is typing in a text field (e.g. search).
             if w.firstResponder is NSText { return }
             if w.firstResponder !== nsView { w.makeFirstResponder(nsView) }
         }

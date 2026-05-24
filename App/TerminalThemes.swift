@@ -9,11 +9,11 @@ struct TerminalTheme {
     let background: String   // hex "RRGGBB"
     let foreground: String
     let cursor: String
-    let ansi: [String]       // 16 culori ANSI
+    let ansi: [String]       // 16 ANSI colors
 }
 
 enum TerminalThemes {
-    /// "Implicit" = tema default SwiftTerm (nu suprascriem).
+    /// "Implicit" (Default) = SwiftTerm's stock theme; we don't override it.
     static let names = ["Implicit", "macOS Light", "Solarized Dark", "Dracula", "Nord", "Solarized Light"]
 
     static let all: [String: TerminalTheme] = [
@@ -39,18 +39,18 @@ enum TerminalThemes {
                    "002b36", "cb4b16", "586e75", "657b83", "839496", "6c71c4", "93a1a1", "fdf6e3"]),
     ]
 
-    // Paleta ANSI default SwiftTerm (pt restaurare la "Implicit").
+    // SwiftTerm's default ANSI palette (for restoring the "Implicit" theme).
     private static let defaultPalette = [
         "000000", "990001", "00a603", "999900", "0300b2", "b200b2", "00a5b2", "bfbfbf",
         "8a898a", "e50001", "00d800", "e5e500", "0700fe", "e500e5", "00e5e5", "e5e5e5",
     ]
-    // Culorile default capturate o singura data (bg/fg/cursor difera de paleta).
+    // Default colors captured once (bg/fg/cursor are not derivable from the palette).
     private static var defaultBg: NSColor?
     private static var defaultFg: NSColor?
     private static var defaultCaret: NSColor?
 
     static func apply(_ name: String, to term: LocalProcessTerminalView) {
-        // Capteaza culorile default inainte de orice modificare (o singura data).
+        // Capture the default colors before any modification (once).
         if defaultBg == nil {
             defaultBg = term.nativeBackgroundColor
             defaultFg = term.nativeForegroundColor

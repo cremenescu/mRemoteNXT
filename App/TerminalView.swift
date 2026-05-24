@@ -6,9 +6,10 @@ import SwiftUI
 import SwiftTerm
 import AppKit
 
-/// Terminal cu comportament stil PuTTY: copy-on-select + paste pe click-dreapta.
-/// mouseUp din SwiftTerm e `public` (nu `open`) -> nu pot face override; folosesc
-/// gesture recognizer (click-dreapta) + event monitor (left mouse up).
+/// Terminal with PuTTY-style behavior: copy-on-select + right-click paste.
+/// SwiftTerm's `mouseUp` is `public` (not `open`), so we can't override it;
+/// instead we use a gesture recognizer (right-click) + an event monitor
+/// (left mouse up).
 final class MRNGTerminalView: LocalProcessTerminalView {
     private var mouseUpMonitor: Any?
 
@@ -23,10 +24,10 @@ final class MRNGTerminalView: LocalProcessTerminalView {
 
     private func setupPuttyMouse() {
         let rightClick = NSClickGestureRecognizer(target: self, action: #selector(rightClickPaste))
-        rightClick.buttonMask = 0x2 // doar butonul dreapta (stanga ramane pt selectie)
+        rightClick.buttonMask = 0x2 // right button only (left stays for selection)
         addGestureRecognizer(rightClick)
 
-        // Copy-on-select: observa left-mouse-up (selectia e deja construita din drag).
+        // Copy-on-select: observe left-mouse-up (the selection is built from the drag).
         mouseUpMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
             guard let self, event.window === self.window, self.selectionActive else { return event }
             let pt = self.convert(event.locationInWindow, from: nil)
@@ -34,7 +35,7 @@ final class MRNGTerminalView: LocalProcessTerminalView {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(text, forType: .string)
             }
-            return event // nu consuma -> SwiftTerm proceseaza normal
+            return event // don't consume -> SwiftTerm still gets the event
         }
     }
 
@@ -49,8 +50,8 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     }
 }
 
-/// Wrapper SwiftUI peste LocalProcessTerminalView din SwiftTerm.
-/// Lanseaza ssh/telnet de sistem intr-un PTY embedat in tab.
+/// SwiftUI wrapper around SwiftTerm's LocalProcessTerminalView.
+/// Spawns the system ssh/telnet in a PTY embedded in the tab.
 struct TerminalContainer: NSViewRepresentable {
     let session: Session
     let isActive: Bool
@@ -72,11 +73,11 @@ struct TerminalContainer: NSViewRepresentable {
             nsView.font = desired
         }
         TerminalThemes.apply(theme, to: nsView)
-        // Da focus terminalului cand tab-ul devine activ, ca tastatura sa ajunga la el.
+        // Give the terminal first responder status when its tab becomes active.
         guard isActive else { return }
         DispatchQueue.main.async {
             guard let window = nsView.window else { return }
-            if window.firstResponder is NSText { return } // userul scrie in search etc.
+            if window.firstResponder is NSText { return } // user is typing in search etc.
             if window.firstResponder !== nsView { window.makeFirstResponder(nsView) }
         }
     }
@@ -96,8 +97,8 @@ struct TerminalContainer: NSViewRepresentable {
                 "-o", "StrictHostKeyChecking=accept-new",
                 target,
             ]
-            // Daca avem parola si sshpass instalat -> auto-injectare. Altfel ssh standard
-            // (foloseste cheia din agent sau cere parola interactiv).
+            // If we have a password AND sshpass is installed -> inject it.
+            // Otherwise plain ssh (uses agent key or prompts interactively).
             if !session.password.isEmpty, let sshpass = sshpassPath() {
                 return (sshpass, ["-p", session.password, "/usr/bin/ssh"] + sshArgs)
             }
@@ -106,26 +107,26 @@ struct TerminalContainer: NSViewRepresentable {
             return ("/usr/bin/telnet", [host, "\(port)"])
         case .sftp:
             return ("/usr/bin/sftp", [
-                "-P", "\(port)", // SFTP foloseste -P (mare) pt port
+                "-P", "\(port)", // SFTP uses uppercase -P for the port
                 "-o", "UserKnownHostsFile=\(appKnownHostsPath())",
                 "-o", "StrictHostKeyChecking=accept-new",
                 target,
             ])
         case .externalTool:
-            return ("/bin/sh", ["-lc", session.command ?? "echo 'fara comanda'"])
+            return ("/bin/sh", ["-lc", session.command ?? "echo 'no command'"])
         default:
-            return ("/bin/echo", ["Protocol neimplementat in terminal."])
+            return ("/bin/echo", ["Protocol not implemented in the terminal."])
         }
     }
 
-    /// Cauta sshpass instalat (brew). Returneaza calea sau nil.
+    /// Look for an installed sshpass (brew). Returns the path, or nil.
     static func sshpassPath() -> String? {
         let candidates = ["/opt/homebrew/bin/sshpass", "/usr/local/bin/sshpass"]
         return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
-    /// known_hosts dedicat aplicatiei (separat de ~/.ssh/known_hosts), ca sa nu se
-    /// loveasca de chei vechi de sistem si sa accepte automat la prima conectare.
+    /// App-specific known_hosts (separate from ~/.ssh/known_hosts), so we don't
+    /// collide with old system entries and we can auto-accept on first connect.
     static func appKnownHostsPath() -> String {
         let fm = FileManager.default
         let base = (fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first

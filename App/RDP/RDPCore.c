@@ -29,14 +29,14 @@ static UINT32 deviceScaleFor(int scalePercent) {
     return 100;
 }
 
-// Context custom: trebuie sa inceapa cu rdpClientContext (pattern-ul de client FreeRDP).
+// Custom context: must start with rdpClientContext (FreeRDP client pattern).
 typedef struct {
     rdpClientContext common;
     RDPCore *core;
 } mrngContext;
 
 struct RDPCore {
-    rdpContext *context; // creat cu freerdp_client_context_new
+    rdpContext *context; // created by freerdp_client_context_new
     pthread_t thread;
     volatile int stopRequested;
     int started;
@@ -81,14 +81,14 @@ static BOOL mrng_desktop_resize(rdpContext *context) {
     return TRUE;
 }
 
-// MARK: - Channels (disp pentru resize live)
+// MARK: - Channels (disp for live resize)
 
 static void on_channel_connected(void *context, const ChannelConnectedEventArgs *e) {
     rdpContext *ctx = (rdpContext *)context;
     if (strcmp(e->name, DISP_DVC_CHANNEL_NAME) == 0) {
         coreFromContext(ctx)->disp = (DispClientContext *)e->pInterface;
     } else if (strcmp(e->name, RDPGFX_DVC_CHANNEL_NAME) == 0) {
-        // Leaga pipeline-ul GFX la gdi -> updateurile codec (H264/progresiv) ajung in framebuffer.
+        // Wire the GFX pipeline to gdi -> codec updates (H264/progressive) land in the framebuffer.
         if (ctx->gdi) gdi_graphics_pipeline_init(ctx->gdi, (RdpgfxClientContext *)e->pInterface);
     }
 }
@@ -105,7 +105,7 @@ static void on_channel_disconnected(void *context, const ChannelDisconnectedEven
 // MARK: - Instance lifecycle callbacks
 
 static BOOL mrng_pre_connect(freerdp *instance) {
-    // Stratul client/common incarca singur canalele (LoadChannels) -> nu mai chemam load_addins manual.
+    // The client/common layer wires the channels itself (LoadChannels) -> no need to call load_addins manually.
     (void)instance;
     return TRUE;
 }
@@ -129,7 +129,7 @@ static DWORD mrng_verify_cert_ex(freerdp *instance, const char *host, UINT16 por
                                  const char *issuer, const char *fingerprint, DWORD flags) {
     (void)instance; (void)host; (void)port; (void)common_name;
     (void)subject; (void)issuer; (void)fingerprint; (void)flags;
-    return 2; // accepta si memoreaza (self-signed pe LAN)
+    return 2; // accept and remember (self-signed on LAN)
 }
 
 // MARK: - Client entry points
@@ -142,7 +142,7 @@ static void *thread_proc(void *arg) {
         UINT32 err = freerdp_get_last_error(core->context);
         const char *name = freerdp_get_last_error_name(err);
         char msg[256];
-        snprintf(msg, sizeof(msg), "Conectare esuata: %s", name ? name : "necunoscut");
+        snprintf(msg, sizeof(msg), "Connection failed: %s", name ? name : "unknown");
         notifyDisconnected(core, msg);
         return NULL;
     }
@@ -159,17 +159,17 @@ static void *thread_proc(void *arg) {
 
     freerdp_disconnect(instance);
 
-    // Raporteaza motivul: nimic daca userul a inchis, altfel ultima eroare / "inchisa de server".
+    // Report the reason: nothing if the user closed it, otherwise the last error / "closed by server".
     const char *msg = NULL;
     char buf[256];
     if (!core->stopRequested) {
         UINT32 err = freerdp_get_last_error(core->context);
         if (err != FREERDP_ERROR_SUCCESS) {
             const char *name = freerdp_get_last_error_name(err);
-            snprintf(buf, sizeof(buf), "Deconectat: %s", name ? name : "necunoscut");
+            snprintf(buf, sizeof(buf), "Disconnected: %s", name ? name : "unknown");
             msg = buf;
         } else {
-            msg = "Sesiune inchisa (poate preluata de alta conexiune).";
+            msg = "Session closed (possibly taken over by another connection).";
         }
     }
     notifyDisconnected(core, msg);
@@ -209,7 +209,7 @@ static int mrng_client_stop(rdpContext *context) {
     return 0;
 }
 
-// MARK: - API public
+// MARK: - Public API
 
 static char *dupstr(const char *s) {
     if (!s) return NULL;
@@ -272,8 +272,8 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     freerdp_settings_set_bool(s, FreeRDP_SupportDynamicChannels, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_SupportDisplayControl, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_DynamicResolutionUpdate, TRUE);
-    // Pipeline GFX (esential pe Win10/11 — altfel cade pe bitmap legacy lent).
-    // Pipeline-ul se leaga la gdi in on_channel_connected (RDPGFX_DVC_CHANNEL_NAME).
+    // GFX pipeline (essential on Win10/11 — otherwise it falls back to the slow legacy bitmap path).
+    // The pipeline is wired to gdi in on_channel_connected (RDPGFX_DVC_CHANNEL_NAME).
     freerdp_settings_set_bool(s, FreeRDP_SupportGraphicsPipeline, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_GfxProgressive, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_GfxH264, TRUE);

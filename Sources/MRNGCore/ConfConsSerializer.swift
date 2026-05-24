@@ -4,10 +4,10 @@
 
 import Foundation
 
-/// Serializeaza un ConfCons inapoi in formatul XML mRemoteNG (citibil de mRemoteNG).
+/// Serializes a ConfCons back into the mRemoteNG XML format (read by mRemoteNG).
 public enum ConfConsSerializer {
 
-    /// Ordinea canonica a atributelor (ca in output-ul mRemoteNG 2.6).
+    /// Canonical attribute order (matches mRemoteNG 2.6 output).
     private static let order: [String] = [
         "Name", "Type", "Expanded", "Descr", "Icon", "Panel", "Id", "Username", "Domain",
         "Password", "Hostname", "Protocol", "PuttySession", "Port", "ConnectToConsole",
@@ -71,7 +71,7 @@ public enum ConfConsSerializer {
             parts.append("\(key)=\"\(escape(attrs[key]!))\"")
             written.insert(key)
         }
-        // Atribute extra (necunoscute in ordinea canonica) -> sortate, la final.
+        // Extra attributes (unknown to the canonical order) -> sorted, at the end.
         for key in attrs.keys.sorted() where !written.contains(key) {
             parts.append("\(key)=\"\(escape(attrs[key]!))\"")
         }

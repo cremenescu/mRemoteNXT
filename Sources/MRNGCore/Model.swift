@@ -4,20 +4,20 @@
 
 import Foundation
 
-/// Un nod din arborele de conexiuni: fie Container (folder), fie Connection (conexiune).
+/// A node in the connection tree: either a Container (folder) or a Connection.
 public final class MRNGNode: Identifiable, Hashable {
     public static func == (lhs: MRNGNode, rhs: MRNGNode) -> Bool { lhs === rhs }
     public func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(self)) }
 
     public let id: String
     public let isContainer: Bool
-    /// Toate atributele brute din XML (pastrate pentru fidelitate + round-trip la salvare).
+    /// All raw XML attributes (kept for fidelity and round-trip on save).
     public var attributes: [String: String]
     public weak var parent: MRNGNode?
     public var children: [MRNGNode] = []
 
-    /// Numele e mereu citit din atribute (ca sa ramana sincron la editare).
-    public var name: String { attributes["Name"] ?? "(fara nume)" }
+    /// Name is always read from attributes (stays in sync with edits).
+    public var name: String { attributes["Name"] ?? "(no name)" }
 
     public init(id: String, name: String, isContainer: Bool, attributes: [String: String]) {
         self.id = id
@@ -26,7 +26,7 @@ public final class MRNGNode: Identifiable, Hashable {
         self.attributes["Name"] = name
     }
 
-    // MARK: - Mutatii arbore (editare)
+    // MARK: - Tree mutations (editing)
 
     public func addChild(_ node: MRNGNode, at index: Int? = nil) {
         node.parent?.children.removeAll { $0 === node }
@@ -40,7 +40,8 @@ public final class MRNGNode: Identifiable, Hashable {
         parent = nil
     }
 
-    /// True daca `ancestor` e (strict) stramos al acestui nod — pentru a impiedica mutarea unui folder in el insusi.
+    /// True if `ancestor` is a (strict) ancestor of this node — used to forbid
+    /// moving a folder into itself.
     public func isDescendant(of ancestor: MRNGNode) -> Bool {
         var p = parent
         while let cur = p { if cur === ancestor { return true }; p = cur.parent }
@@ -51,7 +52,7 @@ public final class MRNGNode: Identifiable, Hashable {
         attributes[key] = value
     }
 
-    // MARK: - Fabrica de noduri noi (atribute default mRemoteNG)
+    // MARK: - Factories for new nodes (with mRemoteNG default attributes)
 
     public static func makeConnection(name: String, protocolType: String = "RDP",
                                       hostname: String = "") -> MRNGNode {
@@ -125,7 +126,8 @@ public final class MRNGNode: Identifiable, Hashable {
         return a
     }
 
-    /// Rezolva un atribut tinand cont de mostenirea de la parinte (Inherit<flag>="true").
+    /// Resolve an attribute taking inheritance from the parent into account
+    /// (Inherit<flag>="true").
     public func resolved(_ key: String, inheritKey: String) -> String? {
         if attributes[inheritKey] == "true", let parent = parent {
             return parent.resolved(key, inheritKey: inheritKey)
@@ -133,9 +135,9 @@ public final class MRNGNode: Identifiable, Hashable {
         return attributes[key]
     }
 
-    // Accesori cu mostenire pentru campurile relevante la conectare/afisare.
+    // Accessors with inheritance for the fields relevant at connect/display time.
     public var protocolType: String { resolved("Protocol", inheritKey: "InheritProtocol") ?? "RDP" }
-    public var hostname: String { attributes["Hostname"] ?? "" } // fara InheritHostname in mRemoteNG
+    public var hostname: String { attributes["Hostname"] ?? "" } // mRemoteNG has no InheritHostname
     public var port: Int { Int(resolved("Port", inheritKey: "InheritPort") ?? "") ?? defaultPort }
     public var username: String { resolved("Username", inheritKey: "InheritUsername") ?? "" }
     public var domain: String { resolved("Domain", inheritKey: "InheritDomain") ?? "" }
@@ -147,7 +149,7 @@ public final class MRNGNode: Identifiable, Hashable {
     public var expanded: Bool { attributes["Expanded"] == "true" }
     public var externalApp: String { resolved("ExtApp", inheritKey: "InheritExtApp") ?? "" }
 
-    /// Portul implicit dupa protocol cand nu e specificat.
+    /// Default port per protocol when none is specified.
     private var defaultPort: Int {
         switch protocolType {
         case "SSH1", "SSH2": return 22
@@ -162,7 +164,7 @@ public final class MRNGNode: Identifiable, Hashable {
     }
 }
 
-/// Documentul confCons.xml: parametri de criptare + arborele de noduri radacina.
+/// The confCons.xml document: encryption parameters + the array of root nodes.
 public struct ConfCons {
     public var encryptionEngine: String
     public var blockCipherMode: String
@@ -172,7 +174,7 @@ public struct ConfCons {
     public var confVersion: String
     public var roots: [MRNGNode]
 
-    /// Toate nodurile (DFS), inclusiv containere.
+    /// All nodes (DFS), containers included.
     public func allNodes() -> [MRNGNode] {
         var out: [MRNGNode] = []
         func walk(_ n: MRNGNode) { out.append(n); n.children.forEach(walk) }

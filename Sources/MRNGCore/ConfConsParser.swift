@@ -10,7 +10,7 @@ public enum ConfConsError: Error {
     case fullFileEncryptionUnsupported
 }
 
-/// Parser SAX pentru confCons.xml (format mRemoteNG, ConfVersion 2.x).
+/// SAX parser for confCons.xml (mRemoteNG format, ConfVersion 2.x).
 public final class ConfConsParser: NSObject, XMLParserDelegate {
     private var stack: [MRNGNode] = []
     private var roots: [MRNGNode] = []
@@ -59,7 +59,7 @@ public final class ConfConsParser: NSObject, XMLParserDelegate {
         case "Node":
             let node = MRNGNode(
                 id: attributeDict["Id"] ?? UUID().uuidString,
-                name: attributeDict["Name"] ?? "(fara nume)",
+                name: attributeDict["Name"] ?? "(no name)",
                 isContainer: (attributeDict["Type"] ?? "") == "Container",
                 attributes: attributeDict
             )

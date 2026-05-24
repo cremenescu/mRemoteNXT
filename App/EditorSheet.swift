@@ -6,8 +6,8 @@ import SwiftUI
 import AppKit
 import MRNGCore
 
-/// Editor modal stil Royal TSX: categorii in stanga, formular in dreapta,
-/// butoane Discard / Apply&Close in josul ferestrei.
+/// Royal TSX-style modal editor: categories on the left, form on the right,
+/// Discard / Apply&Close buttons at the bottom of the window.
 struct EditorSheet: View {
     @EnvironmentObject var model: AppModel
     let nodeID: String
@@ -36,7 +36,7 @@ struct EditorSheet: View {
     }
 
     @State private var selectedCategory: Category = .general
-    /// Snapshot la deschidere; folosit pentru "Renunta".
+    /// Snapshot taken on open; used by the Discard button.
     @State private var snapshot: [String: String] = [:]
     @State private var passwordPlain: String = ""
     @State private var originalPasswordPlain: String = ""
@@ -264,9 +264,9 @@ struct EditorSheet: View {
     private func discard() {
         if let node {
             node.attributes = snapshot
-            // dirty NU-l facem false fortat daca erau modificari nesalvate inainte de a deschide.
+            // Don't forcibly clear dirty if the doc was already dirty before we opened.
             if !dirtyAtOpen {
-                // Daca am intrat curat, dupa restore restabilim si flag-ul.
+                // If we entered clean, restoring also restores the clean flag.
                 model.dirty = false
             } else {
                 model.dirty = true
@@ -277,7 +277,7 @@ struct EditorSheet: View {
     }
 
     private func apply() {
-        // Modificarile sunt deja in node.attributes (live binding); doar inchidem.
+        // Changes are already in node.attributes (live binding); we just close.
         model.editorVisible = false
     }
 
@@ -310,7 +310,7 @@ struct EditorSheet: View {
     }
 }
 
-/// Status bar in josul sidebar-ului: IP / User / Pass cu click-to-copy.
+/// Status bar at the bottom of the sidebar: Host / User / Pass with click-to-copy.
 struct ConnectionStatusBar: View {
     @EnvironmentObject var model: AppModel
     @State private var flash: String?
@@ -364,8 +364,9 @@ struct ConnectionStatusBar: View {
         return h.isEmpty ? "" : "\(h):\(p)"
     }
 
-    /// `value` = ce se copiaza in clipboard; `display` = ce se afiseaza (default == value).
-    /// Cand `masked` e true, afisarea e mascata cu •, dar copierea ramane in clar.
+    /// `value` = what gets copied to the clipboard; `display` = what is shown
+    /// (defaults to value). When `masked` is true, the display is masked with •
+    /// but copying still puts the cleartext on the clipboard.
     private func row(icon: String, label: String, value: String, display: String? = nil, masked: Bool = false) -> some View {
         let shown: String = {
             if value.isEmpty { return "—" }

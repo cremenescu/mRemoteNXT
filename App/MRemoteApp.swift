@@ -10,7 +10,7 @@ struct MRemoteApp: App {
     @StateObject private var lang = LanguageManager.shared
 
     init() {
-        // Faster tooltips (macOS default is ~2s).
+        // Faster tooltips (macOS default is around 2 seconds).
         UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 500])
     }
 

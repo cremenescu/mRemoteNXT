@@ -6,7 +6,7 @@ import SwiftUI
 import AppKit
 import MRNGCore
 
-/// O sesiune deschisa intr-un tab.
+/// An open session backed by a tab.
 struct Session: Identifiable {
     enum Kind { case ssh, telnet, http, externalApp, rdp, sftp, externalTool, unsupported }
     let id = UUID()
@@ -15,17 +15,17 @@ struct Session: Identifiable {
     let node: MRNGNode
     let password: String
     let panel: String
-    var command: String? = nil // pentru .externalTool: linia de comanda rezolvata
+    var command: String? = nil // for .externalTool: the resolved command line
 }
 
-/// Unealta externa: linie de comanda cu macro-uri (%Host%, %Username%, %Port%, %Password%, %Domain%, %Name%).
+/// External tool: a command line with macros (%Host%, %Username%, %Port%, %Password%, %Domain%, %Name%).
 struct ExternalTool: Codable, Identifiable, Hashable {
     var id = UUID()
     var name: String
     var commandLine: String
 }
 
-/// O linie vizibila in arborele aplatizat (cu adancime pentru indentare).
+/// A visible row in the flattened tree (carrying its depth for indentation).
 struct FlatRow: Identifiable {
     let node: MRNGNode
     let depth: Int
@@ -54,7 +54,7 @@ final class AppModel: ObservableObject {
     @Published var dropIndicator: DropIndicator?
     private var dropClearWork: DispatchWorkItem?
 
-    /// Seteaza indicatorul si programeaza auto-curatarea (se sterge ~0.35s dupa ce drag-ul se opreste).
+    /// Sets the indicator and schedules auto-clear (~0.35s after the drag stops).
     func setDropIndicator(_ ind: DropIndicator) {
         if dropIndicator != ind { dropIndicator = ind }
         dropClearWork?.cancel()
@@ -95,7 +95,7 @@ final class AppModel: ObservableObject {
         didSet { saveTools() }
     }
 
-    /// v1: presupunem passphrase implicita. Faza 2: prompt daca Protected nu valideaza.
+    /// v1: assume the default passphrase. Phase 2: prompt the user when Protected fails to validate.
     private(set) var masterPassword = MRNGCrypto.defaultPassword
 
     init() {
@@ -108,7 +108,7 @@ final class AppModel: ObservableObject {
         if let v = UserDefaults.standard.object(forKey: "editorVisible") as? Bool { editorVisible = v }
         if let v = UserDefaults.standard.object(forKey: "closeTabOnDisconnect") as? Bool { closeTabOnDisconnect = v }
         loadTools()
-        // Auto-redeschide ultimul fisier folosit (daca exista pe disc).
+        // Auto-reopen the last file used (if it still exists on disk).
         if let saved = UserDefaults.standard.string(forKey: "lastOpenedFile"),
            FileManager.default.fileExists(atPath: saved) {
             load(url: URL(fileURLWithPath: saved))
@@ -138,7 +138,7 @@ final class AppModel: ObservableObject {
             self.loadError = nil
             UserDefaults.standard.set(url.path, forKey: "lastOpenedFile")
             loadExpanded(for: parsed)
-            // Determina parola master: implicita sau (faza 2) ceruta userului.
+            // Determine the master password: default, or (phase 2) prompted from the user.
             if !parsed.protected.isEmpty,
                !MRNGCrypto.passwordIsCorrect(protectedBase64: parsed.protected,
                                              password: MRNGCrypto.defaultPassword,
@@ -167,11 +167,11 @@ final class AppModel: ObservableObject {
         return MRNGCrypto.encrypt(plaintext: plaintext, password: masterPassword, iterations: doc.kdfIterations)
     }
 
-    // MARK: - Editare / salvare
+    // MARK: - Editing / saving
 
     func markDirty() { dirty = true; treeVersion &+= 1 }
 
-    /// Container in care se adauga noi noduri, pornind de la selectie.
+    /// Container into which new nodes are inserted, derived from the current selection.
     private func targetContainer() -> MRNGNode? {
         if let sel = node(byID: selectedNodeID) {
             return sel.isContainer ? sel : sel.parent
@@ -194,14 +194,14 @@ final class AppModel: ObservableObject {
             parent.addChild(node)
             expandedIDs.insert(parent.id)
         } else {
-            doc?.roots.append(node) // nod radacina nou
+            doc?.roots.append(node) // new root node
         }
         selectedNodeID = node.id
         markDirty()
     }
 
     func deleteNode(_ node: MRNGNode) {
-        // Inchide sesiunile deschise pe acest nod sau descendentii lui.
+        // Close any open sessions on this node or any of its descendants.
         let ids = Set([node] + descendants(of: node))
         sessions.filter { ids.contains($0.node) }.forEach { closeSession($0.id) }
         if let parent = node.parent {
@@ -220,7 +220,8 @@ final class AppModel: ObservableObject {
         return out
     }
 
-    /// Muta `node` in `newParent` (sau radacina daca nil) la indexul dat. Respinge mutarea intr-un descendent.
+    /// Move `node` to `newParent` (or root, if nil) at the given index.
+    /// Rejects moving into one of its own descendants.
     @discardableResult
     func moveNode(_ node: MRNGNode, into newParent: MRNGNode?, at index: Int?) -> Bool {
         if let newParent {
@@ -236,11 +237,11 @@ final class AppModel: ObservableObject {
         return true
     }
 
-    /// Aplica o mutare in functie de pozitia indicatorului de drop.
+    /// Apply a move based on the drop indicator position.
     func performMove(draggedID: String, target: MRNGNode, pos: DropPos) {
         dropIndicator = nil
         guard let dragged = node(byID: draggedID), dragged !== target else { return }
-        guard !target.isDescendant(of: dragged) else { return } // nu muta un folder in el insusi
+        guard !target.isDescendant(of: dragged) else { return } // don't move a folder into itself
         switch pos {
         case .into:
             guard target.isContainer else { return }
@@ -250,15 +251,15 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// Insereaza `node` langa `ref` (inainte/dupa), in parintele lui ref (sau radacina).
+    /// Insert `node` next to `ref` (above/below), inside ref's parent (or roots).
     func moveNode(_ node: MRNGNode, relativeTo ref: MRNGNode, after: Bool) {
         guard node !== ref else { return }
         let newParent = ref.parent
         if let newParent, newParent === node || newParent.isDescendant(of: node) { return }
-        // Scoate nodul din locatia curenta (parinte sau radacina).
+        // Detach the node from its current location (parent or roots).
         node.removeFromParent()
         doc?.roots.removeAll { $0 === node }
-        // Recalculeaza indexul lui ref dupa eliminare.
+        // Recompute ref's index after removal.
         if let newParent {
             let idx = newParent.children.firstIndex { $0 === ref } ?? newParent.children.count
             let insertAt = after ? idx + 1 : idx
@@ -274,11 +275,12 @@ final class AppModel: ObservableObject {
         markDirty()
     }
 
-    /// Sortare alfabetica recursiva (plata): la fiecare nivel, totul A-Z dupa nume, foldere si conexiuni amestecate.
+    /// Recursive alphabetical sort (flat): at every level everything sorts A-Z by name,
+    /// folders and connections mixed together.
     func sortAlphabetical() {
         guard var d = doc else { return }
         func cmp(_ a: MRNGNode, _ b: MRNGNode) -> Bool {
-            // caseInsensitiveCompare = ordinal (fara locale) -> identic cu sortarea Windows.
+            // caseInsensitiveCompare = ordinal (no locale) -> matches Windows sort order.
             a.name.caseInsensitiveCompare(b.name) == .orderedAscending
         }
         func sortNode(_ n: MRNGNode) {
@@ -297,7 +299,7 @@ final class AppModel: ObservableObject {
         let dir = url.deletingLastPathComponent()
         let backups = dir.appendingPathComponent("backups", isDirectory: true)
         try? FileManager.default.createDirectory(at: backups, withIntermediateDirectories: true)
-        // Backup al fisierului curent inainte de suprascriere.
+        // Back up the current file before overwriting it.
         if FileManager.default.fileExists(atPath: url.path) {
             let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd_HHmmss"
             let bak = backups.appendingPathComponent("confCons-\(fmt.string(from: Date())).xml")
@@ -336,7 +338,7 @@ final class AppModel: ObservableObject {
         selectedPanel = session.panel
     }
 
-    /// Panel-urile distincte (in ordinea aparitiei) printre sesiunile deschise.
+    /// Distinct panels (in first-seen order) among the currently open sessions.
     func panels() -> [String] {
         var seen = Set<String>(); var out: [String] = []
         for s in sessions where !seen.contains(s.panel) { seen.insert(s.panel); out.append(s.panel) }
@@ -357,7 +359,7 @@ final class AppModel: ObservableObject {
     func closeSession(_ id: UUID) {
         sessions.removeAll { $0.id == id }
         if selectedSessionID == id {
-            // Prefera o sesiune din panel-ul curent; altfel ultima sesiune.
+            // Prefer a session in the current panel; otherwise the last session.
             let inPanel = sessions.last { $0.panel == selectedPanel }
             let next = inPanel ?? sessions.last
             selectedSessionID = next?.id
@@ -365,7 +367,8 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// Reconecteaza: inlocuieste sesiunea cu una noua (id nou) -> view-ul se recreeaza, procesul reporneste.
+    /// Reconnect: replace the session with a new one (fresh id) -> the view is
+    /// recreated and the underlying process restarts.
     func reconnect(_ session: Session) {
         guard let idx = sessions.firstIndex(where: { $0.id == session.id }) else { return }
         let fresh = Session(title: session.title, kind: session.kind, node: session.node,
@@ -413,7 +416,7 @@ final class AppModel: ObservableObject {
         return s
     }
 
-    /// Ruleaza o unealta externa intr-un tab de terminal (prin /bin/sh -lc).
+    /// Run an external tool in a terminal tab (via /bin/sh -lc).
     func runTool(_ tool: ExternalTool, on node: MRNGNode) {
         let cmd = substituteMacros(tool.commandLine, node: node)
         let session = Session(
@@ -432,7 +435,7 @@ final class AppModel: ObservableObject {
     func addTool() { externalTools.append(ExternalTool(name: "New tool", commandLine: "")) }
     func deleteTool(_ tool: ExternalTool) { externalTools.removeAll { $0.id == tool.id } }
 
-    /// Deschide un tab SFTP (terminal cu sftp) pentru o conexiune SSH.
+    /// Open an SFTP tab (a terminal running sftp) for an SSH connection.
     func openSFTP(_ node: MRNGNode) {
         guard !node.isContainer else { return }
         let session = Session(
@@ -457,7 +460,7 @@ final class AppModel: ObservableObject {
         NSPasteboard.general.setString(session.password, forType: .string)
     }
 
-    /// Trimite Ctrl+Alt+Del catre sesiunea RDP indicata.
+    /// Send Ctrl+Alt+Del to the given RDP session.
     func sendCtrlAltDel(_ session: Session) {
         NotificationCenter.default.post(name: .mrngSendCAD, object: session.id)
     }
@@ -475,9 +478,9 @@ final class AppModel: ObservableObject {
         }
     }
 
-    // MARK: - Arbore (expandare)
+    // MARK: - Tree (expansion / visibility)
 
-    /// Liniile vizibile (DFS). Cu cautare activa -> filtreaza (conexiuni potrivite + folderele lor).
+    /// Visible rows (DFS). When search is active -> filter (matching connections + their parent folders).
     func visibleRows() -> [FlatRow] {
         guard let doc else { return [] }
         let q = searchText.trimmingCharacters(in: .whitespaces).lowercased()
@@ -494,8 +497,8 @@ final class AppModel: ObservableObject {
             return out
         }
 
-        // Filtrare: include nodurile care se potrivesc + stramosii lor (context).
-        // Cautam si in Panel. Daca un FOLDER se potriveste, includem tot subarborele.
+        // Filtering: include matching nodes + their ancestors (context).
+        // Search also matches Panel. If a FOLDER matches, include its whole subtree.
         func matches(_ n: MRNGNode) -> Bool {
             n.name.lowercased().contains(q)
                 || n.hostname.lowercased().contains(q)
@@ -549,7 +552,7 @@ final class AppModel: ObservableObject {
         UserDefaults.standard.set(Array(expandedIDs), forKey: key)
     }
 
-    /// Incarca starea salvata; daca nu exista, foloseste atributul Expanded din XML.
+    /// Load saved state; if none, fall back to the Expanded attribute from the XML.
     private func loadExpanded(for doc: ConfCons) {
         if let key = expandedKey(), let saved = UserDefaults.standard.array(forKey: key) as? [String] {
             expandedIDs = Set(saved)

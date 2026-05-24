@@ -16,8 +16,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)rdpClient:(RDPClient *)client didDisconnectWithError:(nullable NSString *)error;
 @end
 
-/// Wrapper peste FreeRDP3: conectare pe thread propriu, randare gdi software (BGRA),
-/// livrare CGImage catre delegate la fiecare repaint.
+/// Wrapper around FreeRDP3: connects on its own thread, software GDI rendering (BGRA),
+/// delivers a CGImage to the delegate on each repaint.
 @interface RDPClient : NSObject
 
 @property (nonatomic, weak) id<RDPClientDelegate> delegate;
@@ -35,16 +35,16 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)stop;
 - (void)resizeToWidth:(int)width height:(int)height scale:(int)scalePercent;
 
-// Input semantic (coordonatele in spatiul desktop-ului RDP).
+// Semantic input (coordinates in the RDP desktop's pixel space).
 - (void)mouseMoveToX:(int)x y:(int)y;
-- (void)mouseButton:(int)button down:(BOOL)down x:(int)x y:(int)y; // 1=stanga 2=dreapta 3=mijloc
-- (void)scrollSteps:(int)steps x:(int)x y:(int)y;                  // + sus, - jos
+- (void)mouseButton:(int)button down:(BOOL)down x:(int)x y:(int)y; // 1=left 2=right 3=middle
+- (void)scrollSteps:(int)steps x:(int)x y:(int)y;                  // + up, - down
 - (void)keyChar:(uint16_t)unicode down:(BOOL)down;
-- (void)keySpecial:(NSInteger)key down:(BOOL)down;                 // vezi RDPKey* in implementare
+- (void)keySpecial:(NSInteger)key down:(BOOL)down;                 // see RDPKey* below
 
 @end
 
-// Taste speciale pentru keySpecial:
+// Special keys for keySpecial:
 typedef NS_ENUM(NSInteger, RDPSpecialKey) {
     RDPKeyEnter = 1, RDPKeyBackspace, RDPKeyTab, RDPKeyEscape, RDPKeySpace,
     RDPKeyUp, RDPKeyDown, RDPKeyLeft, RDPKeyRight, RDPKeyDelete,

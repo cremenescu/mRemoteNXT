@@ -4,8 +4,8 @@
 
 import AppKit
 
-/// Setul de iconite mRemoteNG (v1.76.20), bundle-uite ca PNG in Resources/.
-/// Numele corespund valorilor atributului `Icon` din confCons.xml.
+/// mRemoteNG icon set (v1.76.20), bundled as PNG in Resources/.
+/// Names match the values of the `Icon` attribute in confCons.xml.
 enum IconLibrary {
     static let names: [String] = [
         "Anti Virus", "Backup", "Build Server", "Database", "Domain Controller", "ESX",
