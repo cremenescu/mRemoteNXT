@@ -23,8 +23,14 @@ struct MRemoteApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {
+                Button(t("Menu.NewFile")) { model.newDocumentPanel() }
+                    .keyboardShortcut("n")
                 Button(t("Menu.OpenFile")) { model.openFilePanel() }
                     .keyboardShortcut("o")
+                Divider()
+                Button(t("Menu.CloseFile")) { model.closeDocument() }
+                    .keyboardShortcut("w", modifiers: [.command, .shift])
+                    .disabled(model.doc == nil)
             }
             CommandGroup(after: .saveItem) {
                 Button(t("Menu.Save")) { model.save() }

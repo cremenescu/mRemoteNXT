@@ -130,6 +130,63 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Create a new, empty confCons.xml at a user-chosen location and open it.
+    func newDocumentPanel() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = []
+        panel.allowsOtherFileTypes = true
+        panel.nameFieldStringValue = "confCons.xml"
+        panel.message = t("NewDoc.Prompt")
+        if panel.runModal() == .OK, let url = panel.url {
+            createNewDocument(at: url)
+        }
+    }
+
+    /// Build an empty ConfCons (mRemoteNG 2.6, default passphrase) and save it.
+    func createNewDocument(at url: URL) {
+        let iterations = 1000
+        let protectedEnc = MRNGCrypto.encrypt(
+            plaintext: "ThisIsNotProtected",
+            password: MRNGCrypto.defaultPassword,
+            iterations: iterations)
+        let blank = ConfCons(
+            encryptionEngine: "AES",
+            blockCipherMode: "GCM",
+            kdfIterations: iterations,
+            fullFileEncryption: false,
+            protected: protectedEnc,
+            confVersion: "2.6",
+            roots: []
+        )
+        do {
+            let xml = ConfConsSerializer.serialize(blank)
+            try xml.write(to: url, atomically: true, encoding: String.Encoding.utf8)
+            load(url: url)
+        } catch {
+            loadError = String(format: t("Error.SaveFailed"), error.localizedDescription)
+        }
+    }
+
+    /// Close the current document and return to the empty state.
+    /// Disconnects all sessions; the next launch will not auto-reopen anything.
+    func closeDocument() {
+        // Stop all open sessions (RDP threads, terminal subprocesses, etc.).
+        for s in sessions { closeSession(s.id) }
+        sessions.removeAll()
+        selectedSessionID = nil
+        selectedPanel = nil
+        doc = nil
+        fileURL = nil
+        loadError = nil
+        selectedNodeID = nil
+        searchText = ""
+        expandedIDs.removeAll()
+        editorVisible = false
+        pendingDelete = nil
+        dirty = false
+        UserDefaults.standard.removeObject(forKey: "lastOpenedFile")
+    }
+
     func load(url: URL) {
         do {
             let parsed = try ConfConsParser.parse(fileURL: url)
@@ -309,7 +366,7 @@ final class AppModel: ObservableObject {
             try xml.write(to: url, atomically: true, encoding: .utf8)
             dirty = false
         } catch {
-            loadError = "Salvare esuata: \(error.localizedDescription)"
+            loadError = String(format: t("Error.SaveFailed"), error.localizedDescription)
         }
     }
 

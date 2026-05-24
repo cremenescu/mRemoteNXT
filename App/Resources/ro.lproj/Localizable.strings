@@ -11,8 +11,12 @@
 "Toolbar.EditSelected" = "Editeaza conexiunea selectata...";
 
 /* Meniuri */
+"Menu.NewFile" = "Configuratie noua...";
 "Menu.OpenFile" = "Deschide confCons.xml...";
+"Menu.CloseFile" = "Inchide configuratia";
 "Menu.Save" = "Salveaza";
+"NewDoc.Prompt" = "Alege unde salvezi configuratia noua.";
+"Error.SaveFailed" = "Salvare esuata: %@";
 "Menu.ZoomIn" = "Mareste textul terminalului";
 "Menu.ZoomOut" = "Micsoreaza textul terminalului";
 "Menu.Appearance" = "Aspect";

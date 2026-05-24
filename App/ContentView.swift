@@ -128,7 +128,11 @@ struct ContentView: View {
                     .font(.largeTitle).foregroundStyle(.secondary)
                 Text(model.loadError ?? t("Placeholder.NoFile"))
                     .foregroundStyle(.secondary)
-                Button(t("Menu.OpenFile")) { model.openFilePanel() }
+                HStack(spacing: 8) {
+                    Button(t("Menu.NewFile")) { model.newDocumentPanel() }
+                    Button(t("Menu.OpenFile")) { model.openFilePanel() }
+                        .buttonStyle(.borderedProminent)
+                }
             }
             .padding()
         }

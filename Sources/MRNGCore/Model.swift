@@ -174,6 +174,18 @@ public struct ConfCons {
     public var confVersion: String
     public var roots: [MRNGNode]
 
+    public init(encryptionEngine: String, blockCipherMode: String, kdfIterations: Int,
+                fullFileEncryption: Bool, protected: String, confVersion: String,
+                roots: [MRNGNode]) {
+        self.encryptionEngine = encryptionEngine
+        self.blockCipherMode = blockCipherMode
+        self.kdfIterations = kdfIterations
+        self.fullFileEncryption = fullFileEncryption
+        self.protected = protected
+        self.confVersion = confVersion
+        self.roots = roots
+    }
+
     /// All nodes (DFS), containers included.
     public func allNodes() -> [MRNGNode] {
         var out: [MRNGNode] = []

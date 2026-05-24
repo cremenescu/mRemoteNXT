@@ -11,8 +11,12 @@
 "Toolbar.EditSelected" = "Edit selected connection...";
 
 /* Menus */
+"Menu.NewFile" = "New configuration...";
 "Menu.OpenFile" = "Open confCons.xml...";
+"Menu.CloseFile" = "Close configuration";
 "Menu.Save" = "Save";
+"NewDoc.Prompt" = "Choose where to save the new configuration.";
+"Error.SaveFailed" = "Save failed: %@";
 "Menu.ZoomIn" = "Larger terminal text";
 "Menu.ZoomOut" = "Smaller terminal text";
 "Menu.Appearance" = "Appearance";
