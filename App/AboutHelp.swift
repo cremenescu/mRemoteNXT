@@ -88,7 +88,8 @@ enum HelpWindow {
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let hosting = NSHostingController(rootView: HelpView())
+        let hosting = NSHostingController(
+            rootView: HelpView().environmentObject(LanguageManager.shared))
         let w = NSWindow(contentViewController: hosting)
         w.title = t("Help.WindowTitle")
         w.setContentSize(NSSize(width: 680, height: 560))
