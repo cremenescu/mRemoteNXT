@@ -85,6 +85,12 @@ final class AppModel: ObservableObject {
     @Published var showPasswordPlain: Bool = false {
         didSet { UserDefaults.standard.set(showPasswordPlain, forKey: "showPasswordPlain") }
     }
+    @Published var cursorBlinkSpeed: CursorBlinkSpeed = .medium {
+        didSet { UserDefaults.standard.set(cursorBlinkSpeed.rawValue, forKey: "cursorBlinkSpeed") }
+    }
+    @Published var updateTabTitleFromTerminal: Bool = true {
+        didSet { UserDefaults.standard.set(updateTabTitleFromTerminal, forKey: "updateTabTitleFromTerminal") }
+    }
     @Published var editorVisible: Bool = false {
         didSet { UserDefaults.standard.set(editorVisible, forKey: "editorVisible") }
     }
@@ -105,6 +111,9 @@ final class AppModel: ObservableObject {
         if let v = UserDefaults.standard.object(forKey: "rowHeight") as? Double { rowHeight = v }
         if let v = UserDefaults.standard.object(forKey: "showProtocol") as? Bool { showProtocol = v }
         if let v = UserDefaults.standard.object(forKey: "showPasswordPlain") as? Bool { showPasswordPlain = v }
+        if let v = UserDefaults.standard.string(forKey: "cursorBlinkSpeed"),
+           let s = CursorBlinkSpeed(rawValue: v) { cursorBlinkSpeed = s }
+        if let v = UserDefaults.standard.object(forKey: "updateTabTitleFromTerminal") as? Bool { updateTabTitleFromTerminal = v }
         if let v = UserDefaults.standard.object(forKey: "editorVisible") as? Bool { editorVisible = v }
         if let v = UserDefaults.standard.object(forKey: "closeTabOnDisconnect") as? Bool { closeTabOnDisconnect = v }
         loadTools()
@@ -510,6 +519,13 @@ final class AppModel: ObservableObject {
     func renameSession(_ id: UUID, to title: String) {
         guard let idx = sessions.firstIndex(where: { $0.id == id }), !title.isEmpty else { return }
         sessions[idx].title = title
+    }
+
+    /// Called by the terminal coordinator when the remote shell emits an OSC
+    /// 0/1/2 title (typical zsh precmd: "user@host:cwd"). Gated by a setting.
+    func updateTitleFromTerminal(_ id: UUID, _ title: String) {
+        guard updateTabTitleFromTerminal else { return }
+        renameSession(id, to: title)
     }
 
     func copyPassword(_ session: Session) {

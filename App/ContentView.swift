@@ -463,8 +463,17 @@ struct SessionView: View {
     var body: some View {
         switch session.kind {
         case .ssh, .telnet, .sftp, .externalTool:
-            TerminalContainer(session: session, isActive: isActive, fontSize: fontSize, theme: model.terminalTheme)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            TerminalContainer(
+                session: session,
+                isActive: isActive,
+                fontSize: fontSize,
+                theme: model.terminalTheme,
+                cursorBlinkSpeed: model.cursorBlinkSpeed,
+                onTitleChange: { newTitle in
+                    model.updateTitleFromTerminal(session.id, newTitle)
+                }
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .rdp:
             RDPContainer(session: session, isActive: isActive, onDisconnect: {
                 if model.closeTabOnDisconnect { model.closeSession(session.id) }

@@ -152,3 +152,11 @@
 "Help.MoreInfo" = "More information";
 "Help.OpenIssue" = "Report a bug or request a feature";
 "Help.Email" = "Email the author: razvan@cremenescu.ro";
+
+/* Cursor blink + tab title (v0.3) */
+"Settings.CursorBlink" = "Cursor blink";
+"Settings.UpdateTabTitleFromTerminal" = "Update tab title from terminal (OSC 0/1/2)";
+"Blink.Off" = "Off";
+"Blink.Slow" = "Slow";
+"Blink.Medium" = "Medium";
+"Blink.Fast" = "Fast";

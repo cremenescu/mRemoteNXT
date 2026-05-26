@@ -154,3 +154,11 @@
 "Help.MoreInfo" = "Mai multe informatii";
 "Help.OpenIssue" = "Raporteaza un bug sau cere o functie";
 "Help.Email" = "Trimite email autorului: razvan@cremenescu.ro";
+
+/* Cursor blink + tab title (v0.3) */
+"Settings.CursorBlink" = "Blink cursor";
+"Settings.UpdateTabTitleFromTerminal" = "Actualizeaza titlul tab-ului din terminal (OSC 0/1/2)";
+"Blink.Off" = "Oprit";
+"Blink.Slow" = "Lent";
+"Blink.Medium" = "Mediu";
+"Blink.Fast" = "Rapid";

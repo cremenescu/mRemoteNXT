@@ -108,6 +108,12 @@ struct AppearanceSettings: View {
                 Picker(t("Settings.TerminalTheme"), selection: $model.terminalTheme) {
                     ForEach(TerminalThemes.names, id: \.self) { Text($0).tag($0) }
                 }
+                Picker(t("Settings.CursorBlink"), selection: $model.cursorBlinkSpeed) {
+                    ForEach(CursorBlinkSpeed.allCases) { s in
+                        Text(s.label).tag(s)
+                    }
+                }
+                Toggle(t("Settings.UpdateTabTitleFromTerminal"), isOn: $model.updateTabTitleFromTerminal)
                 VStack(alignment: .leading) {
                     Text(String(format: t("Settings.RowHeight"), Int(model.rowHeight)))
                     Slider(value: $model.rowHeight, in: 16...44, step: 1)
