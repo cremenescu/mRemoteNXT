@@ -91,6 +91,17 @@ fisierelor reale produse de mRemoteNG.
   (MIT).
 - Apple SwiftUI / AppKit / WebKit / CryptoKit / CommonCrypto.
 
+## Repository-uri impostor
+
+Singurul repo oficial mRemoteNXT este
+**<https://github.com/cremenescu/mRemoteNXT>**. Release-urile (`.dmg`) se
+publica doar acolo.
+
+Orice alt repo de pe GitHub care foloseste numele "mRemoteNXT" nu are
+legatura cu acest proiect si poate fi malitios. Proiectul e **doar Swift**
+— daca un repo care zice ca e mRemoteNXT contine Lua, Python, JavaScript
+sau executabile gata facute, nu-l clona si nu rula nimic din el.
+
 ## Disclaimer
 
 Acest proiect nu este afiliat cu, nu este sustinut de si nu este garantat de

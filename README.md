@@ -118,6 +118,17 @@ their code) from observation of real files produced by mRemoteNG.
   emulator (MIT).
 - Apple SwiftUI / AppKit / WebKit / CryptoKit / CommonCrypto.
 
+## Impostor repositories
+
+The only official mRemoteNXT repository is
+**<https://github.com/cremenescu/mRemoteNXT>**. Releases (`.dmg`) are
+published only there.
+
+Any other repository on GitHub using the name "mRemoteNXT" is unaffiliated
+and may be malicious. The project is **Swift only** — if a repo claiming to
+be mRemoteNXT contains Lua, Python, JavaScript or pre-built executables,
+do not clone it and do not run anything from it.
+
 ## Disclaimer
 
 This project is not affiliated with, endorsed by, or warranted by the
