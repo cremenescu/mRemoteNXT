@@ -21,12 +21,14 @@ final class LanguageManager: ObservableObject {
     enum Choice: String, CaseIterable, Identifiable {
         case auto = "auto"
         case en   = "en"
+        case pl   = "pl"
         case ro   = "ro"
         var id: String { rawValue }
         var displayName: String {
             switch self {
             case .auto: return t("Language.Auto")
             case .en:   return "English"
+            case .pl:   return "Polish"
             case .ro:   return "Romana"
             }
         }
@@ -58,6 +60,7 @@ final class LanguageManager: ObservableObject {
             // Honor the system preference.
             lang = (Locale.preferredLanguages.first ?? "en").prefix(2).lowercased() == "ro" ? "ro" : "en"
         case .en: lang = "en"
+        case .pl: lang = "pl"
         case .ro: lang = "ro"
         }
         // Sync AppleLanguages too, so newly-spawned strings (alerts via OS) pick it up.
