@@ -52,6 +52,22 @@ public final class MRNGNode: Identifiable, Hashable {
         attributes[key] = value
     }
 
+    public func deepCopy(name: String? = nil) -> MRNGNode {
+        var copiedAttributes = attributes
+        let copiedName = name ?? self.name
+        copiedAttributes["Name"] = copiedName
+        let copied = MRNGNode(
+            id: UUID().uuidString.lowercased(),
+            name: copiedName,
+            isContainer: isContainer,
+            attributes: copiedAttributes
+        )
+        for child in children {
+            copied.addChild(child.deepCopy())
+        }
+        return copied
+    }
+
     // MARK: - Factories for new nodes (with mRemoteNG default attributes)
 
     public static func makeConnection(name: String, protocolType: String = "RDP",

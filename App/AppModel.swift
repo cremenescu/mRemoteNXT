@@ -255,6 +255,41 @@ final class AppModel: ObservableObject {
         insertNew(node)
     }
 
+    func duplicateNode(_ node: MRNGNode) {
+        let copied = node.deepCopy(name: duplicateName(for: node))
+        if let parent = node.parent {
+            let idx = parent.children.firstIndex { $0 === node } ?? parent.children.count - 1
+            parent.addChild(copied, at: idx + 1)
+            expandedIDs.insert(parent.id)
+        } else {
+            let idx = doc?.roots.firstIndex { $0 === node } ?? ((doc?.roots.count ?? 1) - 1)
+            doc?.roots.insert(copied, at: min(idx + 1, doc?.roots.count ?? 0))
+            copied.parent = nil
+        }
+        if copied.isContainer {
+            expandedIDs.insert(copied.id)
+        }
+        selectedNodeID = copied.id
+        markDirty()
+    }
+
+    private func duplicateName(for node: MRNGNode) -> String {
+        let base = String(format: t("Connection.CopyNameFormat"), node.name)
+        let siblingNames: Set<String>
+        if let parent = node.parent {
+            siblingNames = Set(parent.children.map(\.name))
+        } else {
+            siblingNames = Set(doc?.roots.map(\.name) ?? [])
+        }
+        guard siblingNames.contains(base) else { return base }
+        var index = 2
+        while true {
+            let candidate = String(format: t("Connection.CopyNameNumberedFormat"), node.name, index)
+            if !siblingNames.contains(candidate) { return candidate }
+            index += 1
+        }
+    }
+
     private func insertNew(_ node: MRNGNode) {
         if let parent = targetContainer() {
             parent.addChild(node)
@@ -270,7 +305,7 @@ final class AppModel: ObservableObject {
         // Close any open sessions on this node or any of its descendants.
         let ids = Set([node] + descendants(of: node))
         sessions.filter { ids.contains($0.node) }.forEach { closeSession($0.id) }
-        if let parent = node.parent {
+        if node.parent != nil {
             node.removeFromParent()
         } else {
             doc?.roots.removeAll { $0 === node }

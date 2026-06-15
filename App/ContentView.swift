@@ -265,6 +265,7 @@ struct TreeRow: View {
             }
             Button(t("Context.NewConnectionHere")) { model.selectedNodeID = node.id; model.addConnection() }
             Button(t("Context.NewFolderHere")) { model.selectedNodeID = node.id; model.addFolder() }
+            Button(t("Context.Duplicate")) { model.duplicateNode(node) }
             Divider()
             Button(t("Context.Delete"), role: .destructive) { model.pendingDelete = node }
         }

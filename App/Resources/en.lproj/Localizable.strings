@@ -53,6 +53,7 @@
 "Context.ExternalToolsSubmenu" = "External tools";
 "Context.NewConnectionHere" = "New connection here";
 "Context.NewFolderHere" = "New folder here";
+"Context.Duplicate" = "Duplicate";
 "Context.Delete" = "Delete";
 "Context.Reconnect" = "Reconnect";
 "Context.Disconnect" = "Disconnect";
@@ -106,6 +107,8 @@
 /* Connection / save */
 "Connection.NewConnectionName" = "New connection";
 "Connection.NewFolderName" = "New folder";
+"Connection.CopyNameFormat" = "%@ copy";
+"Connection.CopyNameNumberedFormat" = "%@ copy %d";
 "Connection.SaveButton" = "Save changes";
 "Connection.Saved" = "Saved";
 "Connection.Connect" = "Connect";
