@@ -117,6 +117,16 @@ struct ContentView: View {
                 .scrollContentBackground(.hidden)
                 .environment(\.defaultMinListRowHeight, model.rowHeight)
                 .searchable(text: $model.searchText, placement: .sidebar, prompt: Text(t("Search.Placeholder")))
+                .contextMenu {
+                    Button(t("Toolbar.NewConnection")) {
+                        model.selectedNodeID = nil
+                        model.addConnection()
+                    }
+                    Button(t("Toolbar.NewFolder")) {
+                        model.selectedNodeID = nil
+                        model.addFolder()
+                    }
+                }
                 .frame(maxHeight: .infinity)
 
                 // Read-only status bar with Host/User/Pass + click-to-copy.

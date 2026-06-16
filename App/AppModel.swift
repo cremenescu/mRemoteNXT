@@ -242,7 +242,7 @@ final class AppModel: ObservableObject {
         if let sel = node(byID: selectedNodeID) {
             return sel.isContainer ? sel : sel.parent
         }
-        return doc?.roots.first
+        return nil
     }
 
     func addConnection() {
