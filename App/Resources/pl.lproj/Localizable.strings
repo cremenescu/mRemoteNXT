@@ -53,6 +53,7 @@
 "Context.ExternalToolsSubmenu" = "Narzędzia zewnętrzne";
 "Context.NewConnectionHere" = "Nowe połączenie tutaj";
 "Context.NewFolderHere" = "Nowy folder tutaj";
+"Context.Duplicate" = "Duplikuj";
 "Context.Delete" = "Usuń";
 "Context.Reconnect" = "Połącz ponownie";
 "Context.Disconnect" = "Rozłącz";
@@ -106,6 +107,8 @@
 /* Connection / save */
 "Connection.NewConnectionName" = "Nowe połączenie";
 "Connection.NewFolderName" = "Nowy folder";
+"Connection.CopyNameFormat" = "%@ kopia";
+"Connection.CopyNameNumberedFormat" = "%@ kopia %d";
 "Connection.SaveButton" = "Zapisz zmiany";
 "Connection.Saved" = "Zapisano";
 "Connection.Connect" = "Połącz";
@@ -148,7 +151,7 @@
 "Help.Tips.Title" = "Wskazówki";
 "Help.Tips.Body" = "• Przeciągaj połączenia i foldery, aby zmieniać ich kolejność. Upuść element na folder, aby go do niego przenieść.\n• Użyj pola wyszukiwania w panelu bocznym, aby filtrować według nazwy, hosta, protokołu lub opisu.\n• Panele (pasek kart u góry okna) grupują połączenia — ustaw atrybut Panel dla połączenia, aby umieścić je w innej grupie kart.\n• Zainstaluj sshpass przez Homebrew (brew install hudochenkov/sshpass/sshpass), aby umożliwić automatyczne wypełnianie haseł SSH. Bez niego SSH korzysta z klucza agenta lub interaktywnego logowania.\n• Każdy zapis tworzy kopię zapasową z datą i godziną w katalogu backups/ obok pliku confCons.xml — nie utracisz przypadkowo danych.";
 "Help.Limitations.Title" = "Znane ograniczenia";
-"Help.Limitations.Body" = "• FullFileEncryption=true (szyfrowanie całego XML) nie jest jeszcze obsługiwane.\n• Wersje schematu nowsze niż 2.6 nie były testowane.\n• Schowek obrazów RDP, przekierowanie dysków i dźwięku oraz widoczność zdalnego kursora nie są zaimplementowane.\n• Obsługa VNC oraz IntApp (uruchamianie aplikacji zewnętrznych) jest planowana, ale jeszcze niezaimplementowana.\n• Aplikacja jest podpisana ad-hoc — przy pierwszym uruchomieniu macOS wyświetli ostrzeżenie Gatekeepera. Uruchom: xattr -dr com.apple.quarantine /Applications/mRemoteNXT.app";
+"Help.Limitations.Body" = "• FullFileEncryption=true (szyfrowanie całego XML) nie jest jeszcze obsługiwane.\n• Wersje schematu nowsze niż 2.6 nie były testowane.\n• Schowek obrazów RDP, przekierowanie dysków i dźwięku oraz widoczność zdalnego kursora nie są zaimplementowane.\n• Obsługa VNC oraz IntApp (uruchamianie aplikacji zewnętrznych) jest planowana, ale jeszcze niezaimplementowana.";
 "Help.MoreInfo" = "Więcej informacji";
 "Help.OpenIssue" = "Zgłoś błąd lub zaproponuj funkcję";
 "Help.Email" = "Napisz do autora: razvan@cremenescu.ro";
