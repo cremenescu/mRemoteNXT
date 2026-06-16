@@ -150,7 +150,7 @@
 "Help.Tips.Title" = "Sfaturi";
 "Help.Tips.Body" = "• Trage conexiuni si foldere pentru reordonare. Da drop pe un folder pentru a muta nodul inauntru.\n• Foloseste campul de cautare din sidebar pentru a filtra dupa nume, host, protocol sau descriere.\n• Panel-urile (bara de tab-uri de sus) grupeaza conexiunile — seteaza atributul Panel pe o conexiune ca s-o pui in alt grup.\n• Instaleaza sshpass prin Homebrew (brew install hudochenkov/sshpass/sshpass) ca mRemoteNXT sa auto-completeze parolele SSH. Fara el, SSH foloseste cheia din agent sau prompt interactiv.\n• Fiecare salvare creeaza un backup cu timestamp in backups/ langa confCons.xml — nu poti pierde date din greseala.";
 "Help.Limitations.Title" = "Limitari cunoscute";
-"Help.Limitations.Body" = "• FullFileEncryption=true (criptare integrala a XML-ului) nu e inca suportata.\n• Versiunile de schema mai noi de 2.6 nu au fost testate.\n• Redirect clipboard imagine RDP, redirect drive / sunet si vizibilitate cursor remote nu sunt implementate.\n• VNC si IntApp (lansare aplicatie externa) sunt planificate dar neimplementate.\n• App-ul e ad-hoc signed — macOS afiseaza un warning Gatekeeper la prima pornire. Ruleaza: xattr -dr com.apple.quarantine /Applications/mRemoteNXT.app";
+"Help.Limitations.Body" = "• FullFileEncryption=true (criptare integrala a XML-ului) nu e inca suportata.\n• Versiunile de schema mai noi de 2.6 nu au fost testate.\n• Redirect clipboard imagine RDP, redirect drive / sunet si vizibilitate cursor remote nu sunt implementate.\n• VNC si IntApp (lansare aplicatie externa) sunt planificate dar neimplementate.";
 "Help.MoreInfo" = "Mai multe informatii";
 "Help.OpenIssue" = "Raporteaza un bug sau cere o functie";
 "Help.Email" = "Trimite email autorului: razvan@cremenescu.ro";

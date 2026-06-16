@@ -61,15 +61,13 @@ cu tab-uri si paneluri.
 
 ## Instalare
 
-Nu exista release pre-compilat momentan. Vezi [BUILD.md](BUILD.md) pentru
-build local.
+Descarca ultimul `.dmg` din
+[Releases](https://github.com/cremenescu/mRemoteNXT/releases), deschide-l,
+trage app-ul in folderul Applications si deschide-l.
 
-Daca downloadezi vreodata un `.dmg` din Releases, e semnat ad-hoc — vei
-avea nevoie sa permiti executia:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/mRemoteNXT.app
-```
+App-ul e **semnat cu Developer ID si notarizat de Apple**, deci porneste
+fara niciun warning Gatekeeper si fara workaround cu `xattr`. Pentru build
+local vezi [BUILD.md](BUILD.md).
 
 ## Licenta
 

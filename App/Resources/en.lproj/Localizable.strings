@@ -148,7 +148,7 @@
 "Help.Tips.Title" = "Tips";
 "Help.Tips.Body" = "• Drag connections and folders to reorder them. Drop a node on a folder to move it inside.\n• Use the search field in the sidebar to filter by name, host, protocol or description.\n• Panels (the tab bar at the top of the window) group connections — set the Panel attribute on a connection to put it in a different tab group.\n• Install sshpass via Homebrew (brew install hudochenkov/sshpass/sshpass) to let mRemoteNXT auto-fill SSH passwords. Without it, SSH falls back to your agent key or interactive prompt.\n• Every save creates a timestamped backup in backups/ next to your confCons.xml — you can never accidentally lose data.";
 "Help.Limitations.Title" = "Known limitations";
-"Help.Limitations.Body" = "• FullFileEncryption=true (whole-XML encryption) is not yet supported.\n• Schema versions newer than 2.6 are untested.\n• RDP image-clipboard, drive / sound redirect and remote-cursor visibility are not implemented.\n• VNC and IntApp (external application launching) are planned but not implemented.\n• The app is ad-hoc signed — macOS shows a Gatekeeper warning on first launch. Run: xattr -dr com.apple.quarantine /Applications/mRemoteNXT.app";
+"Help.Limitations.Body" = "• FullFileEncryption=true (whole-XML encryption) is not yet supported.\n• Schema versions newer than 2.6 are untested.\n• RDP image-clipboard, drive / sound redirect and remote-cursor visibility are not implemented.\n• VNC and IntApp (external application launching) are planned but not implemented.";
 "Help.MoreInfo" = "More information";
 "Help.OpenIssue" = "Report a bug or request a feature";
 "Help.Email" = "Email the author: razvan@cremenescu.ro";

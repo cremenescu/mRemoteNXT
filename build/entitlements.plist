@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Hardened Runtime exceptions required by bundled FreeRDP / ffmpeg.
+         Notarization works fine with these; Gatekeeper accepts them. -->
+
+    <!-- FreeRDP AVC444 / GFX pipeline uses JIT in its color/codec path. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+
+    <!-- ffmpeg / openh264 (bundled via FreeRDP) write+execute memory pages. -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+
+    <!-- Bundled Homebrew dylibs in Contents/Frameworks/ are re-signed with our
+         Developer ID, not signed by Apple. Library validation must be relaxed
+         to let the main binary load them. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+</dict>
+</plist>

@@ -80,18 +80,11 @@ ranges, no real hosts.
 
 Download the latest `mRemoteNXT-vX.Y.Z-alpha.dmg` from
 [Releases](https://github.com/cremenescu/mRemoteNXT/releases),
-open it, drag the app to the Applications shortcut.
+open it, drag the app to the Applications shortcut, then open it.
 
-Because the bundle is ad-hoc signed (no paid Apple Developer ID yet),
-macOS Gatekeeper shows a "damaged / can't be opened" warning on first
-launch. Clear it once with:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/mRemoteNXT.app
-```
-
-Then open mRemoteNXT.app from /Applications. No Homebrew install
-required — FreeRDP and friends are bundled inside the app.
+The app is **signed with a Developer ID and notarized by Apple**, so it
+opens with no Gatekeeper warning and no `xattr` workaround. No Homebrew
+install required — FreeRDP and friends are bundled inside the app.
 
 ### Option B: build from source
 

@@ -9,11 +9,19 @@
 #  2. Recursively copy every /opt/homebrew/... and /usr/local/... dylib into
 #     mRemoteNXT.app/Contents/Frameworks/, rewriting install names with
 #     install_name_tool so the bundle has no external Homebrew dependency.
-#  3. Re-sign the bundle ad-hoc (signature is invalidated by install_name_tool).
+#  3. Sign every bundled dylib AND the main app with Developer ID + hardened
+#     runtime + secure timestamp + entitlements. Falls back to ad-hoc signing
+#     when the Developer ID cert is not present (local dev builds).
 #  4. Wrap into a drag-to-Applications .dmg via hdiutil.
+#  5. Sign the .dmg, submit to Apple notary service, staple the ticket and
+#     verify Gatekeeper acceptance. Skipped on ad-hoc builds.
 #
 # Usage: ./build/package.sh [version]
 #   version defaults to v0.1.0-alpha
+#
+# Notarization requires a stored keychain profile named "mRemoteNXT-notary":
+#   xcrun notarytool store-credentials mRemoteNXT-notary \
+#       --apple-id <your-apple-id> --team-id FU62DHV366 --password <app-pwd>
 
 set -euo pipefail
 
@@ -23,6 +31,19 @@ BUILD_DIR="$PROJECT_ROOT/.build-release"
 DIST_DIR="$PROJECT_ROOT/.dist"
 APP_NAME="mRemoteNXT"
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"
+ENTITLEMENTS="$PROJECT_ROOT/build/entitlements.plist"
+
+# Developer ID signing config. Set DEVELOPER_ID="-" via env to force ad-hoc.
+DEVELOPER_ID="${DEVELOPER_ID:-Developer ID Application: Vtun Hardware SRL (FU62DHV366)}"
+NOTARY_PROFILE="${NOTARY_PROFILE:-mRemoteNXT-notary}"
+
+# Detect whether the Developer ID cert is actually present. If not, fall back
+# to ad-hoc signing and skip notarization (useful for local builds).
+SIGN_MODE="adhoc"
+if [ "$DEVELOPER_ID" != "-" ] && \
+   security find-identity -v -p codesigning | grep -qF "$DEVELOPER_ID"; then
+    SIGN_MODE="developer-id"
+fi
 
 cd "$PROJECT_ROOT"
 
@@ -33,11 +54,20 @@ mkdir -p "$DIST_DIR"
 echo "==> Generating Xcode project"
 xcodegen generate >/dev/null
 
-echo "==> Building Release"
-xcodebuild -project "$APP_NAME.xcodeproj" -scheme "$APP_NAME" \
-  -configuration Release -derivedDataPath "$BUILD_DIR" \
-  CODE_SIGN_IDENTITY="-" CODE_SIGNING_ALLOWED=YES \
-  build >/dev/null
+echo "==> Building Release (sign mode: $SIGN_MODE)"
+if [ "$SIGN_MODE" = "developer-id" ]; then
+    # Build unsigned; we sign by hand after install_name_tool surgery anyway.
+    # Hardened Runtime is enabled at codesign time via --options runtime.
+    xcodebuild -project "$APP_NAME.xcodeproj" -scheme "$APP_NAME" \
+      -configuration Release -derivedDataPath "$BUILD_DIR" \
+      CODE_SIGN_IDENTITY="-" CODE_SIGNING_ALLOWED=YES \
+      build >/dev/null
+else
+    xcodebuild -project "$APP_NAME.xcodeproj" -scheme "$APP_NAME" \
+      -configuration Release -derivedDataPath "$BUILD_DIR" \
+      CODE_SIGN_IDENTITY="-" CODE_SIGNING_ALLOWED=YES \
+      build >/dev/null
+fi
 
 APP="$BUILD_DIR/Build/Products/Release/$APP_NAME.app"
 [ -d "$APP" ] || { echo "ERROR: built app not found at $APP"; exit 1; }
@@ -51,7 +81,6 @@ mkdir -p "$FRAMEWORKS"
 
 echo "==> Resolving and bundling Homebrew dylibs (recursive)"
 
-# Set of paths considered "external" (need bundling).
 is_external() {
   local p="$1"
   case "$p" in
@@ -60,7 +89,6 @@ is_external() {
   esac
 }
 
-# Returns the canonical path (resolves symlinks like opt/foo -> Cellar/foo/...).
 resolve() { python3 -c "import os,sys;print(os.path.realpath(sys.argv[1]))" "$1"; }
 
 # bash 3.2 on macOS has no associative arrays; use plain files as sets.
@@ -71,7 +99,6 @@ trap 'rm -f "$SEEN_FILE" "$QUEUE_FILE"' EXIT
 mark_seen() { echo "$1" >> "$SEEN_FILE"; }
 is_seen()   { grep -Fxq "$1" "$SEEN_FILE" 2>/dev/null; }
 
-# Seed with all external deps of the main binary.
 seed_from() {
   local bin="$1"
   local line dep real
@@ -90,7 +117,6 @@ seed_from() {
 MAIN_BIN="$APP/Contents/MacOS/$APP_NAME"
 seed_from "$MAIN_BIN"
 
-# Walk dependencies transitively (file-based queue; tail -n +N keeps growing).
 processed=0
 while :; do
   total=$(wc -l < "$QUEUE_FILE" | tr -d ' ')
@@ -103,7 +129,6 @@ done
 count=$(wc -l < "$QUEUE_FILE" | tr -d ' ')
 echo "    Found $count external dylibs to bundle"
 
-# Copy each to Frameworks/ using its basename.
 while IFS= read -r src; do
   base="$(basename "$src")"
   if [ ! -f "$FRAMEWORKS/$base" ]; then
@@ -114,7 +139,6 @@ done < "$QUEUE_FILE"
 
 echo "==> Rewriting install names with install_name_tool"
 
-# For every bundled lib: set its own id to @rpath/<basename>; rewrite its deps.
 for lib in "$FRAMEWORKS"/*.dylib; do
   base="$(basename "$lib")"
   install_name_tool -id "@rpath/$base" "$lib" 2>/dev/null || true
@@ -127,7 +151,6 @@ for lib in "$FRAMEWORKS"/*.dylib; do
   done < <(otool -L "$lib" | tail -n +2)
 done
 
-# Same for the main binary.
 while IFS= read -r line; do
   dep="$(echo "$line" | awk '{print $1}')"
   if is_external "$dep"; then
@@ -135,8 +158,6 @@ while IFS= read -r line; do
   fi
 done < <(otool -L "$MAIN_BIN" | tail -n +2)
 
-# Ensure the binary has an rpath pointing into Frameworks/.
-# Strip any existing /opt/homebrew rpaths so we don't leak the build host's paths.
 EXISTING_RPATHS="$(otool -l "$MAIN_BIN" | awk '/LC_RPATH/{flag=1;next} flag && /path /{print $2; flag=0}')"
 for rp in $EXISTING_RPATHS; do
   case "$rp" in
@@ -147,11 +168,7 @@ if ! echo "$EXISTING_RPATHS" | grep -q "@executable_path/../Frameworks"; then
   install_name_tool -add_rpath "@executable_path/../Frameworks" "$MAIN_BIN"
 fi
 
-echo "==> Re-signing bundle (ad-hoc)"
-codesign --force --deep --sign - "$APP" 2>/dev/null
-
-# Sanity: every dependency of the main binary should now be either a system
-# framework, an @rpath/... or an absolute /usr/lib/... path. Anything else is a leak.
+# Sanity check before signing.
 echo "==> Verifying no Homebrew leaks"
 LEAKS="$(otool -L "$MAIN_BIN" | tail -n +2 | awk '{print $1}' | grep -E '^/opt/|^/usr/local/' || true)"
 if [ -n "$LEAKS" ]; then
@@ -169,13 +186,54 @@ for lib in "$FRAMEWORKS"/*.dylib; do
 done
 echo "    OK — bundle is self-contained"
 
+if [ "$SIGN_MODE" = "developer-id" ]; then
+    echo "==> Signing bundle with Developer ID + hardened runtime"
+    # Sign every bundled dylib first (inside-out), then the main binary, then
+    # the .app wrapper with entitlements. --options runtime enables Hardened
+    # Runtime; --timestamp embeds an Apple secure timestamp (required for
+    # notarization).
+    for lib in "$FRAMEWORKS"/*.dylib; do
+        codesign --force --sign "$DEVELOPER_ID" \
+                 --options runtime --timestamp \
+                 "$lib"
+    done
+    codesign --force --sign "$DEVELOPER_ID" \
+             --options runtime --timestamp \
+             --entitlements "$ENTITLEMENTS" \
+             "$MAIN_BIN"
+    codesign --force --sign "$DEVELOPER_ID" \
+             --options runtime --timestamp \
+             --entitlements "$ENTITLEMENTS" \
+             "$APP"
+
+    echo "==> Verifying signature"
+    codesign --verify --deep --strict --verbose=2 "$APP"
+else
+    echo "==> Re-signing bundle (ad-hoc — no Developer ID present)"
+    codesign --force --deep --sign - "$APP" 2>/dev/null
+fi
+
 echo "==> Building .dmg"
 DMG_STAGE="$DIST_DIR/dmg_stage"
 rm -rf "$DMG_STAGE"
 mkdir -p "$DMG_STAGE"
 cp -R "$APP" "$DMG_STAGE/"
 ln -s /Applications "$DMG_STAGE/Applications"
-cat > "$DMG_STAGE/INSTALL.txt" <<EOF
+
+if [ "$SIGN_MODE" = "developer-id" ]; then
+    cat > "$DMG_STAGE/INSTALL.txt" <<EOF
+mRemoteNXT — install
+
+1. Drag mRemoteNXT.app into the Applications folder shortcut.
+2. Open mRemoteNXT.app from /Applications.
+
+The app is signed and notarized by Apple — no Gatekeeper warning.
+
+Sources: https://github.com/cremenescu/mRemoteNXT
+License: GPL-2.0-or-later
+EOF
+else
+    cat > "$DMG_STAGE/INSTALL.txt" <<EOF
 mRemoteNXT — install
 
 1. Drag mRemoteNXT.app into the Applications folder shortcut.
@@ -189,17 +247,38 @@ mRemoteNXT — install
 Sources: https://github.com/cremenescu/mRemoteNXT
 License: GPL-2.0-or-later
 EOF
+fi
 
-# Create dmg.
 rm -f "$DIST_DIR/$DMG_NAME"
 hdiutil create -volname "$APP_NAME" -srcfolder "$DMG_STAGE" \
   -ov -format UDZO "$DIST_DIR/$DMG_NAME" >/dev/null
 
 rm -rf "$DMG_STAGE"
 
+if [ "$SIGN_MODE" = "developer-id" ]; then
+    echo "==> Signing .dmg"
+    codesign --force --sign "$DEVELOPER_ID" --timestamp "$DIST_DIR/$DMG_NAME"
+
+    echo "==> Submitting to Apple notary service (this can take a few minutes)"
+    if ! xcrun notarytool submit "$DIST_DIR/$DMG_NAME" \
+            --keychain-profile "$NOTARY_PROFILE" \
+            --wait; then
+        echo "ERROR: notarization failed. Pull the log with:"
+        echo "  xcrun notarytool history --keychain-profile $NOTARY_PROFILE"
+        echo "  xcrun notarytool log <submission-id> --keychain-profile $NOTARY_PROFILE"
+        exit 1
+    fi
+
+    echo "==> Stapling notarization ticket"
+    xcrun stapler staple "$DIST_DIR/$DMG_NAME"
+
+    echo "==> Verifying with Gatekeeper"
+    spctl --assess --type open --context context:primary-signature -vv "$DIST_DIR/$DMG_NAME"
+fi
+
 SIZE="$(du -h "$DIST_DIR/$DMG_NAME" | cut -f1)"
 echo ""
-echo "==> Done"
+echo "==> Done (sign mode: $SIGN_MODE)"
 echo "    DMG: $DIST_DIR/$DMG_NAME ($SIZE)"
 echo "    Upload to GitHub release with:"
 echo "      gh release upload $VERSION $DIST_DIR/$DMG_NAME --repo cremenescu/mRemoteNXT"
