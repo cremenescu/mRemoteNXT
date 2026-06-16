@@ -109,3 +109,13 @@ compatibilitate de format.
 ## Autor
 
 Razvan Cremenescu — <https://github.com/cremenescu>
+
+## Contributori
+
+Multumiri tuturor celor care au contribuit la mRemoteNXT:
+
+- [@vurmil](https://github.com/vurmil) — localizare poloneza, actiunea de
+  duplicare conexiune/folder si fix-ul pentru context menu pe zona goala
+  din sidebar.
+
+Pull request-urile sunt binevenite — vezi [CONTRIBUTING.md](CONTRIBUTING.md).

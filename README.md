@@ -131,3 +131,12 @@ reference.
 ## Author
 
 Razvan Cremenescu — <https://github.com/cremenescu>
+
+## Contributors
+
+Thanks to everyone who has contributed to mRemoteNXT:
+
+- [@vurmil](https://github.com/vurmil) — Polish localization, duplicate
+  connection/folder action, and the empty-sidebar context-menu fix.
+
+Pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
