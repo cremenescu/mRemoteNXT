@@ -48,6 +48,7 @@
 "Context.ExternalToolsSubmenu" = "Unelte externe";
 "Context.NewConnectionHere" = "Conexiune noua aici";
 "Context.NewFolderHere" = "Folder nou aici";
+"Context.Duplicate" = "Duplica";
 "Context.Delete" = "Sterge";
 "Context.Reconnect" = "Reconecteaza";
 "Context.Disconnect" = "Deconecteaza";
@@ -101,6 +102,8 @@
 /* Conexiune / salvare */
 "Connection.NewConnectionName" = "Conexiune noua";
 "Connection.NewFolderName" = "Folder nou";
+"Connection.CopyNameFormat" = "%@ copie";
+"Connection.CopyNameNumberedFormat" = "%@ copie %d";
 "Connection.SaveButton" = "Salveaza modificarile";
 "Connection.Saved" = "Salvat";
 "Connection.Connect" = "Conecteaza";
