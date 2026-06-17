@@ -478,6 +478,7 @@ struct TreeRow: View {
     }
 }
 
+/// Drop with positioning (above / below / into folder) based on cursor location.
 struct RowDropDelegate: DropDelegate {
     let node: MRNGNode
     let rowHeight: CGFloat
@@ -496,7 +497,7 @@ struct RowDropDelegate: DropDelegate {
             pos = y < rowHeight * 0.5 ? .above : .below
         }
         model.setDropIndicator(DropIndicator(id: node.id, pos: pos))
-        return DropProposal(operation: .move)
+        return DropProposal(operation: .move) // cursor "mutare", nu "+"
     }
 
     func dropExited(info: DropInfo) {
@@ -518,7 +519,10 @@ struct RowDropDelegate: DropDelegate {
     }
 }
 
+/// Icon for a node: folder for containers, the real mRemoteNG icon per the Icon attribute,
+/// falling back to an SF Symbol based on the protocol.
 struct NodeIconView: View {
+    // Pass values (not the node object) so SwiftUI re-renders on icon change.
     let isContainer: Bool
     let iconName: String
     let fallbackSymbol: String
@@ -627,7 +631,7 @@ struct SessionTabBar: View {
                             Button(t("Context.SendCtrlAltDel")) { model.sendCtrlAltDel(session) }
                         }
                         Divider()
-                        Button(t("Context.RenameTab")) { model.renameSession(session.id, to: session.title) }
+                        Button(t("Context.RenameTab")) { model.promptAndRename(session) }
                         Button(t("Context.DuplicateTab")) { model.duplicate(session) }
                         if !session.password.isEmpty {
                             Divider()
