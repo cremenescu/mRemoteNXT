@@ -48,6 +48,152 @@ extension MRNGNode {
     }
 }
 
+struct ConnectedBadgeView: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.green)
+                .frame(width: 8, height: 8)
+                .shadow(color: .black.opacity(0.3), radius: 0.5, x: 0, y: 0.5)
+            Image(systemName: "play.fill")
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(.white)
+                .frame(width: 3.5, height: 3.5)
+                .offset(x: 0.3)
+        }
+    }
+}
+
+struct ClassicToggleBox: View {
+    let isExpanded: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(Color(NSColor.textBackgroundColor))
+                .frame(width: 9, height: 9)
+                .border(Color.primary.opacity(0.25), width: 1)
+
+            Rectangle()
+                .fill(Color.primary.opacity(0.6))
+                .frame(width: 5, height: 1)
+
+            if !isExpanded {
+                Rectangle()
+                    .fill(Color.primary.opacity(0.6))
+                    .frame(width: 1, height: 5)
+            }
+        }
+        .frame(width: 16, height: 16)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            action()
+        }
+    }
+}
+
+struct TreeColumnView: View {
+    let targetDepth: Int
+    let rowHeight: CGFloat
+    let type: ColumnType
+    var isFirstRootAtDepth0: Bool = false
+    
+    enum ColumnType {
+        case empty
+        case vertical
+        case parent(hasBelow: Bool)
+        case leaf(hasBelow: Bool)
+        case toggle(isExpanded: Bool, hasBelow: Bool, action: () -> Void)
+    }
+    
+    private var lineColor: Color {
+        Color.primary.opacity(0.18)
+    }
+    
+    var body: some View {
+        ZStack {
+            switch type {
+            case .empty:
+                Color.clear
+            case .vertical:
+                Rectangle()
+                    .fill(lineColor)
+                    .frame(width: 1)
+            case .parent(let hasBelow):
+                if !isFirstRootAtDepth0 {
+                    Rectangle()
+                        .fill(lineColor)
+                        .frame(width: 1, height: rowHeight / 2)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                }
+
+                if hasBelow {
+                    Rectangle()
+                        .fill(lineColor)
+                        .frame(width: 1, height: rowHeight / 2)
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                }
+
+                if targetDepth >= 0 {
+                    Rectangle()
+                        .fill(lineColor)
+                        .frame(width: 8, height: 1)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            case .leaf(let hasBelow):
+
+                if !isFirstRootAtDepth0 {
+                    Rectangle()
+                        .fill(lineColor)
+                        .frame(width: 1, height: rowHeight / 2)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                }
+
+                if hasBelow {
+                    Rectangle()
+                        .fill(lineColor)
+                        .frame(width: 1, height: rowHeight / 2)
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                }
+
+                Rectangle()
+                    .fill(lineColor)
+                    .frame(width: 12, height: 1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .offset(x: 8)
+            case .toggle(let isExpanded, let hasBelow, let action):
+
+                if !isFirstRootAtDepth0 {
+                    Rectangle()
+                        .fill(lineColor)
+                        .frame(width: 1, height: rowHeight / 2)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                }
+
+                if hasBelow {
+                    Rectangle()
+                        .fill(lineColor)
+                        .frame(width: 1, height: rowHeight / 2)
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                }
+
+                if targetDepth > 0 {
+                    Rectangle()
+                        .fill(lineColor)
+                        .frame(width: 8, height: 1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                
+                ClassicToggleBox(isExpanded: isExpanded, action: action)
+            }
+        }
+        .frame(width: 16)
+        .frame(height: rowHeight)
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var lang: LanguageManager
@@ -199,28 +345,28 @@ struct TreeRow: View {
 
     var body: some View {
         let node = row.node
-        HStack(spacing: 4) {
+        HStack(spacing: 0) {
             // Tree guide lines (like mRemoteNG on Windows).
-            ForEach(0..<row.depth, id: \.self) { _ in
-                Color.clear.frame(width: 14)
-                    .overlay(alignment: .leading) {
-                        Rectangle().fill(Color.secondary.opacity(0.22)).frame(width: 1)
+            ForEach(0...row.depth, id: \.self) { i in
+                let isFirstRootAtDepth0 = (i == 0 && row.node.id == model.doc?.roots.first?.id)
+                if i < row.depth {
+                    let hasBelow = hasSubsequentSiblings(for: node, atDepth: i, currentDepth: row.depth, doc: model.doc)
+                    TreeColumnView(targetDepth: i, rowHeight: CGFloat(model.rowHeight), type: hasBelow ? .vertical : .empty, isFirstRootAtDepth0: isFirstRootAtDepth0)
+                } else {
+                    let hasBelow = hasSubsequentSiblings(for: node, atDepth: i, currentDepth: row.depth, doc: model.doc)
+                    if node.isContainer {
+                        TreeColumnView(targetDepth: i, rowHeight: CGFloat(model.rowHeight), type: .toggle(isExpanded: model.expandedIDs.contains(node.id), hasBelow: hasBelow) {
+                            model.toggleExpanded(node.id)
+                        }, isFirstRootAtDepth0: isFirstRootAtDepth0)
+                    } else {
+                        TreeColumnView(targetDepth: i, rowHeight: CGFloat(model.rowHeight), type: .leaf(hasBelow: hasBelow), isFirstRootAtDepth0: isFirstRootAtDepth0)
                     }
-            }
-            if node.isContainer {
-                Button {
-                    model.toggleExpanded(node.id)
-                } label: {
-                    Image(systemName: model.expandedIDs.contains(node.id) ? "chevron.down" : "chevron.right")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 12)
                 }
-                .buttonStyle(.plain)
-            } else {
-                Color.clear.frame(width: 12, height: 1)
             }
+            
             NodeRow(node: node)
+                .padding(.leading, 4)
+            
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -305,8 +451,30 @@ struct TreeRow: View {
             .overlay(alignment: .leading) {
                 Circle().fill(Color.accentColor).frame(width: 6, height: 6).offset(x: -2)
             }
-            .padding(.leading, CGFloat(row.depth) * 14 + 18)
-            .allowsHitTesting(false) // don't intercept the drop -> performDrop fires, cleanup is instant
+            .padding(.leading, CGFloat(row.depth) * 16 + 18)
+            .allowsHitTesting(false)
+    }
+
+    private func hasSubsequentSiblings(for node: MRNGNode, atDepth targetDepth: Int, currentDepth: Int, doc: ConfCons?) -> Bool {
+        guard let doc = doc else { return false }
+        var cur = node
+        var d = currentDepth
+        while d > targetDepth {
+            guard let p = cur.parent else { return false }
+            cur = p
+            d -= 1
+        }
+        
+        if let parent = cur.parent {
+            if let idx = parent.children.firstIndex(where: { $0 === cur }) {
+                return idx < parent.children.count - 1
+            }
+        } else {
+            if let idx = doc.roots.firstIndex(where: { $0 === cur }) {
+                return idx < doc.roots.count - 1
+            }
+        }
+        return false
     }
 }
 
@@ -382,9 +550,21 @@ struct NodeIconView: View {
 struct NodeRow: View {
     @EnvironmentObject var model: AppModel
     let node: MRNGNode
+    
+    private var isConnected: Bool {
+        model.sessions.contains { $0.node.id == node.id }
+    }
+    
     var body: some View {
         HStack(spacing: 6) {
-            NodeIconView(node: node).frame(width: 16, height: 16)
+            NodeIconView(node: node)
+                .frame(width: 16, height: 16)
+                .overlay(alignment: .bottomTrailing) {
+                    if isConnected {
+                        ConnectedBadgeView()
+                            .offset(x: 3, y: 3)
+                    }
+                }
             Text(node.name)
                 .font(.system(size: model.uiFontSize))
                 .lineLimit(1)
