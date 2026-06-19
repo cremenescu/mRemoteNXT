@@ -601,47 +601,144 @@ struct PanelTabBar: View {
     }
 }
 
+/// Reports each tab's frame in the tab-bar viewport coordinate space, so the
+/// bar can tell which tabs are clipped off the left/right edge.
+private struct TabFramesKey: PreferenceKey {
+    static var defaultValue: [UUID: CGRect] = [:]
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
+/// Reports the total width of the tab strip content (all tabs + padding).
+private struct TabContentWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+}
+
 struct SessionTabBar: View {
     @EnvironmentObject var model: AppModel
+
+    @State private var tabFrames: [UUID: CGRect] = [:]
+    @State private var contentWidth: CGFloat = 0
+    @State private var viewportWidth: CGFloat = 0
+
+    private var sessions: [Session] { model.sessions(inPanel: model.selectedPanel) }
+
+    // Both arrows show whenever the strip overflows its viewport, and stay while
+    // it overflows — regardless of the current scroll position.
+    private var overflowing: Bool { viewportWidth > 0 && contentWidth > viewportWidth + 1 }
+
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 2) {
-                ForEach(model.sessions(inPanel: model.selectedPanel)) { session in
-                    HStack(spacing: 6) {
-                        NodeIconView(node: session.node).frame(width: 14, height: 14)
-                        Text(session.title).lineLimit(1)
-                        Button {
-                            model.closeSession(session.id)
-                        } label: {
-                            Image(systemName: "xmark").font(.caption2)
+        GeometryReader { outer in
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 2) {
+                        ForEach(sessions) { session in
+                            tab(session)
+                                .id(session.id)
+                                .background(
+                                    GeometryReader { g in
+                                        Color.clear.preference(
+                                            key: TabFramesKey.self,
+                                            value: [session.id: g.frame(in: .named("tabbar"))]
+                                        )
+                                    }
+                                )
                         }
-                        .buttonStyle(.plain)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(session.id == model.selectedSessionID
-                                ? Color.accentColor.opacity(0.22) : Color.clear)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .onTapGesture { model.selectedSessionID = session.id }
-                    .contextMenu {
-                        Button(t("Context.Reconnect")) { model.reconnect(session) }
-                        Button(t("Context.Disconnect")) { model.closeSession(session.id) }
-                        if session.kind == .rdp {
-                            Divider()
-                            Button(t("Context.SendCtrlAltDel")) { model.sendCtrlAltDel(session) }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(
+                        GeometryReader { c in
+                            Color.clear.preference(key: TabContentWidthKey.self, value: c.size.width)
                         }
-                        Divider()
-                        Button(t("Context.RenameTab")) { model.promptAndRename(session) }
-                        Button(t("Context.DuplicateTab")) { model.duplicate(session) }
-                        if !session.password.isEmpty {
-                            Divider()
-                            Button(t("Context.CopyPassword")) { model.copyPassword(session) }
-                        }
+                    )
+                }
+                .coordinateSpace(name: "tabbar")
+                .onPreferenceChange(TabFramesKey.self) { tabFrames = $0 }
+                .onPreferenceChange(TabContentWidthKey.self) { contentWidth = $0 }
+                .overlay(alignment: .leading) {
+                    if overflowing {
+                        edgeButton("chevron.left", leading: true) { scrollLeft(proxy) }
+                    }
+                }
+                .overlay(alignment: .trailing) {
+                    if overflowing {
+                        edgeButton("chevron.right", leading: false) { scrollRight(proxy) }
                     }
                 }
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
+            .onAppear { viewportWidth = outer.size.width }
+            .onChange(of: outer.size.width) { _, newValue in viewportWidth = newValue }
+        }
+        .frame(height: 36)
+    }
+
+    @ViewBuilder
+    private func tab(_ session: Session) -> some View {
+        HStack(spacing: 6) {
+            NodeIconView(node: session.node).frame(width: 14, height: 14)
+            Text(session.title).lineLimit(1)
+            Button {
+                model.closeSession(session.id)
+            } label: {
+                Image(systemName: "xmark").font(.caption2)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(session.id == model.selectedSessionID
+                    ? Color.accentColor.opacity(0.22) : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .onTapGesture { model.selectedSessionID = session.id }
+        .contextMenu {
+            Button(t("Context.Reconnect")) { model.reconnect(session) }
+            Button(t("Context.Disconnect")) { model.closeSession(session.id) }
+            if session.kind == .rdp {
+                Divider()
+                Button(t("Context.SendCtrlAltDel")) { model.sendCtrlAltDel(session) }
+            }
+            Divider()
+            Button(t("Context.RenameTab")) { model.promptAndRename(session) }
+            Button(t("Context.DuplicateTab")) { model.duplicate(session) }
+            if !session.password.isEmpty {
+                Divider()
+                Button(t("Context.CopyPassword")) { model.copyPassword(session) }
+            }
+        }
+    }
+
+    /// A chevron affordance overlaid on the edge, with a material backing so the
+    /// tabs scroll visibly underneath it.
+    private func edgeButton(_ systemName: String, leading: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 22, height: 26)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.primary.opacity(0.12)))
+                .shadow(color: .black.opacity(0.15), radius: 2, x: leading ? 2 : -2, y: 0)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 3)
+    }
+
+    // Reveal the next tab clipped off the left edge by jumping it to the trailing
+    // side (pages back by roughly one viewport).
+    private func scrollLeft(_ proxy: ScrollViewProxy) {
+        if let target = sessions.last(where: { (tabFrames[$0.id]?.minX ?? 0) < -1 }) {
+            withAnimation(.easeInOut(duration: 0.2)) { proxy.scrollTo(target.id, anchor: .trailing) }
+        }
+    }
+
+    // Reveal the next tab clipped off the right edge by jumping it to the leading
+    // side (pages forward by roughly one viewport).
+    private func scrollRight(_ proxy: ScrollViewProxy) {
+        if let target = sessions.first(where: { (tabFrames[$0.id]?.maxX ?? 0) > viewportWidth + 1 }) {
+            withAnimation(.easeInOut(duration: 0.2)) { proxy.scrollTo(target.id, anchor: .leading) }
         }
     }
 }
