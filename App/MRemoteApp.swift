@@ -120,6 +120,7 @@ struct AppearanceSettings: View {
                 }
                 Toggle(t("Settings.ShowProtocol"), isOn: $model.showProtocol)
                 Toggle(t("Settings.CloseTabOnDisconnect"), isOn: $model.closeTabOnDisconnect)
+                Toggle(t("Settings.RestoreSessions"), isOn: $model.restoreSessions)
                 Toggle(t("Settings.ShowPasswordPlain"), isOn: $model.showPasswordPlain)
             }
         }

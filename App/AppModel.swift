@@ -35,6 +35,18 @@ struct FlatRow: Identifiable {
 enum DropPos { case above, below, into }
 struct DropIndicator: Equatable { let id: String; let pos: DropPos }
 
+/// On-disk record of the open sessions for a given file, so they can be
+/// reopened on next launch. Stores only node IDs + panel — never passwords
+/// (those are re-derived from the confCons file on restore).
+private struct SavedSessionState: Codable {
+    struct Item: Codable { let nodeID: String; let sftp: Bool; let panel: String }
+    let file: String
+    let items: [Item]
+    let selectedNodeID: String?
+    let selectedSftp: Bool
+    let selectedPanel: String?
+}
+
 @MainActor
 final class AppModel: ObservableObject {
     @Published var doc: ConfCons?
@@ -42,9 +54,15 @@ final class AppModel: ObservableObject {
     @Published var fileURL: URL?
     @Published var selectedNodeID: String?
     @Published var searchText: String = ""
-    @Published var sessions: [Session] = []
-    @Published var selectedSessionID: UUID?
-    @Published var selectedPanel: String?
+    @Published var sessions: [Session] = [] {
+        didSet { persistSessionState() }
+    }
+    @Published var selectedSessionID: UUID? {
+        didSet { persistSessionState() }
+    }
+    @Published var selectedPanel: String? {
+        didSet { persistSessionState() }
+    }
     @Published var expandedIDs: Set<String> = [] {
         didSet { saveExpanded() }
     }
@@ -97,6 +115,11 @@ final class AppModel: ObservableObject {
     @Published var closeTabOnDisconnect: Bool = false {
         didSet { UserDefaults.standard.set(closeTabOnDisconnect, forKey: "closeTabOnDisconnect") }
     }
+    /// Reopen (and reconnect) the connections that were open when the app last
+    /// quit. Default on. Restored on launch after the file auto-loads.
+    @Published var restoreSessions: Bool = true {
+        didSet { UserDefaults.standard.set(restoreSessions, forKey: "restoreSessions") }
+    }
     @Published var externalTools: [ExternalTool] = [] {
         didSet { saveTools() }
     }
@@ -116,11 +139,13 @@ final class AppModel: ObservableObject {
         if let v = UserDefaults.standard.object(forKey: "updateTabTitleFromTerminal") as? Bool { updateTabTitleFromTerminal = v }
         if let v = UserDefaults.standard.object(forKey: "editorVisible") as? Bool { editorVisible = v }
         if let v = UserDefaults.standard.object(forKey: "closeTabOnDisconnect") as? Bool { closeTabOnDisconnect = v }
+        if let v = UserDefaults.standard.object(forKey: "restoreSessions") as? Bool { restoreSessions = v }
         loadTools()
         // Auto-reopen the last file used (if it still exists on disk).
         if let saved = UserDefaults.standard.string(forKey: "lastOpenedFile"),
            FileManager.default.fileExists(atPath: saved) {
             load(url: URL(fileURLWithPath: saved))
+            restoreOpenSessions()
         }
     }
 
@@ -481,6 +506,53 @@ final class AppModel: ObservableObject {
 
     func duplicate(_ session: Session) {
         connect(session.node)
+    }
+
+    // MARK: - Session restore (remember open connections across launches)
+
+    /// Persist the currently open connections for the loaded file. Only node IDs
+    /// + panel are written (never passwords); external-tool tabs are excluded.
+    private func persistSessionState() {
+        guard restoreSessions, let file = fileURL?.path else {
+            UserDefaults.standard.removeObject(forKey: "openSessions")
+            return
+        }
+        let restorable: Set<Session.Kind> = [.ssh, .telnet, .http, .rdp, .sftp]
+        let open = sessions.filter { restorable.contains($0.kind) }
+        let items = open.map {
+            SavedSessionState.Item(nodeID: $0.node.id, sftp: $0.kind == .sftp, panel: $0.panel)
+        }
+        let sel = sessions.first { $0.id == selectedSessionID }
+        let state = SavedSessionState(
+            file: file,
+            items: items,
+            selectedNodeID: sel.map { $0.node.id },
+            selectedSftp: sel?.kind == .sftp,
+            selectedPanel: selectedPanel
+        )
+        if let data = try? JSONEncoder().encode(state) {
+            UserDefaults.standard.set(data, forKey: "openSessions")
+        }
+    }
+
+    /// Reopen the connections saved from the previous launch, if the setting is
+    /// on and the saved state belongs to the file that just loaded. Nodes that
+    /// no longer exist in the file are skipped.
+    private func restoreOpenSessions() {
+        guard restoreSessions,
+              let file = fileURL?.path,
+              let data = UserDefaults.standard.data(forKey: "openSessions"),
+              let state = try? JSONDecoder().decode(SavedSessionState.self, from: data),
+              state.file == file else { return }
+        for item in state.items {
+            guard let node = node(byID: item.nodeID), !node.isContainer else { continue }
+            if item.sftp { openSFTP(node) } else { connect(node) }
+        }
+        if let sn = state.selectedNodeID,
+           let match = sessions.first(where: { $0.node.id == sn && ($0.kind == .sftp) == state.selectedSftp }) {
+            selectedSessionID = match.id
+        }
+        if let p = state.selectedPanel { selectedPanel = p }
     }
 
     // MARK: - External Tools

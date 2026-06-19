@@ -32,6 +32,7 @@
 "Settings.RowHeight" = "Inaltime rand: %d";
 "Settings.ShowProtocol" = "Arata tip protocol (RDP/SSH) in lista";
 "Settings.CloseTabOnDisconnect" = "Inchide tab-ul la deconectare (RDP)";
+"Settings.RestoreSessions" = "Redeschide conexiunile din sesiunea anterioara la pornire";
 "Settings.ShowPasswordPlain" = "Arata parola in clar in status bar";
 "Settings.LanguagePicker" = "Limba interfetei";
 "Settings.LanguageNote" = "Unele etichete se vor actualiza la urmatoarea redesenare.";
