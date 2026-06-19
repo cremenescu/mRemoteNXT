@@ -137,6 +137,7 @@ Razvan Cremenescu — <https://github.com/cremenescu>
 Thanks to everyone who has contributed to mRemoteNXT:
 
 - [@vurmil](https://github.com/vurmil) — Polish localization, duplicate
-  connection/folder action, and the empty-sidebar context-menu fix.
+  connection/folder action, the empty-sidebar context-menu fix, and the
+  classic tree guide lines + active-connection badge.
 
 Pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).

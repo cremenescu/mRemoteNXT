@@ -115,7 +115,7 @@ Razvan Cremenescu — <https://github.com/cremenescu>
 Multumiri tuturor celor care au contribuit la mRemoteNXT:
 
 - [@vurmil](https://github.com/vurmil) — localizare poloneza, actiunea de
-  duplicare conexiune/folder si fix-ul pentru context menu pe zona goala
-  din sidebar.
+  duplicare conexiune/folder, fix-ul pentru context menu pe zona goala
+  din sidebar, si guide lines clasice in arbore + badge pe conexiunile active.
 
 Pull request-urile sunt binevenite — vezi [CONTRIBUTING.md](CONTRIBUTING.md).
