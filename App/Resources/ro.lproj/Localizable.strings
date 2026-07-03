@@ -23,6 +23,7 @@
 "Menu.ExternalTools" = "Unelte externe";
 
 /* Setari */
+"Settings.Title" = "Setari";
 "Settings.Appearance" = "Aspect";
 "Settings.Tools" = "Unelte externe";
 "Settings.Language" = "Limba";

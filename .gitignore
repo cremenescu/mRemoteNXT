@@ -27,3 +27,4 @@ backups/
 ## Release packaging output
 .build-release/
 .dist/
+.build-dev/

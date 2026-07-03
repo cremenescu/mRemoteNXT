@@ -28,6 +28,7 @@
 "Menu.ExternalTools" = "External tools";
 
 /* Settings */
+"Settings.Title" = "Settings";
 "Settings.Appearance" = "Appearance";
 "Settings.Tools" = "External tools";
 "Settings.Language" = "Language";

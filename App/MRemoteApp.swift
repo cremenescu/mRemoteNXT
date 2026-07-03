@@ -8,10 +8,16 @@ import SwiftUI
 struct MRemoteApp: App {
     @StateObject private var model = AppModel()
     @StateObject private var lang = LanguageManager.shared
+    @Environment(\.openWindow) private var openWindow
 
     init() {
         // Faster tooltips (macOS default is around 2 seconds).
         UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 500])
+        // SwiftUI's Settings scene refuses manual resize; we use a Window(id:)
+        // for preferences instead. Disable automatic window tabbing so the
+        // preferences window can't be merged into a tab group (must be in init,
+        // applicationDidFinishLaunching is too late).
+        NSWindow.allowsAutomaticWindowTabbing = false
     }
 
     var body: some Scene {
@@ -24,6 +30,10 @@ struct MRemoteApp: App {
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button(t("Menu.About")) { AboutPanel.show() }
+            }
+            CommandGroup(replacing: .appSettings) {
+                Button(t("Settings.Title")) { openWindow(id: "preferences") }
+                    .keyboardShortcut(",", modifiers: .command)
             }
             CommandGroup(replacing: .help) {
                 Button(t("Menu.HelpWindow")) { HelpWindow.show() }
@@ -67,11 +77,13 @@ struct MRemoteApp: App {
             }
         }
 
-        Settings {
+        // A real Window (not the Settings scene) so it can be resized manually.
+        Window(t("Settings.Title"), id: "preferences") {
             SettingsView()
                 .environmentObject(model)
                 .environmentObject(lang)
         }
+        .windowResizability(.contentMinSize)
     }
 }
 
@@ -87,7 +99,10 @@ struct SettingsView: View {
             LanguageSettings()
                 .tabItem { Label(t("Settings.Language"), systemImage: "globe") }
         }
-        .frame(width: 460, height: 420)
+        // Min + ideal only (no max) so the preferences Window can be dragged
+        // freely larger; .windowResizability(.contentMinSize) on the scene keeps
+        // the min. The grouped Forms scroll inside each tab.
+        .frame(minWidth: 460, idealWidth: 500, minHeight: 420, idealHeight: 600)
         .id(lang.choice) // force SwiftUI to rebuild tab item labels on switch
     }
 }
