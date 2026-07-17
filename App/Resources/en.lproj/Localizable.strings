@@ -39,6 +39,9 @@
 "Settings.ShowProtocol" = "Show protocol type (RDP/SSH) in list";
 "Settings.CloseTabOnDisconnect" = "Close tab on disconnect (RDP)";
 "Settings.RestoreSessions" = "Reopen last session's connections on launch";
+"Settings.DiagnosticLogging" = "Diagnostic logging (RDP)";
+"Settings.DiagnosticLoggingNote" = "Writes to ~/Library/Logs/mRemoteNXT/mRemoteNXT.log";
+"Settings.RevealLog" = "Show in Finder";
 "Settings.ShowPasswordPlain" = "Show password in clear in status bar";
 "Settings.LanguagePicker" = "Interface language";
 "Settings.LanguageNote" = "Some labels may update on next view redraw.";

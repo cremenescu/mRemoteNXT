@@ -62,6 +62,10 @@ static void core_onDisconnected(void *ctx, const char *err) {
 
 @implementation RDPClient
 
++ (void)setDiagnosticLogging:(BOOL)enabled directory:(NSString *)directory {
+    rdpcore_set_diagnostic_logging(enabled ? 1 : 0, directory.UTF8String);
+}
+
 - (instancetype)initWithHost:(NSString *)host port:(int)port username:(NSString *)username
                       domain:(NSString *)domain password:(NSString *)password
                        width:(int)width height:(int)height scale:(int)scalePercent {

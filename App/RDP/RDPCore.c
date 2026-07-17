@@ -18,6 +18,7 @@
 #include <freerdp/event.h>
 #include <winpr/synch.h>
 #include <winpr/error.h>
+#include <winpr/wlog.h>
 
 #include <pthread.h>
 #include <stdlib.h>
@@ -27,6 +28,24 @@ static UINT32 deviceScaleFor(int scalePercent) {
     if (scalePercent >= 180) return 180;
     if (scalePercent >= 140) return 140;
     return 100;
+}
+
+void rdpcore_set_diagnostic_logging(int enabled, const char *dir) {
+    wLog *root = WLog_GetRoot();
+    if (!root) return;
+    if (enabled && dir && dir[0]) {
+        WLog_SetLogAppenderType(root, WLOG_APPENDER_FILE);
+        wLogAppender *appender = WLog_GetLogAppender(root);
+        if (appender) {
+            WLog_ConfigureAppender(appender, "outputfilename", (void *)"mRemoteNXT.log");
+            WLog_ConfigureAppender(appender, "outputfilepath", (void *)(uintptr_t)dir);
+        }
+        WLog_OpenAppender(root);
+        WLog_SetLogLevel(root, WLOG_DEBUG);
+    } else {
+        // Effectively silence: only errors, to the default (invisible in a GUI app).
+        WLog_SetLogLevel(root, WLOG_ERROR);
+    }
 }
 
 // Custom context: must start with rdpClientContext (FreeRDP client pattern).

@@ -120,8 +120,29 @@ final class AppModel: ObservableObject {
     @Published var restoreSessions: Bool = true {
         didSet { UserDefaults.standard.set(restoreSessions, forKey: "restoreSessions") }
     }
+    /// When on, FreeRDP writes a DEBUG log to ~/Library/Logs/mRemoteNXT/mRemoteNXT.log
+    /// so RDP connection failures can be diagnosed. Off by default (verbose).
+    @Published var diagnosticLogging: Bool = false {
+        didSet {
+            UserDefaults.standard.set(diagnosticLogging, forKey: "diagnosticLogging")
+            AppModel.applyDiagnosticLogging(diagnosticLogging)
+        }
+    }
     @Published var externalTools: [ExternalTool] = [] {
         didSet { saveTools() }
+    }
+
+    /// Directory where diagnostic logs are written.
+    static var logDirectory: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Logs/mRemoteNXT", isDirectory: true)
+    }
+
+    static func applyDiagnosticLogging(_ on: Bool) {
+        if on {
+            try? FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: true)
+        }
+        RDPClient.setDiagnosticLogging(on, directory: logDirectory.path)
     }
 
     /// v1: assume the default passphrase. Phase 2: prompt the user when Protected fails to validate.
@@ -140,6 +161,8 @@ final class AppModel: ObservableObject {
         if let v = UserDefaults.standard.object(forKey: "editorVisible") as? Bool { editorVisible = v }
         if let v = UserDefaults.standard.object(forKey: "closeTabOnDisconnect") as? Bool { closeTabOnDisconnect = v }
         if let v = UserDefaults.standard.object(forKey: "restoreSessions") as? Bool { restoreSessions = v }
+        if let v = UserDefaults.standard.object(forKey: "diagnosticLogging") as? Bool { diagnosticLogging = v }
+        AppModel.applyDiagnosticLogging(diagnosticLogging)
         loadTools()
         // Auto-reopen the last file used (if it still exists on disk).
         if let saved = UserDefaults.standard.string(forKey: "lastOpenedFile"),

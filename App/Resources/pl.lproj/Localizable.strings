@@ -39,6 +39,9 @@
 "Settings.ShowProtocol" = "Pokaż typ protokołu (RDP/SSH) na liście";
 "Settings.CloseTabOnDisconnect" = "Zamknij kartę po rozłączeniu (RDP)";
 "Settings.RestoreSessions" = "Otwórz ponownie połączenia z poprzedniej sesji przy starcie";
+"Settings.DiagnosticLogging" = "Dziennik diagnostyczny (RDP)";
+"Settings.DiagnosticLoggingNote" = "Zapisuje do ~/Library/Logs/mRemoteNXT/mRemoteNXT.log";
+"Settings.RevealLog" = "Pokaż w Finderze";
 "Settings.ShowPasswordPlain" = "Pokazuj hasło w pasku stanu";
 "Settings.LanguagePicker" = "Język interfejsu";
 "Settings.LanguageNote" = "Niektóre etykiety mogą zostać zaktualizowane przy następnym odświeżeniu widoku.";

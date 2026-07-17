@@ -22,6 +22,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, weak) id<RDPClientDelegate> delegate;
 
+/// Enable/disable FreeRDP diagnostic logging to <directory>/mRemoteNXT.log (DEBUG level).
++ (void)setDiagnosticLogging:(BOOL)enabled directory:(NSString *)directory;
+
 - (instancetype)initWithHost:(NSString *)host
                         port:(int)port
                     username:(NSString *)username

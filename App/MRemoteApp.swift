@@ -137,6 +137,20 @@ struct AppearanceSettings: View {
                 Toggle(t("Settings.CloseTabOnDisconnect"), isOn: $model.closeTabOnDisconnect)
                 Toggle(t("Settings.RestoreSessions"), isOn: $model.restoreSessions)
                 Toggle(t("Settings.ShowPasswordPlain"), isOn: $model.showPasswordPlain)
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle(t("Settings.DiagnosticLogging"), isOn: $model.diagnosticLogging)
+                    if model.diagnosticLogging {
+                        HStack {
+                            Text(t("Settings.DiagnosticLoggingNote"))
+                                .font(.caption).foregroundStyle(.secondary)
+                            Spacer()
+                            Button(t("Settings.RevealLog")) {
+                                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: AppModel.logDirectory.path)
+                            }
+                            .font(.caption)
+                        }
+                    }
+                }
             }
         }
         .formStyle(.grouped)

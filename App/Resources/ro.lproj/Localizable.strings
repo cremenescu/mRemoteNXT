@@ -34,6 +34,9 @@
 "Settings.ShowProtocol" = "Arata tip protocol (RDP/SSH) in lista";
 "Settings.CloseTabOnDisconnect" = "Inchide tab-ul la deconectare (RDP)";
 "Settings.RestoreSessions" = "Redeschide conexiunile din sesiunea anterioara la pornire";
+"Settings.DiagnosticLogging" = "Log de diagnostic (RDP)";
+"Settings.DiagnosticLoggingNote" = "Scrie in ~/Library/Logs/mRemoteNXT/mRemoteNXT.log";
+"Settings.RevealLog" = "Arata in Finder";
 "Settings.ShowPasswordPlain" = "Arata parola in clar in status bar";
 "Settings.LanguagePicker" = "Limba interfetei";
 "Settings.LanguageNote" = "Unele etichete se vor actualiza la urmatoarea redesenare.";

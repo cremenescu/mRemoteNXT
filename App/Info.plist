@@ -16,6 +16,7 @@
 	<array>
 		<string>en</string>
 		<string>ro</string>
+		<string>pl</string>
 	</array>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
@@ -33,5 +34,7 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Razvan Cremenescu. Released under GPL-2.0-or-later.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>mRemoteNXT connects to servers on your local network for RDP, SSH, Telnet, SFTP and HTTP sessions.</string>
 </dict>
 </plist>

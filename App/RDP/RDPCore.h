@@ -38,6 +38,12 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
 void rdpcore_start(RDPCore *core);
 void rdpcore_stop(RDPCore *core);
 void rdpcore_free(RDPCore *core);
+
+// Diagnostic logging: when enabled, routes FreeRDP's WLog output at DEBUG level
+// into <dir>/mRemoteNXT.log so connection failures can be inspected. When
+// disabled, raises the log level so nothing is written. Global (affects all
+// RDP sessions); safe to call before any connection.
+void rdpcore_set_diagnostic_logging(int enabled, const char *dir);
 // Live resize of the RDP desktop (via the Display Control channel).
 void rdpcore_resize(RDPCore *core, int width, int height, int scalePercent);
 
