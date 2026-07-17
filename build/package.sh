@@ -331,8 +331,10 @@ if [ "$SIGN_MODE" = "developer-id" ]; then
         "$SPARKLE_BIN/generate_appcast" \
             --download-url-prefix "https://github.com/cremenescu/mRemoteNXT/releases/download/$VERSION/" \
             "$APPCAST_DIR"
-        cp "$APPCAST_DIR/appcast.xml" "$DIST_DIR/appcast.xml"
-        echo "    appcast.xml -> $DIST_DIR/appcast.xml"
+        # generate_appcast names the file after the SUFeedURL basename
+        # (mremotenxt-appcast.xml), not "appcast.xml" — copy whatever xml it wrote.
+        cp "$APPCAST_DIR"/*.xml "$DIST_DIR/mremotenxt-appcast.xml"
+        echo "    appcast -> $DIST_DIR/mremotenxt-appcast.xml"
         echo "    Deploy it to cremenescu.ro at /assets/mremotenxt-appcast.xml (matches SUFeedURL)."
     else
         echo "    WARN: generate_appcast not found at $SPARKLE_BIN — appcast NOT generated"
