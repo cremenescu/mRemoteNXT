@@ -28,7 +28,7 @@ targets:
       properties:
         CFBundleIconFile: AppIcon
         CFBundleDevelopmentRegion: en
-        CFBundleLocalizations: [en, ro]
+        CFBundleLocalizations: [en, ro, pl]
         # Version + build come from MARKETING_VERSION / CURRENT_PROJECT_VERSION
         # in `settings.base` below — single source of truth, bump there only.
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
@@ -37,12 +37,17 @@ targets:
         LSMinimumSystemVersion: "14.0"
         NSHighResolutionCapable: true
         LSApplicationCategoryType: public.app-category.utilities
+        # macOS 15+/Tahoe gate connections to LAN hosts behind the Local Network
+        # privacy permission; without this key the TCC prompt never appears and
+        # RDP/SSH to local servers fails at the TCP transport
+        # (ERRCONNECT_CONNECT_TRANSPORT_FAILED).
+        NSLocalNetworkUsageDescription: "mRemoteNXT connects to servers on your local network for RDP, SSH, Telnet, SFTP and HTTP sessions."
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ro.cremenescu.mRemoteNXT
         PRODUCT_NAME: mRemoteNXT
-        MARKETING_VERSION: "0.6.0"
-        CURRENT_PROJECT_VERSION: "6"
+        MARKETING_VERSION: "0.6.1"
+        CURRENT_PROJECT_VERSION: "7"
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGNING_ALLOWED: YES
         ENABLE_HARDENED_RUNTIME: YES
