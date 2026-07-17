@@ -137,6 +137,7 @@
 
 /* Meniuri About / Help */
 "Menu.About" = "Despre mRemoteNXT";
+"Menu.CheckForUpdates" = "Caută actualizări…";
 "Menu.HelpWindow" = "Ajutor mRemoteNXT";
 "Menu.ViewOnGitHub" = "Vezi sursa pe GitHub";
 "Menu.ReportIssue" = "Raporteaza o problema...";

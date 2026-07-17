@@ -216,6 +216,28 @@ if [ "$SIGN_MODE" = "developer-id" ]; then
                  --options runtime --timestamp \
                  "$lib"
     done
+
+    # Sparkle.framework: Xcode embeds it ad-hoc signed, but its nested XPC
+    # services + helper tools must be re-signed with our Developer ID (inside-out,
+    # deepest first, framework last) or notarization rejects the nested code.
+    # Never use --deep here: it would clobber the Downloader XPC's own entitlement.
+    # The versioned dir is "B" (Sparkle's current framework version), not "A".
+    SPARKLE_FW="$FRAMEWORKS/Sparkle.framework"
+    if [ -d "$SPARKLE_FW" ]; then
+        echo "    Signing Sparkle.framework (inside-out)"
+        codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+                 "$SPARKLE_FW/Versions/B/XPCServices/Installer.xpc"
+        codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+                 --preserve-metadata=entitlements \
+                 "$SPARKLE_FW/Versions/B/XPCServices/Downloader.xpc"
+        codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+                 "$SPARKLE_FW/Versions/B/Autoupdate"
+        codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+                 "$SPARKLE_FW/Versions/B/Updater.app"
+        codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+                 "$SPARKLE_FW"
+    fi
+
     codesign --force --sign "$DEVELOPER_ID" \
              --options runtime --timestamp \
              --entitlements "$ENTITLEMENTS" \
@@ -293,6 +315,28 @@ if [ "$SIGN_MODE" = "developer-id" ]; then
 
     echo "==> Verifying with Gatekeeper"
     spctl --assess --type open --context context:primary-signature -vv "$DIST_DIR/$DMG_NAME"
+
+    # Sparkle appcast: sign the (notarized, stapled) DMG with the EdDSA private
+    # key from the login keychain and emit appcast.xml. The enclosure points at
+    # the GitHub release asset for this tag (binaries on GitHub, feed on our own
+    # site). generate_appcast reads CFBundleVersion from the app inside the DMG,
+    # so that must increment every release. The trailing slash on the prefix is
+    # mandatory (RFC relative-URL resolution).
+    SPARKLE_BIN="$BUILD_DIR/SourcePackages/artifacts/sparkle/Sparkle/bin"
+    if [ -x "$SPARKLE_BIN/generate_appcast" ]; then
+        echo "==> Generating Sparkle appcast"
+        APPCAST_DIR="$DIST_DIR/appcast"
+        rm -rf "$APPCAST_DIR"; mkdir -p "$APPCAST_DIR"
+        cp "$DIST_DIR/$DMG_NAME" "$APPCAST_DIR/"
+        "$SPARKLE_BIN/generate_appcast" \
+            --download-url-prefix "https://github.com/cremenescu/mRemoteNXT/releases/download/$VERSION/" \
+            "$APPCAST_DIR"
+        cp "$APPCAST_DIR/appcast.xml" "$DIST_DIR/appcast.xml"
+        echo "    appcast.xml -> $DIST_DIR/appcast.xml"
+        echo "    Deploy it to cremenescu.ro at /assets/mremotenxt-appcast.xml (matches SUFeedURL)."
+    else
+        echo "    WARN: generate_appcast not found at $SPARKLE_BIN — appcast NOT generated"
+    fi
 fi
 
 SIZE="$(du -h "$DIST_DIR/$DMG_NAME" | cut -f1)"

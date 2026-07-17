@@ -11,6 +11,9 @@ packages:
   SwiftTerm:
     url: https://github.com/migueldeicaza/SwiftTerm
     from: "1.2.0"
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.0"
 
 targets:
   mRemoteNXT:
@@ -24,6 +27,8 @@ targets:
         product: MRNGCore
       - package: SwiftTerm
         product: SwiftTerm
+      - package: Sparkle
+        product: Sparkle
     info:
       path: App/Info.plist
       properties:
@@ -42,6 +47,16 @@ targets:
         # RDP/SSH to local servers fails at the TCP transport
         # (ERRCONNECT_CONNECT_TRANSPORT_FAILED).
         NSLocalNetworkUsageDescription: "mRemoteNXT connects to servers on your local network for RDP, SSH, Telnet, SFTP and HTTP sessions."
+        # Sparkle auto-update. Feed (appcast) is hosted on cremenescu.ro; the DMG
+        # enclosures point at GitHub Releases. SUPublicEDKey is the EdDSA public
+        # key (private key lives only in the build machine's login keychain).
+        # Automatic background checks are enabled (daily); updates are downloaded
+        # and installed only after prompting the user (SUAutomaticallyUpdate=false).
+        SUFeedURL: "https://cremenescu.ro/assets/mremotenxt-appcast.xml"
+        SUPublicEDKey: "H3Hm6zo4EVt4Dva4QV1/+HLK1c9ajCvl/pApbxsTAvU="
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
+        SUAutomaticallyUpdate: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ro.cremenescu.mRemoteNXT

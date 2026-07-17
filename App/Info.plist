@@ -34,5 +34,15 @@
 	<string>Copyright © 2026 Razvan Cremenescu. Released under GPL-2.0-or-later.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>mRemoteNXT connects to servers on your local network for RDP, SSH, Telnet, SFTP and HTTP sessions.</string>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://cremenescu.ro/assets/mremotenxt-appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>H3Hm6zo4EVt4Dva4QV1/+HLK1c9ajCvl/pApbxsTAvU=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>

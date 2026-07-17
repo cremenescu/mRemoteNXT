@@ -3,6 +3,7 @@
 // See LICENSE for full text.
 
 import SwiftUI
+import Sparkle
 
 @main
 struct MRemoteApp: App {
@@ -10,7 +11,14 @@ struct MRemoteApp: App {
     @StateObject private var lang = LanguageManager.shared
     @Environment(\.openWindow) private var openWindow
 
+    // Sparkle auto-updater. Held for the app's lifetime (no AppDelegate in a
+    // SwiftUI app). startingUpdater: true starts it now and schedules the
+    // automatic background checks (interval from SUScheduledCheckInterval).
+    private let updaterController: SPUStandardUpdaterController
+
     init() {
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
         // Faster tooltips (macOS default is around 2 seconds).
         UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 500])
         // SwiftUI's Settings scene refuses manual resize; we use a Window(id:)
@@ -34,6 +42,8 @@ struct MRemoteApp: App {
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button(t("Menu.About")) { AboutPanel.show() }
+                Divider()
+                CheckForUpdatesView(updater: updaterController.updater)
             }
             CommandGroup(replacing: .appSettings) {
                 Button(t("Settings.Title")) { openWindow(id: "preferences") }

@@ -12,6 +12,7 @@
 
 /* Menus */
 "Menu.About" = "O programie mRemoteNXT";
+"Menu.CheckForUpdates" = "Sprawdź aktualizacje…";
 "Menu.HelpWindow" = "Pomoc mRemoteNXT";
 "Menu.ViewOnGitHub" = "Pokaż kod źródłowy na GitHubie";
 "Menu.ReportIssue" = "Zgłoś problem...";
