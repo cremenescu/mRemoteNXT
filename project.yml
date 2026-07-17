@@ -46,8 +46,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ro.cremenescu.mRemoteNXT
         PRODUCT_NAME: mRemoteNXT
-        MARKETING_VERSION: "0.6.2"
-        CURRENT_PROJECT_VERSION: "8"
+        MARKETING_VERSION: "0.6.3"
+        CURRENT_PROJECT_VERSION: "9"
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGNING_ALLOWED: YES
         ENABLE_HARDENED_RUNTIME: YES
@@ -60,7 +60,12 @@ targets:
           - /opt/homebrew/opt/openssl@3/include
         LIBRARY_SEARCH_PATHS:
           - /opt/homebrew/opt/freerdp/lib
+          - /opt/homebrew/opt/openssl@3/lib
         OTHER_LDFLAGS:
           - -lfreerdp-client3
           - -lfreerdp3
           - -lwinpr3
+          # OSSL_PROVIDER_* (legacy provider load for NTLM/MD4) is called
+          # directly from RDPCore.c, so link libcrypto explicitly rather than
+          # relying on the transitive dep through FreeRDP.
+          - -lcrypto

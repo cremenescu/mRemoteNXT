@@ -39,6 +39,13 @@ void rdpcore_start(RDPCore *core);
 void rdpcore_stop(RDPCore *core);
 void rdpcore_free(RDPCore *core);
 
+// One-time OpenSSL setup: loads the legacy provider so MD4 is available for
+// NTLM (NLA/CredSSP against non-AD Windows hosts). modules_dir is the directory
+// holding the bundled legacy.dylib (Contents/Frameworks in the packaged app),
+// or NULL to keep OpenSSL's built-in module search path (dev builds). Idempotent
+// and safe to call before any connection.
+void rdpcore_init_crypto(const char *modules_dir);
+
 // Diagnostic logging: when enabled, routes FreeRDP's WLog output at DEBUG level
 // into <dir>/mRemoteNXT.log so connection failures can be inspected. When
 // disabled, raises the log level so nothing is written. Global (affects all

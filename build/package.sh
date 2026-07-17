@@ -137,6 +137,25 @@ while IFS= read -r src; do
   fi
 done < "$QUEUE_FILE"
 
+# OpenSSL legacy provider — NOT a link-time dependency (loaded at runtime via
+# OSSL_PROVIDER_load in RDPCore.c), so the recursive resolver above never sees
+# it. Bundle it by hand into Frameworks/ (flat, so the rewrite + sign loops
+# below treat it like any other bundled dylib). It supplies MD4, which NTLM /
+# NLA needs to authenticate against non-AD (workgroup) Windows hosts such as an
+# EC2 Windows instance; without it RDP dies at NLA with a misleading
+# ERRCONNECT_CONNECT_TRANSPORT_FAILED. RDPClient.initCrypto points OpenSSL's
+# module search path at Frameworks/ at launch.
+OSSL_LEGACY_SRC="$(resolve /opt/homebrew/lib/ossl-modules/legacy.dylib)"
+if [ -f "$OSSL_LEGACY_SRC" ]; then
+  cp "$OSSL_LEGACY_SRC" "$FRAMEWORKS/legacy.dylib"
+  chmod u+w "$FRAMEWORKS/legacy.dylib"
+  echo "    Bundled OpenSSL legacy provider (MD4 for NTLM): legacy.dylib"
+else
+  echo "ERROR: OpenSSL legacy provider not found at /opt/homebrew/lib/ossl-modules/legacy.dylib"
+  echo "       RDP NTLM auth to non-AD Windows hosts would break. Install openssl@3 (brew install openssl@3)."
+  exit 1
+fi
+
 echo "==> Rewriting install names with install_name_tool"
 
 for lib in "$FRAMEWORKS"/*.dylib; do

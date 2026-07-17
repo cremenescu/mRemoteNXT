@@ -18,6 +18,10 @@ struct MRemoteApp: App {
         // preferences window can't be merged into a tab group (must be in init,
         // applicationDidFinishLaunching is too late).
         NSWindow.allowsAutomaticWindowTabbing = false
+        // Load OpenSSL's legacy provider so NTLM (MD4) works for RDP against
+        // non-AD Windows hosts — otherwise NLA fails with a misleading
+        // "transport failed". Must run before the first connection.
+        RDPClient.initCrypto()
     }
 
     var body: some Scene {

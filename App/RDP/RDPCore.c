@@ -20,6 +20,8 @@
 #include <winpr/error.h>
 #include <winpr/wlog.h>
 
+#include <openssl/provider.h>
+
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +30,32 @@ static UINT32 deviceScaleFor(int scalePercent) {
     if (scalePercent >= 180) return 180;
     if (scalePercent >= 140) return 140;
     return 100;
+}
+
+void rdpcore_init_crypto(const char *modules_dir) {
+    static int done = 0;
+    if (done) return;
+    done = 1;
+    // OpenSSL 3 moved MD4 into the "legacy" provider — a separate loadable
+    // module (legacy.dylib) that is neither built into libcrypto nor activated
+    // by default. NLA/CredSSP against a standalone (workgroup) Windows host —
+    // e.g. an EC2 Windows instance with no AD/Kerberos — authenticates with
+    // NTLM, which computes the NT hash with MD4. Without the legacy provider
+    // WinPR logs "Failed to initialize digest md4", the security context comes
+    // back SEC_E_NO_CREDENTIALS, and the whole connection is reported as the
+    // misleading ERRCONNECT_CONNECT_TRANSPORT_FAILED.
+    //
+    // In the packaged .app legacy.dylib is bundled under Contents/Frameworks;
+    // modules_dir points there so OpenSSL can find it (its compiled-in default
+    // path is the build machine's Homebrew dir, absent on the user's Mac). For
+    // dev builds modules_dir is NULL and OpenSSL keeps its built-in search path.
+    // Activating any provider suppresses the implicit default, so load both —
+    // TLS still needs SHA-2 etc. from the default provider.
+    if (modules_dir && modules_dir[0]) {
+        OSSL_PROVIDER_set_default_search_path(NULL, modules_dir);
+    }
+    OSSL_PROVIDER_load(NULL, "legacy");
+    OSSL_PROVIDER_load(NULL, "default");
 }
 
 void rdpcore_set_diagnostic_logging(int enabled, const char *dir) {

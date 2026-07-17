@@ -66,6 +66,19 @@ static void core_onDisconnected(void *ctx, const char *err) {
     rdpcore_set_diagnostic_logging(enabled ? 1 : 0, directory.UTF8String);
 }
 
++ (void)initCrypto {
+    // Point OpenSSL at the bundled legacy provider only if it's actually there
+    // (packaged .app). In a plain dev build Frameworks has no legacy.dylib, so
+    // pass NULL and let OpenSSL use its built-in (Homebrew) module search path.
+    NSString *frameworks = [[NSBundle mainBundle] privateFrameworksPath];
+    NSString *module = [frameworks stringByAppendingPathComponent:@"legacy.dylib"];
+    const char *dir = NULL;
+    if (frameworks.length && [[NSFileManager defaultManager] fileExistsAtPath:module]) {
+        dir = frameworks.fileSystemRepresentation;
+    }
+    rdpcore_init_crypto(dir);
+}
+
 - (instancetype)initWithHost:(NSString *)host port:(int)port username:(NSString *)username
                       domain:(NSString *)domain password:(NSString *)password
                        width:(int)width height:(int)height scale:(int)scalePercent {

@@ -25,6 +25,10 @@ NS_ASSUME_NONNULL_BEGIN
 /// Enable/disable FreeRDP diagnostic logging to <directory>/mRemoteNXT.log (DEBUG level).
 + (void)setDiagnosticLogging:(BOOL)enabled directory:(NSString *)directory;
 
+/// One-time OpenSSL init: loads the legacy provider so NTLM (MD4) works against
+/// non-AD Windows hosts. Call once at app launch, before any connection.
++ (void)initCrypto;
+
 - (instancetype)initWithHost:(NSString *)host
                         port:(int)port
                     username:(NSString *)username
