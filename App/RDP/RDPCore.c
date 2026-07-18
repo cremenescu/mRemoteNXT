@@ -187,6 +187,24 @@ static DWORD mrng_verify_cert_ex(freerdp *instance, const char *host, UINT16 por
     return 2; // accept and remember (self-signed on LAN)
 }
 
+// Called when a host's TLS certificate DIFFERS from the one we stored on a
+// previous connection — typically a host that was reinstalled/rebuilt and
+// regenerated its self-signed RDP cert. Without this callback FreeRDP falls
+// back to its default handler, which prompts on stdin; a GUI app has no stdin,
+// so it rejects and the connect aborts with ERRCONNECT_PRE_CONNECT_FAILED.
+// Same policy as first-time certs: accept and remember (admin tool on a trusted
+// LAN, hosts we manage ourselves).
+static DWORD mrng_verify_changed_cert_ex(freerdp *instance, const char *host, UINT16 port,
+                                         const char *common_name, const char *subject,
+                                         const char *issuer, const char *new_fingerprint,
+                                         const char *old_subject, const char *old_issuer,
+                                         const char *old_fingerprint, DWORD flags) {
+    (void)instance; (void)host; (void)port; (void)common_name;
+    (void)subject; (void)issuer; (void)new_fingerprint;
+    (void)old_subject; (void)old_issuer; (void)old_fingerprint; (void)flags;
+    return 2; // accept and remember the new cert
+}
+
 // MARK: - Client entry points
 
 static void *thread_proc(void *arg) {
@@ -240,6 +258,7 @@ static BOOL mrng_client_new(freerdp *instance, rdpContext *context) {
     instance->PostConnect = mrng_post_connect;
     instance->PostDisconnect = mrng_post_disconnect;
     instance->VerifyCertificateEx = mrng_verify_cert_ex;
+    instance->VerifyChangedCertificateEx = mrng_verify_changed_cert_ex;
     PubSub_SubscribeChannelConnected(context->pubSub, on_channel_connected);
     PubSub_SubscribeChannelDisconnected(context->pubSub, on_channel_disconnected);
     return TRUE;
