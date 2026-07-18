@@ -322,10 +322,18 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     // GFX pipeline (essential on Win10/11 — otherwise it falls back to the slow legacy bitmap path).
     // The pipeline is wired to gdi in on_channel_connected (RDPGFX_DVC_CHANNEL_NAME).
     freerdp_settings_set_bool(s, FreeRDP_SupportGraphicsPipeline, TRUE);
-    freerdp_settings_set_bool(s, FreeRDP_GfxProgressive, TRUE);
+    // RemoteFX Progressive is DISABLED: its multi-threaded tile decoder
+    // (progressive_parse_block -> winpr_SubmitThreadpoolWork) crashes when
+    // several RDP sessions decode GFX concurrently — e.g. when the app
+    // reconnects multiple saved sessions on launch (EXC_BAD_ACCESS / heap
+    // corruption in the shared thread pool). The GFX surface then uses H264 /
+    // AVC444, which is the primary Win10/11 codec and doesn't hit that path.
+    freerdp_settings_set_bool(s, FreeRDP_GfxProgressive, FALSE);
     freerdp_settings_set_bool(s, FreeRDP_GfxH264, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_GfxAVC444v2, TRUE);
-    freerdp_settings_set_bool(s, FreeRDP_RemoteFxCodec, TRUE);
+    // Legacy RemoteFX (rfx_*, not the progressive decoder) also off, to avoid any
+    // fallback into a multi-threaded RFX path; H264/AVC444 covers modern hosts.
+    freerdp_settings_set_bool(s, FreeRDP_RemoteFxCodec, FALSE);
     freerdp_settings_set_bool(s, FreeRDP_NetworkAutoDetect, TRUE);
 
     return core;
