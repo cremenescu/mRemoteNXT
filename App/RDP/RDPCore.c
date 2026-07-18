@@ -330,18 +330,25 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     // GFX pipeline (essential on Win10/11 — otherwise it falls back to the slow legacy bitmap path).
     // The pipeline is wired to gdi in on_channel_connected (RDPGFX_DVC_CHANNEL_NAME).
     freerdp_settings_set_bool(s, FreeRDP_SupportGraphicsPipeline, TRUE);
-    // RemoteFX Progressive is DISABLED: its multi-threaded tile decoder
-    // (progressive_parse_block -> winpr_SubmitThreadpoolWork) crashes when
-    // several RDP sessions decode GFX concurrently — e.g. when the app
-    // reconnects multiple saved sessions on launch (EXC_BAD_ACCESS / heap
-    // corruption in the shared thread pool). The GFX surface then uses H264 /
-    // AVC444, which is the primary Win10/11 codec and doesn't hit that path.
-    freerdp_settings_set_bool(s, FreeRDP_GfxProgressive, FALSE);
+    // THE crash fix: force single-threaded codec decoding. The startup crash
+    // (EXC_BAD_ACCESS / heap corruption in progressive_decompress ->
+    // winpr_SubmitThreadpoolWork, NULL work object) came from FreeRDP's
+    // multi-threaded tile decoder racing on its shared thread pool when several
+    // RDP sessions decode GFX concurrently — e.g. restore-sessions reconnecting
+    // many saved sessions at once. DISABLE_THREADS makes every codec decode on
+    // the session's own thread, killing that race at the root regardless of which
+    // codec the server picks. (Disabling GfxProgressive did NOT help: older hosts
+    // negotiate GFX caps < v10 which have no H264, so the server keeps sending
+    // progressive surfaces no matter what — the thread pool, not the codec, was
+    // the bug.) Single-threaded decode of a normal desktop is plenty fast on
+    // Apple Silicon; the thread pool only matters for huge multi-monitor walls.
+    freerdp_settings_set_uint32(s, FreeRDP_ThreadingFlags, THREADING_FLAGS_DISABLE_THREADS);
+    // Keep the full modern codec set enabled: H264/AVC444 on hosts that negotiate
+    // GFX caps >= v10, RemoteFX Progressive on the older ones (their only efficient
+    // codec). Safe now that decoding is single-threaded.
+    freerdp_settings_set_bool(s, FreeRDP_GfxProgressive, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_GfxH264, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_GfxAVC444v2, TRUE);
-    // Legacy RemoteFX (rfx_*, not the progressive decoder) also off, to avoid any
-    // fallback into a multi-threaded RFX path; H264/AVC444 covers modern hosts.
-    freerdp_settings_set_bool(s, FreeRDP_RemoteFxCodec, FALSE);
     freerdp_settings_set_bool(s, FreeRDP_NetworkAutoDetect, TRUE);
 
     return core;
