@@ -51,8 +51,10 @@ void rdpcore_free(RDPCore *core);
 
 // Clipboard (cliprdr) senders, called from the app layer:
 // announce = the local pasteboard changed, offer these formats to the remote.
+//   Returns true only if the clipboard channel was up and the offer was sent, so
+//   the caller can retry until it connects (and offer a pre-session clipboard).
 // provide  = answer a prior onClipboardDataRequested(formatId); NULL/0 => decline.
-void rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage);
+bool rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage);
 void rdpcore_clipboard_provide(RDPCore *core, const uint8_t *data, uint32_t size);
 
 // One-time OpenSSL setup: loads the legacy provider so MD4 is available for

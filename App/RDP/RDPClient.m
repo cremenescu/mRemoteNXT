@@ -225,7 +225,10 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
 
     // Poll the local pasteboard; on change, announce the available formats so the
     // remote can paste from the Mac. Weak self so the timer never keeps us alive.
-    _lastPasteboardChangeCount = NSPasteboard.generalPasteboard.changeCount;
+    // Start at -1 so the first tick offers whatever is ALREADY on the pasteboard,
+    // and only advance the marker once the announce reaches the channel (so we keep
+    // retrying until cliprdr connects).
+    _lastPasteboardChangeCount = -1;
     __weak RDPClient *weakSelf = self;
     _clipboardTimer = [NSTimer scheduledTimerWithTimeInterval:0.4 repeats:YES block:^(NSTimer *t) {
         RDPClient *strong = weakSelf;
@@ -233,11 +236,11 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
         NSPasteboard *pb = NSPasteboard.generalPasteboard;
         NSInteger cc = pb.changeCount;
         if (cc == strong->_lastPasteboardChangeCount) return;
-        strong->_lastPasteboardChangeCount = cc;
         NSArray<NSPasteboardType> *types = pb.types;
         BOOL hasText = [types containsObject:NSPasteboardTypeString];
         BOOL hasImage = [types containsObject:NSPasteboardTypeTIFF] || [types containsObject:NSPasteboardTypePNG];
-        rdpcore_clipboard_announce(strong->_core, hasText, hasImage);
+        if (rdpcore_clipboard_announce(strong->_core, hasText, hasImage))
+            strong->_lastPasteboardChangeCount = cc;
     }];
 }
 
