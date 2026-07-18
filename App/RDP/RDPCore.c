@@ -133,7 +133,15 @@ static BOOL mrng_desktop_resize(rdpContext *context) {
 static void on_channel_connected(void *context, const ChannelConnectedEventArgs *e) {
     rdpContext *ctx = (rdpContext *)context;
     if (strcmp(e->name, DISP_DVC_CHANNEL_NAME) == 0) {
-        coreFromContext(ctx)->disp = (DispClientContext *)e->pInterface;
+        RDPCore *core = coreFromContext(ctx);
+        core->disp = (DispClientContext *)e->pInterface;
+        // Re-apply the latest requested desktop size now that the Display Control
+        // channel is up. A session restored on launch connects while its view is
+        // still tiny (min 640x480), then the view lays out full-size and calls
+        // rdpcore_resize BEFORE this channel exists — that resize updates
+        // core->width/height but can't be sent yet, so the desktop would stay
+        // stuck small. Flush it here once disp is available.
+        rdpcore_resize(core, core->width, core->height, core->scalePercent);
     } else if (strcmp(e->name, RDPGFX_DVC_CHANNEL_NAME) == 0) {
         // Wire the GFX pipeline to gdi -> codec updates (H264/progressive) land in the framebuffer.
         if (ctx->gdi) gdi_graphics_pipeline_init(ctx->gdi, (RdpgfxClientContext *)e->pInterface);
