@@ -369,6 +369,18 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     freerdp_settings_set_bool(s, FreeRDP_GfxH264, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_GfxAVC444v2, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_NetworkAutoDetect, TRUE);
+    // Skip TLS certificate verification entirely. These are self-signed Windows
+    // hosts on a trusted LAN, reached by IP — so every cert is self-signed, the
+    // name never matches (CN is the FQDN, we connect by IP), and a reinstalled
+    // host presents a "changed" cert. FreeRDP's verification path chokes on that
+    // combination (self-signed + name-mismatch + changed): it fails internally
+    // (x509_utils_from_pem: BIO_new failed) before honouring the accept
+    // callbacks, aborting the connect. The app's policy is already accept-all
+    // (mrng_verify_cert_ex / mrng_verify_changed_cert_ex return 2), so ignoring
+    // verification outright is the reliable way to express that — same as mstsc
+    // "don't ask again" / mRemoteNG on a managed network. The Verify*Ex callbacks
+    // stay wired as a fallback if this is ever made configurable per-host.
+    freerdp_settings_set_bool(s, FreeRDP_IgnoreCertificate, TRUE);
 
     return core;
 }
