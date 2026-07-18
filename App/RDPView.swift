@@ -150,6 +150,21 @@ final class RDPNSView: NSView, RDPClientDelegate {
         layer?.contents = image
     }
 
+    // Remote cursor shape from the RDP pointer channel. With cursor redirection the
+    // server stops baking the pointer into the framebuffer and sends it separately,
+    // so we present it as the view's own cursor (nil = the local system arrow).
+    private var remoteCursor: NSCursor = .arrow
+
+    func rdpClient(_ client: RDPClient, didUpdate cursor: NSCursor?) {
+        remoteCursor = cursor ?? .arrow
+        window?.invalidateCursorRects(for: self)
+    }
+
+    override func resetCursorRects() {
+        discardCursorRects()
+        addCursorRect(bounds, cursor: remoteCursor)
+    }
+
     func rdpClient(_ client: RDPClient, didDisconnectWithError error: String?) {
         showStatus(error ?? "Disconnected.")
         if didConnectOnce { onDisconnect?() }
