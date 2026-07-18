@@ -5,7 +5,6 @@
 
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
-#import <AppKit/AppKit.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -14,8 +13,6 @@ NS_ASSUME_NONNULL_BEGIN
 @protocol RDPClientDelegate <NSObject>
 - (void)rdpClient:(RDPClient *)client didConnectWithWidth:(int)width height:(int)height;
 - (void)rdpClient:(RDPClient *)client didUpdateImage:(CGImageRef)image;
-// Remote cursor shape changed (nil = revert to the default arrow).
-- (void)rdpClient:(RDPClient *)client didUpdateCursor:(nullable NSCursor *)cursor;
 - (void)rdpClient:(RDPClient *)client didDisconnectWithError:(nullable NSString *)error;
 @end
 

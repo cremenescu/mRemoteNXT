@@ -21,16 +21,6 @@ typedef struct {
     void (*onConnected)(void *ctx, int width, int height);
     // bgra = live buffer (valid only during the callback); the consumer copies synchronously.
     void (*onImage)(void *ctx, const uint8_t *bgra, int width, int height, int stride);
-    // Remote cursor shape changed (Pointer_Set). bgra = BGRA (same byte order as onImage),
-    // width*height*4 bytes, valid only during the callback (copy synchronously). hotspotX/Y
-    // = hotspot within the bitmap (top-left origin).
-    void (*onCursorImage)(void *ctx, const uint8_t *bgra, int width, int height, int hotspotX, int hotspotY);
-    void (*onCursorNull)(void *ctx);     // server hid the cursor (SYSPTR_NULL)
-    void (*onCursorDefault)(void *ctx);  // server reset to the default arrow (SYSPTR_DEFAULT)
-    // Clipboard (cliprdr). Buffers are valid only during the callback — copy synchronously.
-    void (*onClipboardRemoteFormats)(void *ctx, bool hasText, bool hasImage); // remote copied something
-    void (*onClipboardRemoteData)(void *ctx, uint32_t formatId, const uint8_t *data, uint32_t size);
-    void (*onClipboardDataRequested)(void *ctx, uint32_t formatId); // remote wants our clipboard
     void (*onDisconnected)(void *ctx, const char *error); // error == NULL => normal
 } RDPCoreCallbacks;
 
@@ -48,14 +38,6 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
 void rdpcore_start(RDPCore *core);
 void rdpcore_stop(RDPCore *core);
 void rdpcore_free(RDPCore *core);
-
-// Clipboard (cliprdr) senders, called from the app layer:
-// announce = the local pasteboard changed, offer these formats to the remote.
-//   Returns true only if the clipboard channel was up and the offer was sent, so
-//   the caller can retry until it connects (and offer a pre-session clipboard).
-// provide  = answer a prior onClipboardDataRequested(formatId); NULL/0 => decline.
-bool rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage);
-void rdpcore_clipboard_provide(RDPCore *core, const uint8_t *data, uint32_t size);
 
 // One-time OpenSSL setup: loads the legacy provider so MD4 is available for
 // NTLM (NLA/CredSSP against non-AD Windows hosts). modules_dir is the directory

@@ -14,26 +14,17 @@
 #include <freerdp/channels/rdpgfx.h>
 #include <freerdp/client/rdpgfx.h>
 #include <freerdp/codec/color.h>
-#include <freerdp/graphics.h>
 #include <freerdp/input.h>
 #include <freerdp/event.h>
-#include <freerdp/client/cliprdr.h>
-#include <freerdp/channels/cliprdr.h>
-#include <freerdp/client/rdpdr.h>
-#include <freerdp/channels/rdpdr.h>
-#include <freerdp/client/cmdline.h>   // freerdp_client_add_device_channel
 #include <winpr/synch.h>
 #include <winpr/error.h>
 #include <winpr/wlog.h>
-#include <winpr/user.h>               // CF_UNICODETEXT / CF_DIB / CF_DIBV5
 
 #include <openssl/provider.h>
 
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>                 // mkdir (shared drive folder)
-#include <errno.h>
 
 static UINT32 deviceScaleFor(int scalePercent) {
     if (scalePercent >= 180) return 180;
@@ -100,15 +91,7 @@ struct RDPCore {
     char *host, *user, *domain, *pass;
     int port, width, height, scalePercent;
 
-    // disp/cliprdr are assigned on the RDP thread (channel connect) but read from
-    // the main thread (rdpcore_resize, clipboard senders); chanLock guards them so
-    // a disconnect racing a main-thread call can't dereference a torn-down context.
-    pthread_mutex_t chanLock;
     DispClientContext *disp;
-    CliprdrClientContext *cliprdr;
-    UINT32 pendingClipboardFormat; // format of the request currently awaiting a reply
-    UINT32 clipboardWantedFormat;  // latest format the remote offered
-    int clipboardRequestInFlight;  // a ClientFormatDataRequest is outstanding
 
     RDPCoreCallbacks cb;
     void *ctx;
@@ -145,180 +128,24 @@ static BOOL mrng_desktop_resize(rdpContext *context) {
     return TRUE;
 }
 
-// MARK: - Pointer / remote cursor
-
-// rdpPointer subclass: base struct MUST be first (same convention as mrngContext).
-// FreeRDP's Pointer_Alloc() calloc's instances of the registered prototype's .size
-// and copies the New/Free/Set/... vtable in. Decode the ARGB once in New (cached
-// pointers are re-Set without a fresh New), emit it in Set, free it in Free.
-typedef struct {
-    rdpPointer pointer;
-    BYTE *bgra;         // decoded cursor bitmap, PIXEL_FORMAT_BGRA32
-    UINT32 width, height;
-} mrngPointer;
-
-static BOOL mrng_pointer_new(rdpContext *context, rdpPointer *pointer) {
-    mrngPointer *mp = (mrngPointer *)pointer;
-    mp->bgra = NULL; mp->width = mp->height = 0;
-    if (pointer->width == 0 || pointer->height == 0) return TRUE;
-    if (pointer->width > 384 || pointer->height > 384) return TRUE; // protocol max
-    size_t stride = (size_t)pointer->width * 4;
-    BYTE *bgra = malloc(stride * pointer->height);
-    if (!bgra) return FALSE;
-    const gdiPalette *palette = context->gdi ? &context->gdi->palette : NULL;
-    if (!freerdp_image_copy_from_pointer_data(bgra, PIXEL_FORMAT_BGRA32, (UINT32)stride, 0, 0,
-                                              pointer->width, pointer->height,
-                                              pointer->xorMaskData, pointer->lengthXorMask,
-                                              pointer->andMaskData, pointer->lengthAndMask,
-                                              pointer->xorBpp, palette)) {
-        free(bgra);
-        return FALSE;
-    }
-    mp->bgra = bgra;
-    mp->width = pointer->width;
-    mp->height = pointer->height;
-    return TRUE;
-}
-
-static void mrng_pointer_free(rdpContext *context, rdpPointer *pointer) {
-    (void)context;
-    mrngPointer *mp = (mrngPointer *)pointer;
-    free(mp->bgra);
-    mp->bgra = NULL;
-}
-
-static BOOL mrng_pointer_set(rdpContext *context, rdpPointer *pointer) {
-    mrngPointer *mp = (mrngPointer *)pointer;
-    RDPCore *core = coreFromContext(context);
-    if (mp->bgra && core->cb.onCursorImage) {
-        // xPos/yPos here is the hotspot (from POINTER_COLOR_UPDATE.hotSpotX/Y), not a position.
-        core->cb.onCursorImage(core->ctx, mp->bgra, (int)mp->width, (int)mp->height,
-                               (int)pointer->xPos, (int)pointer->yPos);
-    }
-    return TRUE;
-}
-
-static BOOL mrng_pointer_set_null(rdpContext *context) {
-    RDPCore *core = coreFromContext(context);
-    if (core->cb.onCursorNull) core->cb.onCursorNull(core->ctx);
-    return TRUE;
-}
-
-static BOOL mrng_pointer_set_default(rdpContext *context) {
-    RDPCore *core = coreFromContext(context);
-    if (core->cb.onCursorDefault) core->cb.onCursorDefault(core->ctx);
-    return TRUE;
-}
-
-// MARK: - Clipboard (cliprdr)
-
-// Reply to the initial "monitor ready" with an (empty) format list, as MS-RDPECLIP expects.
-static UINT mrng_cliprdr_monitor_ready(CliprdrClientContext *cliprdr, const CLIPRDR_MONITOR_READY *e) {
-    (void)e;
-    CLIPRDR_FORMAT_LIST list = {0};
-    return cliprdr->ClientFormatList(cliprdr, &list);
-}
-
-// Issue a single data request and mark it in flight. pendingClipboardFormat then
-// always matches the one response we're waiting for.
-static void mrng_cliprdr_issue_request(CliprdrClientContext *cliprdr, RDPCore *core, UINT32 fmt) {
-    core->clipboardRequestInFlight = 1;
-    core->pendingClipboardFormat = fmt;
-    CLIPRDR_FORMAT_DATA_REQUEST req = {0};
-    req.requestedFormatId = fmt;
-    cliprdr->ClientFormatDataRequest(cliprdr, &req);
-}
-
-// Remote copied something: ack the list, report the formats, and fetch the best one
-// (text preferred, else image). Only one request is outstanding at a time so a
-// response is never attributed to a format from a later, overlapping list.
-static UINT mrng_cliprdr_server_format_list(CliprdrClientContext *cliprdr, const CLIPRDR_FORMAT_LIST *fl) {
-    RDPCore *core = (RDPCore *)cliprdr->custom;
-    bool hasText = false;
-    UINT32 imageFormat = 0; // prefer CF_DIB, fall back to CF_DIBV5 if that's all the server offers
-    for (UINT32 i = 0; i < fl->numFormats; i++) {
-        UINT32 id = fl->formats[i].formatId;
-        if (id == CF_UNICODETEXT) hasText = true;
-        else if (id == CF_DIB) imageFormat = CF_DIB;
-        else if (id == CF_DIBV5 && imageFormat == 0) imageFormat = CF_DIBV5;
-    }
-    CLIPRDR_FORMAT_LIST_RESPONSE resp = {0};
-    resp.common.msgFlags = CB_RESPONSE_OK;
-    cliprdr->ClientFormatListResponse(cliprdr, &resp);
-
-    if (core->cb.onClipboardRemoteFormats)
-        core->cb.onClipboardRemoteFormats(core->ctx, hasText, imageFormat != 0);
-
-    UINT32 want = hasText ? CF_UNICODETEXT : imageFormat;
-    core->clipboardWantedFormat = want;
-    if (want && !core->clipboardRequestInFlight)
-        mrng_cliprdr_issue_request(cliprdr, core, want);
-    return CHANNEL_RC_OK;
-}
-
-// Remote pasted (asked for our clipboard): hand the format id to the app, which
-// answers asynchronously via rdpcore_clipboard_provide().
-static UINT mrng_cliprdr_server_format_data_request(CliprdrClientContext *cliprdr,
-                                                     const CLIPRDR_FORMAT_DATA_REQUEST *req) {
-    RDPCore *core = (RDPCore *)cliprdr->custom;
-    if (core->cb.onClipboardDataRequested)
-        core->cb.onClipboardDataRequested(core->ctx, req->requestedFormatId);
-    return CHANNEL_RC_OK;
-}
-
-// Remote delivered the data we requested -> push it to the local pasteboard.
-static UINT mrng_cliprdr_server_format_data_response(CliprdrClientContext *cliprdr,
-                                                     const CLIPRDR_FORMAT_DATA_RESPONSE *resp) {
-    RDPCore *core = (RDPCore *)cliprdr->custom;
-    if ((resp->common.msgFlags & CB_RESPONSE_OK) && core->cb.onClipboardRemoteData)
-        core->cb.onClipboardRemoteData(core->ctx, core->pendingClipboardFormat,
-                                       resp->requestedFormatData, resp->common.dataLen);
-    // Request complete. If the remote offered a different format meanwhile, fetch it now.
-    core->clipboardRequestInFlight = 0;
-    if (core->clipboardWantedFormat && core->clipboardWantedFormat != core->pendingClipboardFormat)
-        mrng_cliprdr_issue_request(cliprdr, core, core->clipboardWantedFormat);
-    return CHANNEL_RC_OK;
-}
-
 // MARK: - Channels (disp for live resize)
 
 static void on_channel_connected(void *context, const ChannelConnectedEventArgs *e) {
     rdpContext *ctx = (rdpContext *)context;
-    RDPCore *core = coreFromContext(ctx);
     if (strcmp(e->name, DISP_DVC_CHANNEL_NAME) == 0) {
-        pthread_mutex_lock(&core->chanLock);
-        core->disp = (DispClientContext *)e->pInterface;
-        pthread_mutex_unlock(&core->chanLock);
+        coreFromContext(ctx)->disp = (DispClientContext *)e->pInterface;
     } else if (strcmp(e->name, RDPGFX_DVC_CHANNEL_NAME) == 0) {
         // Wire the GFX pipeline to gdi -> codec updates (H264/progressive) land in the framebuffer.
         if (ctx->gdi) gdi_graphics_pipeline_init(ctx->gdi, (RdpgfxClientContext *)e->pInterface);
-    } else if (strcmp(e->name, CLIPRDR_SVC_CHANNEL_NAME) == 0) {
-        // cliprdr is a STATIC (SVC) channel — same PubSub event, _SVC_ name macro.
-        CliprdrClientContext *c = (CliprdrClientContext *)e->pInterface;
-        c->custom = core;
-        c->MonitorReady = mrng_cliprdr_monitor_ready;
-        c->ServerFormatList = mrng_cliprdr_server_format_list;
-        c->ServerFormatDataRequest = mrng_cliprdr_server_format_data_request;
-        c->ServerFormatDataResponse = mrng_cliprdr_server_format_data_response;
-        pthread_mutex_lock(&core->chanLock);
-        core->cliprdr = c;
-        pthread_mutex_unlock(&core->chanLock);
     }
 }
 
 static void on_channel_disconnected(void *context, const ChannelDisconnectedEventArgs *e) {
     rdpContext *ctx = (rdpContext *)context;
-    RDPCore *core = coreFromContext(ctx);
     if (strcmp(e->name, DISP_DVC_CHANNEL_NAME) == 0) {
-        pthread_mutex_lock(&core->chanLock);
-        core->disp = NULL;
-        pthread_mutex_unlock(&core->chanLock);
+        coreFromContext(ctx)->disp = NULL;
     } else if (strcmp(e->name, RDPGFX_DVC_CHANNEL_NAME) == 0) {
         if (ctx->gdi) gdi_graphics_pipeline_uninit(ctx->gdi, (RdpgfxClientContext *)e->pInterface);
-    } else if (strcmp(e->name, CLIPRDR_SVC_CHANNEL_NAME) == 0) {
-        pthread_mutex_lock(&core->chanLock);
-        core->cliprdr = NULL;
-        pthread_mutex_unlock(&core->chanLock);
     }
 }
 
@@ -333,17 +160,6 @@ static BOOL mrng_pre_connect(freerdp *instance) {
 static BOOL mrng_post_connect(freerdp *instance) {
     if (!gdi_init(instance, PIXEL_FORMAT_BGRA32)) return FALSE;
     rdpContext *context = instance->context;
-    // Register our remote-cursor renderer. MUST come after gdi_init (which installs
-    // its own stub pointer prototype) and .size MUST be sizeof(mrngPointer).
-    rdpPointer pointer;
-    memset(&pointer, 0, sizeof(pointer));
-    pointer.size = sizeof(mrngPointer);
-    pointer.New = mrng_pointer_new;
-    pointer.Free = mrng_pointer_free;
-    pointer.Set = mrng_pointer_set;
-    pointer.SetNull = mrng_pointer_set_null;
-    pointer.SetDefault = mrng_pointer_set_default;
-    graphics_register_pointer(context->graphics, &pointer);
     context->update->BeginPaint = mrng_begin_paint;
     context->update->EndPaint = mrng_end_paint;
     context->update->DesktopResize = mrng_desktop_resize;
@@ -360,7 +176,7 @@ static DWORD mrng_verify_cert_ex(freerdp *instance, const char *host, UINT16 por
                                  const char *issuer, const char *fingerprint, DWORD flags) {
     (void)instance; (void)host; (void)port; (void)common_name;
     (void)subject; (void)issuer; (void)fingerprint; (void)flags;
-    return 2; // accept for this session only (self-signed hosts); not persisted
+    return 2; // accept and remember (self-signed on LAN)
 }
 
 // MARK: - Client entry points
@@ -456,7 +272,6 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
                         RDPCoreCallbacks cb, void *ctx) {
     RDPCore *core = calloc(1, sizeof(RDPCore));
     if (!core) return NULL;
-    pthread_mutex_init(&core->chanLock, NULL);
     core->host = dupstr(host);
     core->user = dupstr(user);
     core->domain = dupstr(domain);
@@ -513,32 +328,6 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     freerdp_settings_set_bool(s, FreeRDP_RemoteFxCodec, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_NetworkAutoDetect, TRUE);
 
-    // --- Redirects ---
-    // Clipboard both ways (text + image), wired in on_channel_connected(cliprdr).
-    freerdp_settings_set_bool(s, FreeRDP_RedirectClipboard, TRUE);
-    // Remote audio: DISABLED. FreeRDP's rdpsnd_mac backend opens output via
-    // [AVAudioEngine outputNode], whose IO unit initialization throws an uncaught
-    // Obj-C exception under Hardened Runtime (AVAudioEngine sets up the input
-    // scope, which needs com.apple.security.device.audio-input +
-    // NSMicrophoneUsageDescription). The throw happens on FreeRDP's own C audio
-    // thread, so it can't be caught and aborts the whole app on the first sound
-    // PDU. Re-enable only together with those entitlements, verified on a real host.
-    // freerdp_settings_set_bool(s, FreeRDP_AudioPlayback, TRUE);
-    // Drive redirect: share a dedicated ~/mRemoteNXT Shared folder (NOT the whole
-    // home directory) so only files the user drops there are exposed to the remote.
-    freerdp_settings_set_bool(s, FreeRDP_DeviceRedirection, TRUE);
-    const char *home = getenv("HOME");
-    if (home && home[0]) {
-        char sharePath[1024];
-        int nchars = snprintf(sharePath, sizeof(sharePath), "%s/mRemoteNXT Shared", home);
-        if (nchars > 0 && (size_t)nchars < sizeof(sharePath) &&
-            (mkdir(sharePath, 0755) == 0 || errno == EEXIST)) {
-            // FreeRDP strdup's these into its device collection, so a stack path is fine.
-            const char *driveParams[3] = { "drive", "mRemoteNXT", sharePath };
-            freerdp_client_add_device_channel(s, 3, driveParams);
-        }
-    }
-
     return core;
 }
 
@@ -562,7 +351,6 @@ void rdpcore_free(RDPCore *core) {
         core->context = NULL;
     }
     free(core->host); free(core->user); free(core->domain); free(core->pass);
-    pthread_mutex_destroy(&core->chanLock);
     free(core);
 }
 
@@ -571,60 +359,17 @@ void rdpcore_resize(RDPCore *core, int width, int height, int scalePercent) {
     width -= width % 2; height -= height % 2;
     core->width = width; core->height = height;
     core->scalePercent = (scalePercent >= 100 && scalePercent <= 500) ? scalePercent : 100;
-    pthread_mutex_lock(&core->chanLock);
     DispClientContext *disp = core->disp;
-    if (disp && disp->SendMonitorLayout) {
-        DISPLAY_CONTROL_MONITOR_LAYOUT layout;
-        memset(&layout, 0, sizeof(layout));
-        layout.Flags = DISPLAY_CONTROL_MONITOR_PRIMARY;
-        layout.Width = (UINT32)width;
-        layout.Height = (UINT32)height;
-        layout.Orientation = 0;
-        layout.DesktopScaleFactor = (UINT32)core->scalePercent;
-        layout.DeviceScaleFactor = deviceScaleFor(core->scalePercent);
-        disp->SendMonitorLayout(disp, 1, &layout);
-    }
-    pthread_mutex_unlock(&core->chanLock);
-}
-
-// MARK: - Clipboard senders
-
-// Returns true if the announcement actually reached the channel (cliprdr was up).
-// The caller uses this to keep retrying until the channel connects, so a clipboard
-// that existed before the session is still offered to the remote.
-bool rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage) {
-    if (!core) return false;
-    pthread_mutex_lock(&core->chanLock);
-    CliprdrClientContext *c = core->cliprdr;
-    bool sent = false;
-    if (c) {
-        CLIPRDR_FORMAT formats[2];
-        memset(formats, 0, sizeof(formats));
-        UINT32 n = 0;
-        if (hasText)  { formats[n].formatId = CF_UNICODETEXT; n++; }
-        if (hasImage) { formats[n].formatId = CF_DIB;         n++; }
-        CLIPRDR_FORMAT_LIST list = {0};
-        list.numFormats = n;
-        list.formats = n ? formats : NULL;
-        c->ClientFormatList(c, &list);
-        sent = true;
-    }
-    pthread_mutex_unlock(&core->chanLock);
-    return sent;
-}
-
-void rdpcore_clipboard_provide(RDPCore *core, const uint8_t *data, uint32_t size) {
-    if (!core) return;
-    pthread_mutex_lock(&core->chanLock);
-    CliprdrClientContext *c = core->cliprdr;
-    if (c) {
-        CLIPRDR_FORMAT_DATA_RESPONSE resp = {0};
-        resp.common.msgFlags = (data && size) ? CB_RESPONSE_OK : CB_RESPONSE_FAIL;
-        resp.common.dataLen = size;
-        resp.requestedFormatData = (const BYTE *)data;
-        c->ClientFormatDataResponse(c, &resp); // FreeRDP consumes the buffer synchronously
-    }
-    pthread_mutex_unlock(&core->chanLock);
+    if (!disp || !disp->SendMonitorLayout) return;
+    DISPLAY_CONTROL_MONITOR_LAYOUT layout;
+    memset(&layout, 0, sizeof(layout));
+    layout.Flags = DISPLAY_CONTROL_MONITOR_PRIMARY;
+    layout.Width = (UINT32)width;
+    layout.Height = (UINT32)height;
+    layout.Orientation = 0;
+    layout.DesktopScaleFactor = (UINT32)core->scalePercent;
+    layout.DeviceScaleFactor = deviceScaleFor(core->scalePercent);
+    disp->SendMonitorLayout(disp, 1, &layout);
 }
 
 static rdpInput *coreInput(RDPCore *core) {
@@ -684,10 +429,7 @@ void rdpcore_key_special(RDPCore *core, int key, bool down) {
         case RDPCORE_KEY_COMMAND:   code = 0x5B; ext = TRUE; break;
         default: return;
     }
-    // A fresh key press is flags=0; KBD_FLAGS_DOWN (0x4000) means "already down"
-    // (auto-repeat) per input.h, and KBD_FLAGS_RELEASE is key-up — matching the
-    // unicode path above.
-    UINT16 flags = down ? 0 : KBD_FLAGS_RELEASE;
+    UINT16 flags = down ? KBD_FLAGS_DOWN : KBD_FLAGS_RELEASE;
     if (ext) flags |= KBD_FLAGS_EXTENDED;
     freerdp_input_send_keyboard_event(in, flags, code);
 }
