@@ -516,9 +516,14 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     // --- Redirects ---
     // Clipboard both ways (text + image), wired in on_channel_connected(cliprdr).
     freerdp_settings_set_bool(s, FreeRDP_RedirectClipboard, TRUE);
-    // Remote audio played locally (rdpsnd; the CoreAudio backend is compiled into
-    // libfreerdp-client3, no extra wiring needed).
-    freerdp_settings_set_bool(s, FreeRDP_AudioPlayback, TRUE);
+    // Remote audio: DISABLED. FreeRDP's rdpsnd_mac backend opens output via
+    // [AVAudioEngine outputNode], whose IO unit initialization throws an uncaught
+    // Obj-C exception under Hardened Runtime (AVAudioEngine sets up the input
+    // scope, which needs com.apple.security.device.audio-input +
+    // NSMicrophoneUsageDescription). The throw happens on FreeRDP's own C audio
+    // thread, so it can't be caught and aborts the whole app on the first sound
+    // PDU. Re-enable only together with those entitlements, verified on a real host.
+    // freerdp_settings_set_bool(s, FreeRDP_AudioPlayback, TRUE);
     // Drive redirect: share a dedicated ~/mRemoteNXT Shared folder (NOT the whole
     // home directory) so only files the user drops there are exposed to the remote.
     freerdp_settings_set_bool(s, FreeRDP_DeviceRedirection, TRUE);
