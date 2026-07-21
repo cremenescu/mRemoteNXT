@@ -104,6 +104,9 @@
 "Editor.ItemsCount" = "%d elemente";
 "Editor.AdvancedNote" = "Atributele brute ale nodului (read-only pentru moment).";
 "Editor.CopyPassword" = "Copiaza parola";
+"Editor.PastePassword" = "Lipeste parola";
+"Editor.ShowPassword" = "Arata parola";
+"Editor.HidePassword" = "Ascunde parola";
 
 /* Conexiune / salvare */
 "Connection.NewConnectionName" = "Conexiune noua";

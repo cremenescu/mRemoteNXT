@@ -39,6 +39,7 @@ struct EditorSheet: View {
     /// Snapshot taken on open; used by the Discard button.
     @State private var snapshot: [String: String] = [:]
     @State private var passwordPlain: String = ""
+    @State private var passwordRevealed: Bool = false
     @State private var originalPasswordPlain: String = ""
     @State private var dirtyAtOpen: Bool = false
 
@@ -180,14 +181,25 @@ struct EditorSheet: View {
         field(t("Editor.Field.Domain"), attr(node, "Domain", inherit: "InheritDomain"))
         HStack {
             label(t("Editor.Field.Password"))
-            SecureField("", text: $passwordPlain)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 320)
-                .onChange(of: passwordPlain) { _, newValue in
-                    node.attributes["Password"] = newValue.isEmpty ? "" : model.encrypt(newValue)
-                    node.attributes["InheritPassword"] = "false"
-                    model.markDirty()
+            Group {
+                if passwordRevealed {
+                    TextField("", text: $passwordPlain)
+                } else {
+                    SecureField("", text: $passwordPlain)
                 }
+            }
+            .textFieldStyle(.roundedBorder)
+            .frame(maxWidth: 320)
+            .onChange(of: passwordPlain) { _, newValue in
+                node.attributes["Password"] = newValue.isEmpty ? "" : model.encrypt(newValue)
+                node.attributes["InheritPassword"] = "false"
+                model.markDirty()
+            }
+            Button {
+                passwordRevealed.toggle()
+            } label: { Image(systemName: passwordRevealed ? "eye.slash" : "eye") }
+            .buttonStyle(.borderless)
+            .help(t(passwordRevealed ? "Editor.HidePassword" : "Editor.ShowPassword"))
             Button {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(passwordPlain, forType: .string)
@@ -195,6 +207,11 @@ struct EditorSheet: View {
             .buttonStyle(.borderless)
             .help(t("Editor.CopyPassword"))
             .disabled(passwordPlain.isEmpty)
+            Button {
+                if let s = NSPasteboard.general.string(forType: .string) { passwordPlain = s }
+            } label: { Image(systemName: "doc.on.clipboard") }
+            .buttonStyle(.borderless)
+            .help(t("Editor.PastePassword"))
             Spacer()
         }
     }

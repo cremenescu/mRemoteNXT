@@ -110,6 +110,9 @@
 "Editor.ItemsCount" = "%d items";
 "Editor.AdvancedNote" = "Raw node attributes (read-only for now).";
 "Editor.CopyPassword" = "Copy password";
+"Editor.PastePassword" = "Paste password";
+"Editor.ShowPassword" = "Show password";
+"Editor.HidePassword" = "Hide password";
 
 /* Connection / save */
 "Connection.NewConnectionName" = "New connection";

@@ -110,6 +110,9 @@
 "Editor.ItemsCount" = "%d elementów";
 "Editor.AdvancedNote" = "Surowe atrybuty węzła (obecnie tylko do odczytu).";
 "Editor.CopyPassword" = "Kopiuj hasło";
+"Editor.PastePassword" = "Wklej hasło";
+"Editor.ShowPassword" = "Pokaż hasło";
+"Editor.HidePassword" = "Ukryj hasło";
 
 /* Connection / save */
 "Connection.NewConnectionName" = "Nowe połączenie";
