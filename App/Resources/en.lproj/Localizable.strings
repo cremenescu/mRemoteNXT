@@ -67,6 +67,7 @@
 "Context.RenameTab" = "Rename tab...";
 "Context.DuplicateTab" = "Duplicate tab";
 "Context.CopyPassword" = "Copy password";
+"Context.EditConnection" = "Edit connection...";
 
 /* Sidebar search */
 "Search.Placeholder" = "Search connections";

@@ -633,6 +633,13 @@ struct SessionTabBar: View {
                             Button(t("Context.SendCtrlAltDel")) { model.sendCtrlAltDel(session) }
                         }
                         Divider()
+                        Button(t("Context.EditConnection")) {
+                            // Jump straight to this connection's editor — also selects it
+                            // in the sidebar so it's clear which one is being edited,
+                            // instead of hunting for it in the tree.
+                            model.selectedNodeID = session.node.id
+                            model.editorVisible = true
+                        }
                         Button(t("Context.RenameTab")) { model.promptAndRename(session) }
                         Button(t("Context.DuplicateTab")) { model.duplicate(session) }
                         if !session.password.isEmpty {

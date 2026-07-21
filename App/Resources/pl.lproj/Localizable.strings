@@ -67,6 +67,7 @@
 "Context.RenameTab" = "Zmień nazwę karty...";
 "Context.DuplicateTab" = "Duplikuj kartę";
 "Context.CopyPassword" = "Kopiuj hasło";
+"Context.EditConnection" = "Edytuj połączenie...";
 
 /* Sidebar search */
 "Search.Placeholder" = "Szukaj połączeń";

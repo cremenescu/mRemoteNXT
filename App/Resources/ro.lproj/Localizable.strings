@@ -61,6 +61,7 @@
 "Context.RenameTab" = "Redenumeste tab...";
 "Context.DuplicateTab" = "Duplica tab";
 "Context.CopyPassword" = "Copiaza parola";
+"Context.EditConnection" = "Editeaza conexiunea...";
 
 /* Cautare sidebar */
 "Search.Placeholder" = "Cauta conexiuni";
