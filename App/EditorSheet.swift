@@ -208,7 +208,11 @@ struct EditorSheet: View {
             .help(t("Editor.CopyPassword"))
             .disabled(passwordPlain.isEmpty)
             Button {
-                if let s = NSPasteboard.general.string(forType: .string) { passwordPlain = s }
+                // Strip trailing/leading newlines — password managers often copy with a
+                // trailing \n, which silently makes the password wrong (STATUS_LOGON_FAILURE).
+                if let s = NSPasteboard.general.string(forType: .string) {
+                    passwordPlain = s.trimmingCharacters(in: .newlines)
+                }
             } label: { Image(systemName: "doc.on.clipboard") }
             .buttonStyle(.borderless)
             .help(t("Editor.PastePassword"))
