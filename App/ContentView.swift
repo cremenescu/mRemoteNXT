@@ -252,16 +252,26 @@ struct ContentView: View {
     @ViewBuilder private var sidebar: some View {
         if model.doc != nil {
             VStack(spacing: 0) {
-                List {
-                    ForEach(model.visibleRows()) { row in
-                        TreeRow(row: row)
-                            .listRowBackground(Color.clear)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 6))
+                ScrollViewReader { proxy in
+                    List {
+                        ForEach(model.visibleRows()) { row in
+                            TreeRow(row: row)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 6))
+                        }
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .environment(\.defaultMinListRowHeight, model.rowHeight)
+                    // "Reveal in sidebar" sets scrollTarget; FlatRow.id is the node id, so
+                    // the proxy can reach it. Cleared async so revealing the same node twice
+                    // still registers as a change.
+                    .onChange(of: model.scrollTarget) { _, target in
+                        guard let target else { return }
+                        withAnimation { proxy.scrollTo(target, anchor: .center) }
+                        DispatchQueue.main.async { model.scrollTarget = nil }
                     }
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .environment(\.defaultMinListRowHeight, model.rowHeight)
                 .searchable(text: $model.searchText, placement: .sidebar, prompt: Text(t("Search.Placeholder")))
                 .contextMenu {
                     Button(t("Toolbar.NewConnection")) {
@@ -633,6 +643,7 @@ struct SessionTabBar: View {
                             Button(t("Context.SendCtrlAltDel")) { model.sendCtrlAltDel(session) }
                         }
                         Divider()
+                        Button(t("Context.RevealInSidebar")) { model.revealInSidebar(session.node) }
                         Button(t("Context.EditConnection")) {
                             // Jump straight to this connection's editor — also selects it
                             // in the sidebar so it's clear which one is being edited,

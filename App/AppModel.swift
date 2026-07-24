@@ -68,6 +68,8 @@ final class AppModel: ObservableObject {
     }
     @Published var dirty = false
     @Published var treeVersion = 0
+    /// Node id the sidebar should scroll to; consumed (reset to nil) by the list.
+    @Published var scrollTarget: String?
     @Published var pendingDelete: MRNGNode?
     @Published var dropIndicator: DropIndicator?
     private var dropClearWork: DispatchWorkItem?
@@ -284,6 +286,21 @@ final class AppModel: ObservableObject {
     // MARK: - Editing / saving
 
     func markDirty() { dirty = true; treeVersion &+= 1 }
+
+    /// Reveal a node in the sidebar: expand every ancestor so the row exists, select it,
+    /// and ask the list to scroll to it. The search filter is cleared first — an active
+    /// filter can exclude the target from visibleRows(), and then the jump would silently
+    /// do nothing.
+    func revealInSidebar(_ node: MRNGNode) {
+        if !searchText.isEmpty { searchText = "" }
+        var ancestor = node.parent
+        while let cur = ancestor {
+            expandedIDs.insert(cur.id)
+            ancestor = cur.parent
+        }
+        selectedNodeID = node.id
+        scrollTarget = node.id
+    }
 
     /// Container into which new nodes are inserted, derived from the current selection.
     private func targetContainer() -> MRNGNode? {

@@ -68,6 +68,7 @@
 "Context.DuplicateTab" = "Duplicate tab";
 "Context.CopyPassword" = "Copy password";
 "Context.EditConnection" = "Edit connection...";
+"Context.RevealInSidebar" = "Go to in sidebar";
 
 /* Sidebar search */
 "Search.Placeholder" = "Search connections";

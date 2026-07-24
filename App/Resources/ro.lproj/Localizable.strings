@@ -62,6 +62,7 @@
 "Context.DuplicateTab" = "Duplica tab";
 "Context.CopyPassword" = "Copiaza parola";
 "Context.EditConnection" = "Editeaza conexiunea...";
+"Context.RevealInSidebar" = "Arata in sidebar";
 
 /* Cautare sidebar */
 "Search.Placeholder" = "Cauta conexiuni";

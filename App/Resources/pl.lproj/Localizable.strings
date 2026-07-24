@@ -68,6 +68,7 @@
 "Context.DuplicateTab" = "Duplikuj kartę";
 "Context.CopyPassword" = "Kopiuj hasło";
 "Context.EditConnection" = "Edytuj połączenie...";
+"Context.RevealInSidebar" = "Pokaż na pasku bocznym";
 
 /* Sidebar search */
 "Search.Placeholder" = "Szukaj połączeń";

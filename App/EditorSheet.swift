@@ -360,20 +360,15 @@ struct EditorSheet: View {
         }
     }
 
-    /// Checkbox driving `Inherit<X>`. Switching it OFF first freezes the value currently
-    /// in effect (the inherited one) onto this node, so the field never blanks out; the
-    /// read of `resolved` must happen before the flag flips.
+    /// Checkbox driving `Inherit<X>`. It only flips the flag — the node's own value is
+    /// never touched, so checking the box *ignores* the per-connection credential and
+    /// unchecking it brings that same value back untouched.
     @ViewBuilder private func inheritToggle(_ node: MRNGNode, _ key: String, _ inheritKey: String,
                                             onToggle: @escaping () -> Void = {}) -> some View {
         Toggle(t("Editor.Inherit"), isOn: Binding(
             get: { node.attributes[inheritKey] == "true" },
             set: { on in
-                if on {
-                    node.attributes[inheritKey] = "true"
-                } else {
-                    node.attributes[key] = node.resolved(key, inheritKey: inheritKey) ?? ""
-                    node.attributes[inheritKey] = "false"
-                }
+                node.attributes[inheritKey] = on ? "true" : "false"
                 model.markDirty()
                 onToggle()
             }))
