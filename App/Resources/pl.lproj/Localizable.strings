@@ -113,6 +113,9 @@
 "Editor.PastePassword" = "Wklej hasło";
 "Editor.ShowPassword" = "Pokaż hasło";
 "Editor.HidePassword" = "Ukryj hasło";
+"Editor.Inherit" = "Dziedzicz";
+"Editor.InheritHelp" = "Użyj wartości z folderu nadrzędnego";
+"Editor.InheritNoParent" = "Brak folderu nadrzędnego";
 
 /* Connection / save */
 "Connection.NewConnectionName" = "Nowe połączenie";

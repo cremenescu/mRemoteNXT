@@ -113,6 +113,9 @@
 "Editor.PastePassword" = "Paste password";
 "Editor.ShowPassword" = "Show password";
 "Editor.HidePassword" = "Hide password";
+"Editor.Inherit" = "Inherit";
+"Editor.InheritHelp" = "Use the value from the parent folder";
+"Editor.InheritNoParent" = "No parent folder to inherit from";
 
 /* Connection / save */
 "Connection.NewConnectionName" = "New connection";

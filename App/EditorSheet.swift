@@ -176,9 +176,10 @@ struct EditorSheet: View {
     }
 
     @ViewBuilder private func credentialsSection(_ node: MRNGNode) -> some View {
+        let passwordInherited = node.attributes["InheritPassword"] == "true"
         sectionTitle(t("Editor.Category.Credentials"))
-        field(t("Editor.Field.Username"), attr(node, "Username", inherit: "InheritUsername"))
-        field(t("Editor.Field.Domain"), attr(node, "Domain", inherit: "InheritDomain"))
+        inheritableField(t("Editor.Field.Username"), node, "Username", "InheritUsername")
+        inheritableField(t("Editor.Field.Domain"), node, "Domain", "InheritDomain")
         HStack {
             label(t("Editor.Field.Password"))
             Group {
@@ -190,7 +191,12 @@ struct EditorSheet: View {
             }
             .textFieldStyle(.roundedBorder)
             .frame(maxWidth: 320)
+            .disabled(passwordInherited)
+            .foregroundStyle(passwordInherited ? .secondary : .primary)
             .onChange(of: passwordPlain) { _, newValue in
+                // While inherited, this fires only from the programmatic refresh below —
+                // writing here would immediately clear the inherit flag again.
+                guard node.attributes["InheritPassword"] != "true" else { return }
                 node.attributes["Password"] = newValue.isEmpty ? "" : model.encrypt(newValue)
                 node.attributes["InheritPassword"] = "false"
                 model.markDirty()
@@ -216,6 +222,12 @@ struct EditorSheet: View {
             } label: { Image(systemName: "doc.on.clipboard") }
             .buttonStyle(.borderless)
             .help(t("Editor.PastePassword"))
+            .disabled(passwordInherited)
+            inheritToggle(node, "Password", "InheritPassword") {
+                // Re-read through the inheritance chain so the field shows what will
+                // actually be sent (the folder's password when inheriting).
+                passwordPlain = model.decryptedPassword(for: node)
+            }
             Spacer()
         }
     }
@@ -318,6 +330,56 @@ struct EditorSheet: View {
             TextField("", text: binding).textFieldStyle(.roundedBorder).frame(maxWidth: 420)
             Spacer()
         }
+    }
+
+    /// Text field paired with an "inherit from the parent folder" checkbox. While
+    /// inheriting, the field shows the folder's value and is read-only — that is how one
+    /// credential set gets reused by every connection under a folder: set it once on the
+    /// folder, leave the children inheriting.
+    @ViewBuilder private func inheritableField(_ lbl: String, _ node: MRNGNode,
+                                               _ key: String, _ inheritKey: String) -> some View {
+        let inheriting = node.attributes[inheritKey] == "true"
+        HStack(spacing: 8) {
+            label(lbl)
+            TextField("", text: Binding(
+                get: {
+                    inheriting ? (node.resolved(key, inheritKey: inheritKey) ?? "")
+                               : (node.attributes[key] ?? "")
+                },
+                set: { v in
+                    node.attributes[key] = v
+                    node.attributes[inheritKey] = "false"
+                    model.markDirty()
+                }))
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 320)
+                .disabled(inheriting)
+                .foregroundStyle(inheriting ? .secondary : .primary)
+            inheritToggle(node, key, inheritKey)
+            Spacer()
+        }
+    }
+
+    /// Checkbox driving `Inherit<X>`. Switching it OFF first freezes the value currently
+    /// in effect (the inherited one) onto this node, so the field never blanks out; the
+    /// read of `resolved` must happen before the flag flips.
+    @ViewBuilder private func inheritToggle(_ node: MRNGNode, _ key: String, _ inheritKey: String,
+                                            onToggle: @escaping () -> Void = {}) -> some View {
+        Toggle(t("Editor.Inherit"), isOn: Binding(
+            get: { node.attributes[inheritKey] == "true" },
+            set: { on in
+                if on {
+                    node.attributes[inheritKey] = "true"
+                } else {
+                    node.attributes[key] = node.resolved(key, inheritKey: inheritKey) ?? ""
+                    node.attributes[inheritKey] = "false"
+                }
+                model.markDirty()
+                onToggle()
+            }))
+            .toggleStyle(.checkbox)
+            .disabled(node.parent == nil)
+            .help(node.parent == nil ? t("Editor.InheritNoParent") : t("Editor.InheritHelp"))
     }
 
     private func attr(_ node: MRNGNode, _ key: String, inherit: String? = nil) -> Binding<String> {

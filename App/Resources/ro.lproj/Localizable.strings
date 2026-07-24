@@ -107,6 +107,9 @@
 "Editor.PastePassword" = "Lipeste parola";
 "Editor.ShowPassword" = "Arata parola";
 "Editor.HidePassword" = "Ascunde parola";
+"Editor.Inherit" = "Mosteneste";
+"Editor.InheritHelp" = "Foloseste valoarea din folderul parinte";
+"Editor.InheritNoParent" = "Nu exista folder parinte de la care sa mosteneasca";
 
 /* Conexiune / salvare */
 "Connection.NewConnectionName" = "Conexiune noua";
