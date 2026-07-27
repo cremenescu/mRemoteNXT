@@ -243,8 +243,17 @@ struct ContentView: View {
             Text(node.isContainer ? t("Delete.Folder") : t("Delete.Connection"))
         }
         .sheet(isPresented: $model.editorVisible) {
-            if let id = model.selectedNodeID {
+            if let id = model.selectedNodeID, model.node(byID: id) != nil {
                 EditorSheet(nodeID: id).environmentObject(model)
+            } else {
+                // Never present an empty sheet: without content it has no buttons and
+                // can't be dismissed.
+                VStack(spacing: 14) {
+                    Text(t("Placeholder.SelectToEdit"))
+                    Button(t("Delete.Cancel")) { model.editorVisible = false }
+                        .keyboardShortcut(.cancelAction)
+                }
+                .padding(30)
             }
         }
     }

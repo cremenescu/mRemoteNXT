@@ -111,9 +111,11 @@ final class AppModel: ObservableObject {
     @Published var updateTabTitleFromTerminal: Bool = true {
         didSet { UserDefaults.standard.set(updateTabTitleFromTerminal, forKey: "updateTabTitleFromTerminal") }
     }
-    @Published var editorVisible: Bool = false {
-        didSet { UserDefaults.standard.set(editorVisible, forKey: "editorVisible") }
-    }
+    /// Deliberately NOT persisted: it is the visibility of a modal, not a preference.
+    /// It used to be saved and restored, but selectedNodeID isn't, so quitting with the
+    /// editor open reopened it on an empty selection — a blank sheet with no buttons and
+    /// no way out.
+    @Published var editorVisible: Bool = false
     @Published var closeTabOnDisconnect: Bool = false {
         didSet { UserDefaults.standard.set(closeTabOnDisconnect, forKey: "closeTabOnDisconnect") }
     }
@@ -167,7 +169,6 @@ final class AppModel: ObservableObject {
         if let v = UserDefaults.standard.string(forKey: "cursorBlinkSpeed"),
            let s = CursorBlinkSpeed(rawValue: v) { cursorBlinkSpeed = s }
         if let v = UserDefaults.standard.object(forKey: "updateTabTitleFromTerminal") as? Bool { updateTabTitleFromTerminal = v }
-        if let v = UserDefaults.standard.object(forKey: "editorVisible") as? Bool { editorVisible = v }
         if let v = UserDefaults.standard.object(forKey: "closeTabOnDisconnect") as? Bool { closeTabOnDisconnect = v }
         if let v = UserDefaults.standard.object(forKey: "restoreSessions") as? Bool { restoreSessions = v }
         if let v = UserDefaults.standard.object(forKey: "diagnosticLogging") as? Bool { diagnosticLogging = v }
