@@ -122,6 +122,12 @@ final class AppModel: ObservableObject {
     @Published var restoreSessions: Bool = true {
         didSet { UserDefaults.standard.set(restoreSessions, forKey: "restoreSessions") }
     }
+    /// macOS folder exposed to RDP sessions as a redirected drive. Empty = feature off:
+    /// nothing on this Mac is reachable from any session. Read at connect time, so a
+    /// change applies to sessions opened afterwards.
+    @Published var sharedFolderPath: String = "" {
+        didSet { UserDefaults.standard.set(sharedFolderPath, forKey: "sharedFolderPath") }
+    }
     /// When on, FreeRDP writes a DEBUG log to ~/Library/Logs/mRemoteNXT/mRemoteNXT.log
     /// so RDP connection failures can be diagnosed. Off by default (verbose).
     @Published var diagnosticLogging: Bool = false {
@@ -157,6 +163,7 @@ final class AppModel: ObservableObject {
         if let v = UserDefaults.standard.object(forKey: "rowHeight") as? Double { rowHeight = v }
         if let v = UserDefaults.standard.object(forKey: "showProtocol") as? Bool { showProtocol = v }
         if let v = UserDefaults.standard.object(forKey: "showPasswordPlain") as? Bool { showPasswordPlain = v }
+        if let v = UserDefaults.standard.string(forKey: "sharedFolderPath") { sharedFolderPath = v }
         if let v = UserDefaults.standard.string(forKey: "cursorBlinkSpeed"),
            let s = CursorBlinkSpeed(rawValue: v) { cursorBlinkSpeed = s }
         if let v = UserDefaults.standard.object(forKey: "updateTabTitleFromTerminal") as? Bool { updateTabTitleFromTerminal = v }

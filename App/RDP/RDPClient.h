@@ -36,7 +36,8 @@ NS_ASSUME_NONNULL_BEGIN
                     password:(NSString *)password
                        width:(int)width
                       height:(int)height
-                       scale:(int)scalePercent;
+                       scale:(int)scalePercent
+                   sharedFolder:(nullable NSString *)sharedFolder;
 
 - (void)start;
 - (void)stop;

@@ -152,6 +152,32 @@ struct AppearanceSettings: View {
                 Toggle(t("Settings.RestoreSessions"), isOn: $model.restoreSessions)
                 Toggle(t("Settings.ShowPasswordPlain"), isOn: $model.showPasswordPlain)
                 VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(t("Settings.SharedFolder"))
+                        Spacer()
+                        Text(model.sharedFolderPath.isEmpty
+                             ? t("Settings.SharedFolderNone")
+                             : (model.sharedFolderPath as NSString).abbreviatingWithTildeInPath)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1).truncationMode(.head)
+                        Button(t("Settings.SharedFolderChoose")) {
+                            let panel = NSOpenPanel()
+                            panel.canChooseFiles = false
+                            panel.canChooseDirectories = true
+                            panel.allowsMultipleSelection = false
+                            panel.prompt = t("Settings.SharedFolderChoose")
+                            if panel.runModal() == .OK, let url = panel.url {
+                                model.sharedFolderPath = url.path
+                            }
+                        }
+                        if !model.sharedFolderPath.isEmpty {
+                            Button(t("Settings.SharedFolderClear")) { model.sharedFolderPath = "" }
+                        }
+                    }
+                    Text(t("Settings.SharedFolderNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                VStack(alignment: .leading, spacing: 4) {
                     Toggle(t("Settings.DiagnosticLogging"), isOn: $model.diagnosticLogging)
                     if model.diagnosticLogging {
                         HStack {

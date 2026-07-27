@@ -11,6 +11,7 @@
 #include <freerdp/channels/disp.h>
 #include <freerdp/client/cliprdr.h>
 #include <freerdp/channels/cliprdr.h>
+#include <freerdp/client/cmdline.h>   // freerdp_client_add_device_channel
 #include <freerdp/gdi/gdi.h>
 #include <freerdp/gdi/gfx.h>
 #include <freerdp/channels/rdpgfx.h>
@@ -27,6 +28,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>                    // isalnum (share name sanitising)
 
 static UINT32 deviceScaleFor(int scalePercent) {
     if (scalePercent >= 180) return 180;
@@ -427,6 +429,7 @@ static char *dupstr(const char *s) {
 RDPCore *rdpcore_create(const char *host, int port, const char *user,
                         const char *domain, const char *pass,
                         int width, int height, int scalePercent,
+                        const char *sharePath,
                         RDPCoreCallbacks cb, void *ctx) {
     RDPCore *core = calloc(1, sizeof(RDPCore));
     if (!core) return NULL;
@@ -516,6 +519,29 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     // Clipboard redirection (cliprdr). Enabling it makes client/common load the
     // channel; the handlers are wired in on_channel_connected.
     freerdp_settings_set_bool(s, FreeRDP_RedirectClipboard, TRUE);
+    // Drive redirection: only the folder the user picked in Settings, mapped
+    // read/write so files move both ways (\\tsclient\\<name> in the session).
+    // No folder configured -> device redirection stays off and nothing on this Mac
+    // is reachable from the remote. The folder is never created here: it must be
+    // one the user already chose, so we can't silently expose an unexpected path.
+    if (sharePath && sharePath[0]) {
+        freerdp_settings_set_bool(s, FreeRDP_DeviceRedirection, TRUE);
+        // Name the share after the folder so it's recognisable in Explorer, keeping
+        // only characters that are safe in a Windows share name.
+        char shareName[64] = {0};
+        const char *base = strrchr(sharePath, '/');
+        base = (base && base[1]) ? base + 1 : sharePath;
+        size_t n = 0;
+        for (size_t i = 0; base[i] && n < sizeof(shareName) - 1; i++) {
+            unsigned char ch = (unsigned char)base[i];
+            if (isalnum(ch) || ch == '-' || ch == '_') shareName[n++] = (char)ch;
+            else if (ch == ' ' && n > 0 && shareName[n - 1] != '_') shareName[n++] = '_';
+        }
+        if (n == 0) snprintf(shareName, sizeof(shareName), "mRemoteNXT");
+        // FreeRDP strdup's these into its device collection, so locals are fine.
+        const char *driveParams[3] = { "drive", shareName, sharePath };
+        freerdp_client_add_device_channel(s, 3, driveParams);
+    }
 
     return core;
 }

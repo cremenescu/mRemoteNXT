@@ -44,6 +44,11 @@
 "Settings.DiagnosticLoggingNote" = "Zapisuje do ~/Library/Logs/mRemoteNXT/mRemoteNXT.log";
 "Settings.RevealLog" = "Pokaż w Finderze";
 "Settings.ShowPasswordPlain" = "Pokazuj hasło w pasku stanu";
+"Settings.SharedFolder" = "Folder udostępniony (RDP)";
+"Settings.SharedFolderNone" = "brak";
+"Settings.SharedFolderChoose" = "Wybierz...";
+"Settings.SharedFolderClear" = "Wyczyść";
+"Settings.SharedFolderNote" = "Pojawia się w sesji jako dysk w \\\\tsclient, z odczytem i zapisem po obu stronach. Dopóki pole jest puste, nic nie jest udostępniane. Dotyczy sesji otwartych później.";
 "Settings.LanguagePicker" = "Język interfejsu";
 "Settings.LanguageNote" = "Niektóre etykiety mogą zostać zaktualizowane przy następnym odświeżeniu widoku.";
 "Settings.ToolsMacros" = "Dostępne makra: %Host% %Username% %Port% %Password% %Domain% %Name%";

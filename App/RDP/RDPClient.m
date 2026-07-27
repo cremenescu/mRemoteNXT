@@ -17,6 +17,7 @@ enum { MRNG_CF_UNICODETEXT = 13, MRNG_CF_DIB = 8, MRNG_CF_DIBV5 = 17 };
     CGImageRef _pendingImage;   // most recent frame, delivered coalesced on main
     BOOL _updateScheduled;
     NSTimer *_clipboardTimer;   // polls the local pasteboard for changes
+    NSString *_sharedFolder;    // macOS folder exposed as a redirected drive (nil = none)
     NSInteger _lastPasteboardChangeCount;
 }
 - (void)enqueueImage:(CGImageRef)img;
@@ -143,7 +144,8 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
 
 - (instancetype)initWithHost:(NSString *)host port:(int)port username:(NSString *)username
                       domain:(NSString *)domain password:(NSString *)password
-                       width:(int)width height:(int)height scale:(int)scalePercent {
+                       width:(int)width height:(int)height scale:(int)scalePercent
+                sharedFolder:(NSString *)sharedFolder {
     if (self = [super init]) {
         _host = [host copy];
         _port = port;
@@ -153,6 +155,7 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
         _width = width;
         _height = height;
         _scale = scalePercent;
+        _sharedFolder = [sharedFolder copy];
     }
     return self;
 }
@@ -171,7 +174,9 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
     void *ctx = (__bridge_retained void *)self;
     _core = rdpcore_create(self.host.UTF8String, self.port,
                            self.username.UTF8String, self.domain.UTF8String,
-                           self.password.UTF8String, self.width, self.height, self.scale, cb, ctx);
+                           self.password.UTF8String, self.width, self.height, self.scale,
+                           _sharedFolder.length ? _sharedFolder.fileSystemRepresentation : NULL,
+                           cb, ctx);
     rdpcore_start(_core);
 
     // Poll the local pasteboard; on change, announce the available formats so the

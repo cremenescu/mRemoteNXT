@@ -79,7 +79,13 @@ final class RDPNSView: NSView, RDPClientDelegate {
         let c = RDPClient(host: node.hostname, port: Int32(node.port),
                           username: user, domain: domain,
                           password: session.password,
-                          width: Int32(t.w), height: Int32(t.h), scale: Int32(t.scalePct))
+                          width: Int32(t.w), height: Int32(t.h), scale: Int32(t.scalePct),
+                          sharedFolder: {
+                              // Read at connect time straight from defaults: the view has no
+                              // AppModel reference, and an empty value must mean "no redirect".
+                              let p = UserDefaults.standard.string(forKey: "sharedFolderPath") ?? ""
+                              return p.isEmpty ? nil : p
+                          }())
         c.delegate = self
         client = c
         c.start()

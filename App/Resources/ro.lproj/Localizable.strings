@@ -38,6 +38,11 @@
 "Settings.DiagnosticLoggingNote" = "Scrie in ~/Library/Logs/mRemoteNXT/mRemoteNXT.log";
 "Settings.RevealLog" = "Arata in Finder";
 "Settings.ShowPasswordPlain" = "Arata parola in clar in status bar";
+"Settings.SharedFolder" = "Folder partajat (RDP)";
+"Settings.SharedFolderNone" = "niciunul";
+"Settings.SharedFolderChoose" = "Alege...";
+"Settings.SharedFolderClear" = "Sterge";
+"Settings.SharedFolderNote" = "Apare in sesiune ca disc sub \\\\tsclient, cu citire si scriere din ambele parti. Cat timp e gol nu se partajeaza nimic. Se aplica la sesiunile deschise dupa modificare.";
 "Settings.LanguagePicker" = "Limba interfetei";
 "Settings.LanguageNote" = "Unele etichete se vor actualiza la urmatoarea redesenare.";
 "Settings.ToolsMacros" = "Macro-uri disponibile: %Host% %Username% %Port% %Password% %Domain% %Name%";

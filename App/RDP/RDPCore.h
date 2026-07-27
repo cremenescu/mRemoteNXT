@@ -35,9 +35,13 @@ enum {
     RDPCORE_KEY_DELETE, RDPCORE_KEY_SHIFT, RDPCORE_KEY_CONTROL, RDPCORE_KEY_ALT, RDPCORE_KEY_COMMAND
 };
 
+// sharePath = absolute path of a macOS folder to expose in the session as a
+// redirected drive (read/write, so files move both ways). NULL or empty disables
+// device redirection entirely — nothing on this Mac is reachable from the remote.
 RDPCore *rdpcore_create(const char *host, int port, const char *user,
                         const char *domain, const char *pass,
                         int width, int height, int scalePercent,
+                        const char *sharePath,
                         RDPCoreCallbacks cb, void *ctx);
 void rdpcore_start(RDPCore *core);
 void rdpcore_stop(RDPCore *core);
