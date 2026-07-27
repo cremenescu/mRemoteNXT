@@ -184,16 +184,59 @@ struct EditorSheet: View {
             inheritToggle(node, "RedirectDiskDrives", "InheritRedirectDiskDrives")
             Spacer()
         }
-        Text(sharedFolderHint).font(.caption).foregroundStyle(.secondary)
+        if node.redirectDiskDrives {
+            HStack(spacing: 8) {
+                label(t("Editor.Field.SharedFolder"))
+                Text(sharedFolderLabel(node))
+                    .foregroundStyle(.secondary).lineLimit(1).truncationMode(.head)
+                Button(t("Settings.SharedFolderChoose")) {
+                    let panel = NSOpenPanel()
+                    panel.canChooseFiles = false
+                    panel.canChooseDirectories = true
+                    panel.allowsMultipleSelection = false
+                    panel.prompt = t("Settings.SharedFolderChoose")
+                    if panel.runModal() == .OK, let url = panel.url {
+                        node.attributes["RedirectDiskDrivesCustom"] = url.path
+                        node.attributes["InheritRedirectDiskDrivesCustom"] = "false"
+                        // 2.8 spells "share a custom location" as this enum value; keep the
+                        // two attributes consistent so mRemoteNG reads it the same way.
+                        node.attributes["RedirectDiskDrives"] = "Custom"
+                        node.attributes["InheritRedirectDiskDrives"] = "false"
+                        model.markDirty()
+                    }
+                }
+                if !node.attributes["RedirectDiskDrivesCustom", default: ""].isEmpty {
+                    Button(t("Settings.SharedFolderClear")) {
+                        node.attributes["RedirectDiskDrivesCustom"] = ""
+                        model.markDirty()
+                    }
+                }
+                inheritToggle(node, "RedirectDiskDrivesCustom", "InheritRedirectDiskDrivesCustom")
+                Spacer()
+            }
+        }
+        Text(sharedFolderHint(node)).font(.caption).foregroundStyle(.secondary)
     }
 
-    /// Caption under the disk-drive toggle: which folder it would actually share, so
-    /// enabling it here doesn't look like it exposes the whole Mac.
-    private var sharedFolderHint: String {
-        let path = UserDefaults.standard.string(forKey: "sharedFolderPath") ?? ""
-        if path.isEmpty { return t("Editor.RedirectDiskDrivesNoFolder") }
-        return String(format: t("Editor.RedirectDiskDrivesFolder"),
-                      (path as NSString).abbreviatingWithTildeInPath)
+    /// The folder actually in effect for this node: its own (or inherited) value first,
+    /// otherwise the app-wide fallback from Settings.
+    private func sharedFolderLabel(_ node: MRNGNode) -> String {
+        let own = node.redirectDiskDrivesCustom
+        if !own.isEmpty { return (own as NSString).abbreviatingWithTildeInPath }
+        return t("Settings.SharedFolderNone")
+    }
+
+    /// Caption under the toggle: name the folder that would really be shared, so enabling
+    /// this never looks like it exposes the whole Mac.
+    private func sharedFolderHint(_ node: MRNGNode) -> String {
+        let own = node.redirectDiskDrivesCustom
+        let fallback = UserDefaults.standard.string(forKey: "sharedFolderPath") ?? ""
+        let effective = own.isEmpty ? fallback : own
+        if effective.isEmpty { return t("Editor.RedirectDiskDrivesNoFolder") }
+        let shown = (effective as NSString).abbreviatingWithTildeInPath
+        return own.isEmpty
+            ? String(format: t("Editor.RedirectDiskDrivesFallback"), shown)
+            : String(format: t("Editor.RedirectDiskDrivesFolder"), shown)
     }
 
     @ViewBuilder private func credentialsSection(_ node: MRNGNode) -> some View {

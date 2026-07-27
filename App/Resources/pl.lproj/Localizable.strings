@@ -110,6 +110,8 @@
 "Editor.Field.Host" = "Host";
 "Editor.Field.Panel" = "Panel";
 "Editor.Field.RedirectDiskDrives" = "Udostępnij folder (przekierowanie dysku)";
+"Editor.Field.SharedFolder" = "Folder";
+"Editor.RedirectDiskDrivesFallback" = "Brak folderu w połączeniu — używa %@ z Ustawień.";
 "Editor.RedirectDiskDrivesFolder" = "Udostępnia %@ temu połączeniu jako dysk w \\\\tsclient.";
 "Editor.RedirectDiskDrivesNoFolder" = "Nie wybrano folderu — ustaw go w Ustawieniach, inaczej nic nie jest udostępniane.";
 "Editor.Field.Username" = "Nazwa użytkownika";

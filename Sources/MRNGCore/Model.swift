@@ -162,8 +162,20 @@ public final class MRNGNode: Identifiable, Hashable {
     /// mRemoteNG's per-connection disk-drive redirect flag. Native attribute, so it
     /// round-trips with mRemoteNG; on macOS it gates the folder chosen in Settings
     /// rather than exposing every local drive.
+    /// Whether this connection shares a folder with the session. The attribute changed
+    /// meaning upstream: schema 2.6 wrote the booleans "true"/"false", schema 2.8 writes
+    /// the RDPDiskDrives enum (None/Local/All/Custom). Accept both so a file written by
+    /// either mRemoteNG version reads correctly.
     public var redirectDiskDrives: Bool {
-        (resolved("RedirectDiskDrives", inheritKey: "InheritRedirectDiskDrives") ?? "false") == "true"
+        let v = (resolved("RedirectDiskDrives", inheritKey: "InheritRedirectDiskDrives") ?? "false")
+        return v == "true" || v == "All" || v == "Local" || v == "Custom"
+    }
+    /// mRemoteNG 2.8's per-connection custom drive spec. On Windows it holds drive
+    /// letters; on macOS there are no drive letters, so we use it for the absolute path
+    /// of the folder to share. Native attribute with inheritance, so it can be set once
+    /// on a parent folder — and it survives a round-trip through mRemoteNG untouched.
+    public var redirectDiskDrivesCustom: String {
+        resolved("RedirectDiskDrivesCustom", inheritKey: "InheritRedirectDiskDrivesCustom") ?? ""
     }
     public var descr: String { resolved("Descr", inheritKey: "InheritDescription") ?? "" }
     public var icon: String { resolved("Icon", inheritKey: "InheritIcon") ?? "mRemoteNG" }

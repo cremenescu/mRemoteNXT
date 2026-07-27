@@ -86,6 +86,10 @@ final class RDPNSView: NSView, RDPClientDelegate {
                               // decides WHETHER, the Settings folder decides WHAT. Either one
                               // unset means nothing is shared with this session.
                               guard node.redirectDiskDrives else { return nil }
+                              // Per-connection folder (inheritable, so it can be set once on a
+                              // parent folder) wins; the Settings one is the fallback.
+                              let own = node.redirectDiskDrivesCustom
+                              if !own.isEmpty { return own }
                               let p = UserDefaults.standard.string(forKey: "sharedFolderPath") ?? ""
                               return p.isEmpty ? nil : p
                           }())
