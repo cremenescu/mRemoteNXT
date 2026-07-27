@@ -22,6 +22,10 @@ typedef struct {
     // bgra = live buffer (valid only during the callback); the consumer copies synchronously.
     void (*onImage)(void *ctx, const uint8_t *bgra, int width, int height, int stride);
     void (*onDisconnected)(void *ctx, const char *error); // error == NULL => normal
+    // Clipboard (cliprdr). Buffers are valid only during the callback — copy synchronously.
+    void (*onClipboardRemoteFormats)(void *ctx, bool hasText, bool hasImage); // remote copied something
+    void (*onClipboardRemoteData)(void *ctx, uint32_t formatId, const uint8_t *data, uint32_t size);
+    void (*onClipboardDataRequested)(void *ctx, uint32_t formatId); // remote wants our clipboard
 } RDPCoreCallbacks;
 
 // Special key codes (must match RDPSpecialKey in RDPClient.h).
@@ -53,6 +57,14 @@ void rdpcore_init_crypto(const char *modules_dir);
 void rdpcore_set_diagnostic_logging(int enabled, const char *dir);
 // Live resize of the RDP desktop (via the Display Control channel).
 void rdpcore_resize(RDPCore *core, int width, int height, int scalePercent);
+
+// Clipboard (cliprdr) senders, called from the app layer:
+// announce = tell the remote what our local clipboard now holds.
+//   Returns true only if the clipboard channel was up and the offer was sent, so
+//   the caller can retry until it connects (and offer a pre-session clipboard).
+// provide  = answer a prior onClipboardDataRequested(formatId); NULL/0 => decline.
+bool rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage);
+void rdpcore_clipboard_provide(RDPCore *core, const uint8_t *data, uint32_t size);
 
 void rdpcore_mouse_move(RDPCore *core, int x, int y);
 void rdpcore_mouse_button(RDPCore *core, int button, bool down, int x, int y);

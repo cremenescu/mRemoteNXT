@@ -9,6 +9,8 @@
 #include <freerdp/client.h>
 #include <freerdp/client/disp.h>
 #include <freerdp/channels/disp.h>
+#include <freerdp/client/cliprdr.h>
+#include <freerdp/channels/cliprdr.h>
 #include <freerdp/gdi/gdi.h>
 #include <freerdp/gdi/gfx.h>
 #include <freerdp/channels/rdpgfx.h>
@@ -91,7 +93,15 @@ struct RDPCore {
     char *host, *user, *domain, *pass;
     int port, width, height, scalePercent;
 
+    // disp/cliprdr are assigned on the RDP thread (channel connect) but read from
+    // the main thread (rdpcore_resize, clipboard senders); chanLock guards them so
+    // a disconnect racing a main-thread call can't dereference a torn-down context.
+    pthread_mutex_t chanLock;
     DispClientContext *disp;
+    CliprdrClientContext *cliprdr;
+    UINT32 pendingClipboardFormat; // format of the request currently awaiting a reply
+    UINT32 clipboardWantedFormat;  // latest format the remote offered
+    int clipboardRequestInFlight;  // a ClientFormatDataRequest is outstanding
 
     RDPCoreCallbacks cb;
     void *ctx;
@@ -130,11 +140,97 @@ static BOOL mrng_desktop_resize(rdpContext *context) {
 
 // MARK: - Channels (disp for live resize)
 
+// MARK: - Clipboard (cliprdr)
+
+// Reply to the initial "monitor ready" with an (empty) format list, as MS-RDPECLIP expects.
+static UINT mrng_cliprdr_monitor_ready(CliprdrClientContext *cliprdr, const CLIPRDR_MONITOR_READY *e) {
+    (void)e;
+    CLIPRDR_FORMAT_LIST list = {0};
+    return cliprdr->ClientFormatList(cliprdr, &list);
+}
+
+// Issue a single data request and mark it in flight. pendingClipboardFormat then
+// always matches the one response we're waiting for.
+static void mrng_cliprdr_issue_request(CliprdrClientContext *cliprdr, RDPCore *core, UINT32 fmt) {
+    core->clipboardRequestInFlight = 1;
+    core->pendingClipboardFormat = fmt;
+    CLIPRDR_FORMAT_DATA_REQUEST req = {0};
+    req.requestedFormatId = fmt;
+    cliprdr->ClientFormatDataRequest(cliprdr, &req);
+}
+
+// Remote copied something: ack the list, report the formats, and fetch the best one
+// (text preferred, else image). Only one request is outstanding at a time so a
+// response is never attributed to a format from a later, overlapping list.
+static UINT mrng_cliprdr_server_format_list(CliprdrClientContext *cliprdr, const CLIPRDR_FORMAT_LIST *fl) {
+    RDPCore *core = (RDPCore *)cliprdr->custom;
+    bool hasText = false;
+    UINT32 imageFormat = 0; // prefer CF_DIB, fall back to CF_DIBV5 if that's all the server offers
+    for (UINT32 i = 0; i < fl->numFormats; i++) {
+        UINT32 id = fl->formats[i].formatId;
+        if (id == CF_UNICODETEXT) hasText = true;
+        else if (id == CF_DIB) imageFormat = CF_DIB;
+        else if (id == CF_DIBV5 && imageFormat == 0) imageFormat = CF_DIBV5;
+    }
+    CLIPRDR_FORMAT_LIST_RESPONSE resp = {0};
+    resp.common.msgFlags = CB_RESPONSE_OK;
+    cliprdr->ClientFormatListResponse(cliprdr, &resp);
+
+    if (core->cb.onClipboardRemoteFormats)
+        core->cb.onClipboardRemoteFormats(core->ctx, hasText, imageFormat != 0);
+
+    UINT32 want = hasText ? CF_UNICODETEXT : imageFormat;
+    core->clipboardWantedFormat = want;
+    if (want && !core->clipboardRequestInFlight)
+        mrng_cliprdr_issue_request(cliprdr, core, want);
+    return CHANNEL_RC_OK;
+}
+
+// Remote pasted (asked for our clipboard): hand the format id to the app, which
+// answers asynchronously via rdpcore_clipboard_provide().
+static UINT mrng_cliprdr_server_format_data_request(CliprdrClientContext *cliprdr,
+                                                     const CLIPRDR_FORMAT_DATA_REQUEST *req) {
+    RDPCore *core = (RDPCore *)cliprdr->custom;
+    if (core->cb.onClipboardDataRequested)
+        core->cb.onClipboardDataRequested(core->ctx, req->requestedFormatId);
+    return CHANNEL_RC_OK;
+}
+
+// Remote delivered the data we requested -> push it to the local pasteboard.
+static UINT mrng_cliprdr_server_format_data_response(CliprdrClientContext *cliprdr,
+                                                     const CLIPRDR_FORMAT_DATA_RESPONSE *resp) {
+    RDPCore *core = (RDPCore *)cliprdr->custom;
+    if ((resp->common.msgFlags & CB_RESPONSE_OK) && core->cb.onClipboardRemoteData)
+        core->cb.onClipboardRemoteData(core->ctx, core->pendingClipboardFormat,
+                                       resp->requestedFormatData, resp->common.dataLen);
+    // Request complete. If the remote offered a different format meanwhile, fetch it now.
+    core->clipboardRequestInFlight = 0;
+    if (core->clipboardWantedFormat && core->clipboardWantedFormat != core->pendingClipboardFormat)
+        mrng_cliprdr_issue_request(cliprdr, core, core->clipboardWantedFormat);
+    return CHANNEL_RC_OK;
+}
+
 static void on_channel_connected(void *context, const ChannelConnectedEventArgs *e) {
     rdpContext *ctx = (rdpContext *)context;
+    if (strcmp(e->name, CLIPRDR_SVC_CHANNEL_NAME) == 0) {
+        // cliprdr is a STATIC (SVC) channel — same PubSub event, _SVC_ name macro.
+        RDPCore *core = coreFromContext(ctx);
+        CliprdrClientContext *c = (CliprdrClientContext *)e->pInterface;
+        c->custom = core;
+        c->MonitorReady = mrng_cliprdr_monitor_ready;
+        c->ServerFormatList = mrng_cliprdr_server_format_list;
+        c->ServerFormatDataRequest = mrng_cliprdr_server_format_data_request;
+        c->ServerFormatDataResponse = mrng_cliprdr_server_format_data_response;
+        pthread_mutex_lock(&core->chanLock);
+        core->cliprdr = c;
+        pthread_mutex_unlock(&core->chanLock);
+        return;
+    }
     if (strcmp(e->name, DISP_DVC_CHANNEL_NAME) == 0) {
         RDPCore *core = coreFromContext(ctx);
+        pthread_mutex_lock(&core->chanLock);
         core->disp = (DispClientContext *)e->pInterface;
+        pthread_mutex_unlock(&core->chanLock);
         // Re-apply the latest requested desktop size now that the Display Control
         // channel is up. A session restored on launch connects while its view is
         // still tiny (min 640x480), then the view lays out full-size and calls
@@ -150,8 +246,15 @@ static void on_channel_connected(void *context, const ChannelConnectedEventArgs 
 
 static void on_channel_disconnected(void *context, const ChannelDisconnectedEventArgs *e) {
     rdpContext *ctx = (rdpContext *)context;
+    RDPCore *core = coreFromContext(ctx);
     if (strcmp(e->name, DISP_DVC_CHANNEL_NAME) == 0) {
-        coreFromContext(ctx)->disp = NULL;
+        pthread_mutex_lock(&core->chanLock);
+        core->disp = NULL;
+        pthread_mutex_unlock(&core->chanLock);
+    } else if (strcmp(e->name, CLIPRDR_SVC_CHANNEL_NAME) == 0) {
+        pthread_mutex_lock(&core->chanLock);
+        core->cliprdr = NULL;
+        pthread_mutex_unlock(&core->chanLock);
     } else if (strcmp(e->name, RDPGFX_DVC_CHANNEL_NAME) == 0) {
         if (ctx->gdi) gdi_graphics_pipeline_uninit(ctx->gdi, (RdpgfxClientContext *)e->pInterface);
     }
@@ -299,6 +402,7 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
                         RDPCoreCallbacks cb, void *ctx) {
     RDPCore *core = calloc(1, sizeof(RDPCore));
     if (!core) return NULL;
+    pthread_mutex_init(&core->chanLock, NULL);
     core->host = dupstr(host);
     core->user = dupstr(user);
     core->domain = dupstr(domain);
@@ -381,6 +485,9 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     // "don't ask again" / mRemoteNG on a managed network. The Verify*Ex callbacks
     // stay wired as a fallback if this is ever made configurable per-host.
     freerdp_settings_set_bool(s, FreeRDP_IgnoreCertificate, TRUE);
+    // Clipboard redirection (cliprdr). Enabling it makes client/common load the
+    // channel; the handlers are wired in on_channel_connected.
+    freerdp_settings_set_bool(s, FreeRDP_RedirectClipboard, TRUE);
 
     return core;
 }
@@ -405,6 +512,7 @@ void rdpcore_free(RDPCore *core) {
         core->context = NULL;
     }
     free(core->host); free(core->user); free(core->domain); free(core->pass);
+    pthread_mutex_destroy(&core->chanLock);
     free(core);
 }
 
@@ -413,8 +521,9 @@ void rdpcore_resize(RDPCore *core, int width, int height, int scalePercent) {
     width -= width % 2; height -= height % 2;
     core->width = width; core->height = height;
     core->scalePercent = (scalePercent >= 100 && scalePercent <= 500) ? scalePercent : 100;
+    pthread_mutex_lock(&core->chanLock);
     DispClientContext *disp = core->disp;
-    if (!disp || !disp->SendMonitorLayout) return;
+    if (!disp || !disp->SendMonitorLayout) { pthread_mutex_unlock(&core->chanLock); return; }
     DISPLAY_CONTROL_MONITOR_LAYOUT layout;
     memset(&layout, 0, sizeof(layout));
     layout.Flags = DISPLAY_CONTROL_MONITOR_PRIMARY;
@@ -424,6 +533,44 @@ void rdpcore_resize(RDPCore *core, int width, int height, int scalePercent) {
     layout.DesktopScaleFactor = (UINT32)core->scalePercent;
     layout.DeviceScaleFactor = deviceScaleFor(core->scalePercent);
     disp->SendMonitorLayout(disp, 1, &layout);
+    pthread_mutex_unlock(&core->chanLock);
+}
+
+// MARK: - Clipboard senders (called from the app layer)
+
+bool rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage) {
+    if (!core) return false;
+    pthread_mutex_lock(&core->chanLock);
+    CliprdrClientContext *c = core->cliprdr;
+    bool sent = false;
+    if (c) {
+        CLIPRDR_FORMAT formats[2];
+        memset(formats, 0, sizeof(formats));
+        UINT32 n = 0;
+        if (hasText)  { formats[n].formatId = CF_UNICODETEXT; n++; }
+        if (hasImage) { formats[n].formatId = CF_DIB;         n++; }
+        CLIPRDR_FORMAT_LIST list = {0};
+        list.numFormats = n;
+        list.formats = n ? formats : NULL;
+        c->ClientFormatList(c, &list);
+        sent = true;
+    }
+    pthread_mutex_unlock(&core->chanLock);
+    return sent;
+}
+
+void rdpcore_clipboard_provide(RDPCore *core, const uint8_t *data, uint32_t size) {
+    if (!core) return;
+    pthread_mutex_lock(&core->chanLock);
+    CliprdrClientContext *c = core->cliprdr;
+    if (c) {
+        CLIPRDR_FORMAT_DATA_RESPONSE resp = {0};
+        resp.common.msgFlags = (data && size) ? CB_RESPONSE_OK : CB_RESPONSE_FAIL;
+        resp.common.dataLen = size;
+        resp.requestedFormatData = (const BYTE *)data;
+        c->ClientFormatDataResponse(c, &resp); // FreeRDP consumes the buffer synchronously
+    }
+    pthread_mutex_unlock(&core->chanLock);
 }
 
 static rdpInput *coreInput(RDPCore *core) {
