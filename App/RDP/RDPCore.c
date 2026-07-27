@@ -102,6 +102,7 @@ struct RDPCore {
     UINT32 pendingClipboardFormat; // format of the request currently awaiting a reply
     UINT32 clipboardWantedFormat;  // latest format the remote offered
     int clipboardRequestInFlight;  // a ClientFormatDataRequest is outstanding
+    int clipboardReady;            // Monitor Ready seen: safe to announce formats
 
     RDPCoreCallbacks cb;
     void *ctx;
@@ -142,11 +143,37 @@ static BOOL mrng_desktop_resize(rdpContext *context) {
 
 // MARK: - Clipboard (cliprdr)
 
-// Reply to the initial "monitor ready" with an (empty) format list, as MS-RDPECLIP expects.
+// Monitor Ready is the point where the clipboard handshake actually opens. Per
+// MS-RDPECLIP the client answers with its OWN capabilities and then a format list;
+// skipping the capabilities leaves the server without our long-format-name support
+// and it then never announces its own clipboard (nothing can be copied from Windows).
+// Announcing before this arrives is a protocol violation, so this is also what flips
+// clipboardReady on for rdpcore_clipboard_announce().
 static UINT mrng_cliprdr_monitor_ready(CliprdrClientContext *cliprdr, const CLIPRDR_MONITOR_READY *e) {
     (void)e;
+    RDPCore *core = (RDPCore *)cliprdr->custom;
+
+    CLIPRDR_GENERAL_CAPABILITY_SET general = {0};
+    general.capabilitySetType = CB_CAPSTYPE_GENERAL;
+    general.capabilitySetLength = CB_CAPSTYPE_GENERAL_LEN;
+    general.version = CB_CAPS_VERSION_2;
+    // Long format names only: no file-clip flags, since file transfer isn't implemented.
+    general.generalFlags = CB_USE_LONG_FORMAT_NAMES;
+    CLIPRDR_CAPABILITIES caps = {0};
+    caps.cCapabilitiesSets = 1;
+    caps.capabilitySets = (CLIPRDR_CAPABILITY_SET *)&general;
+    UINT rc = cliprdr->ClientCapabilities(cliprdr, &caps);
+    if (rc != CHANNEL_RC_OK) return rc;
+
     CLIPRDR_FORMAT_LIST list = {0};
-    return cliprdr->ClientFormatList(cliprdr, &list);
+    rc = cliprdr->ClientFormatList(cliprdr, &list);
+
+    // The pasteboard poll retries until this is set, so whatever is already on the
+    // local clipboard gets offered as soon as the channel is legitimately open.
+    pthread_mutex_lock(&core->chanLock);
+    core->clipboardReady = 1;
+    pthread_mutex_unlock(&core->chanLock);
+    return rc;
 }
 
 // Issue a single data request and mark it in flight. pendingClipboardFormat then
@@ -254,6 +281,7 @@ static void on_channel_disconnected(void *context, const ChannelDisconnectedEven
     } else if (strcmp(e->name, CLIPRDR_SVC_CHANNEL_NAME) == 0) {
         pthread_mutex_lock(&core->chanLock);
         core->cliprdr = NULL;
+        core->clipboardReady = 0;
         pthread_mutex_unlock(&core->chanLock);
     } else if (strcmp(e->name, RDPGFX_DVC_CHANNEL_NAME) == 0) {
         if (ctx->gdi) gdi_graphics_pipeline_uninit(ctx->gdi, (RdpgfxClientContext *)e->pInterface);
@@ -541,7 +569,9 @@ void rdpcore_resize(RDPCore *core, int width, int height, int scalePercent) {
 bool rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage) {
     if (!core) return false;
     pthread_mutex_lock(&core->chanLock);
-    CliprdrClientContext *c = core->cliprdr;
+    // Not until Monitor Ready: a format list sent before the handshake is a protocol
+    // violation and the server may drop it. Returning false keeps the caller retrying.
+    CliprdrClientContext *c = core->clipboardReady ? core->cliprdr : NULL;
     bool sent = false;
     if (c) {
         CLIPRDR_FORMAT formats[2];
