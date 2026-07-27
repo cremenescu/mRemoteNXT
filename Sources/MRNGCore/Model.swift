@@ -159,6 +159,12 @@ public final class MRNGNode: Identifiable, Hashable {
     public var domain: String { resolved("Domain", inheritKey: "InheritDomain") ?? "" }
     public var encryptedPassword: String { resolved("Password", inheritKey: "InheritPassword") ?? "" }
     public var puttySession: String { resolved("PuttySession", inheritKey: "InheritPuttySession") ?? "" }
+    /// mRemoteNG's per-connection disk-drive redirect flag. Native attribute, so it
+    /// round-trips with mRemoteNG; on macOS it gates the folder chosen in Settings
+    /// rather than exposing every local drive.
+    public var redirectDiskDrives: Bool {
+        (resolved("RedirectDiskDrives", inheritKey: "InheritRedirectDiskDrives") ?? "false") == "true"
+    }
     public var descr: String { resolved("Descr", inheritKey: "InheritDescription") ?? "" }
     public var icon: String { resolved("Icon", inheritKey: "InheritIcon") ?? "mRemoteNG" }
     public var panel: String { resolved("Panel", inheritKey: "InheritPanel") ?? "" }

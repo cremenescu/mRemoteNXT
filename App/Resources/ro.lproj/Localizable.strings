@@ -103,6 +103,9 @@
 "Editor.Field.Port" = "Port";
 "Editor.Field.Host" = "Host";
 "Editor.Field.Panel" = "Panel";
+"Editor.Field.RedirectDiskDrives" = "Partajeaza folder (disk redirect)";
+"Editor.RedirectDiskDrivesFolder" = "Partajeaza %@ cu aceasta conexiune, ca disc sub \\\\tsclient.";
+"Editor.RedirectDiskDrivesNoFolder" = "Niciun folder ales inca — alege-l in Setari, altfel nu se partajeaza nimic.";
 "Editor.Field.Username" = "Utilizator";
 "Editor.Field.Domain" = "Domeniu";
 "Editor.Field.Password" = "Parola";

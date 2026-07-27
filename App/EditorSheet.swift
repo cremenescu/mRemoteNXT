@@ -173,6 +173,27 @@ struct EditorSheet: View {
         }
         field(t("Editor.Field.Host"), attr(node, "Hostname"))
         field(t("Editor.Field.Panel"), attr(node, "Panel", inherit: "InheritPanel"))
+        // mRemoteNG's own RedirectDiskDrives: on Windows it exposes every local drive,
+        // here it shares only the folder picked in Settings. Same attribute either way,
+        // so the file still round-trips.
+        HStack(spacing: 8) {
+            label(t("Editor.Field.RedirectDiskDrives"))
+            Toggle("", isOn: boolAttr(node, "RedirectDiskDrives", inherit: "InheritRedirectDiskDrives"))
+                .labelsHidden()
+                .disabled(node.attributes["InheritRedirectDiskDrives"] == "true")
+            inheritToggle(node, "RedirectDiskDrives", "InheritRedirectDiskDrives")
+            Spacer()
+        }
+        Text(sharedFolderHint).font(.caption).foregroundStyle(.secondary)
+    }
+
+    /// Caption under the disk-drive toggle: which folder it would actually share, so
+    /// enabling it here doesn't look like it exposes the whole Mac.
+    private var sharedFolderHint: String {
+        let path = UserDefaults.standard.string(forKey: "sharedFolderPath") ?? ""
+        if path.isEmpty { return t("Editor.RedirectDiskDrivesNoFolder") }
+        return String(format: t("Editor.RedirectDiskDrivesFolder"),
+                      (path as NSString).abbreviatingWithTildeInPath)
     }
 
     @ViewBuilder private func credentialsSection(_ node: MRNGNode) -> some View {
@@ -375,6 +396,23 @@ struct EditorSheet: View {
             .toggleStyle(.checkbox)
             .disabled(node.parent == nil)
             .help(node.parent == nil ? t("Editor.InheritNoParent") : t("Editor.InheritHelp"))
+    }
+
+    /// Boolean attribute stored as the "true"/"false" strings mRemoteNG writes. Shows the
+    /// inherited value while inheriting; writing turns inheritance off, like the text fields.
+    private func boolAttr(_ node: MRNGNode, _ key: String, inherit: String) -> Binding<Bool> {
+        Binding(
+            get: {
+                if node.attributes[inherit] == "true" {
+                    return (node.resolved(key, inheritKey: inherit) ?? "false") == "true"
+                }
+                return node.attributes[key] == "true"
+            },
+            set: { on in
+                node.attributes[key] = on ? "true" : "false"
+                node.attributes[inherit] = "false"
+                model.markDirty()
+            })
     }
 
     private func attr(_ node: MRNGNode, _ key: String, inherit: String? = nil) -> Binding<String> {

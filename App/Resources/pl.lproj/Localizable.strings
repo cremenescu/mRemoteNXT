@@ -109,6 +109,9 @@
 "Editor.Field.Port" = "Port";
 "Editor.Field.Host" = "Host";
 "Editor.Field.Panel" = "Panel";
+"Editor.Field.RedirectDiskDrives" = "Udostępnij folder (przekierowanie dysku)";
+"Editor.RedirectDiskDrivesFolder" = "Udostępnia %@ temu połączeniu jako dysk w \\\\tsclient.";
+"Editor.RedirectDiskDrivesNoFolder" = "Nie wybrano folderu — ustaw go w Ustawieniach, inaczej nic nie jest udostępniane.";
 "Editor.Field.Username" = "Nazwa użytkownika";
 "Editor.Field.Domain" = "Domena";
 "Editor.Field.Password" = "Hasło";

@@ -109,6 +109,9 @@
 "Editor.Field.Port" = "Port";
 "Editor.Field.Host" = "Host";
 "Editor.Field.Panel" = "Panel";
+"Editor.Field.RedirectDiskDrives" = "Share folder (disk redirect)";
+"Editor.RedirectDiskDrivesFolder" = "Shares %@ with this connection, as a drive under \\\\tsclient.";
+"Editor.RedirectDiskDrivesNoFolder" = "No shared folder picked yet — set one in Settings, otherwise nothing is shared.";
 "Editor.Field.Username" = "Username";
 "Editor.Field.Domain" = "Domain";
 "Editor.Field.Password" = "Password";
