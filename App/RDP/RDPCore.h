@@ -59,6 +59,11 @@ void rdpcore_mouse_button(RDPCore *core, int button, bool down, int x, int y);
 void rdpcore_scroll(RDPCore *core, int steps, int x, int y);
 void rdpcore_key_unicode(RDPCore *core, uint16_t unicode, bool down);
 void rdpcore_key_special(RDPCore *core, int key, bool down);
+// Raw set-1 scancode. Needed for keyboard shortcuts: Windows treats unicode key
+// events as literal text and ignores the modifier state, so Ctrl+C sent as
+// "Ctrl down + unicode c" just types a 'c'. Sending the scancode lets the server
+// combine it with the modifier scancodes into a real accelerator.
+void rdpcore_key_scancode(RDPCore *core, uint8_t code, bool extended, bool down);
 
 #ifdef __cplusplus
 }

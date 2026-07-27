@@ -47,6 +47,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)mouseButton:(int)button down:(BOOL)down x:(int)x y:(int)y; // 1=left 2=right 3=middle
 - (void)scrollSteps:(int)steps x:(int)x y:(int)y;                  // + up, - down
 - (void)keyChar:(uint16_t)unicode down:(BOOL)down;
+- (void)keyScancode:(uint8_t)code extended:(BOOL)extended down:(BOOL)down;
 - (void)keySpecial:(NSInteger)key down:(BOOL)down;                 // see RDPKey* below
 
 @end

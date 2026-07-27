@@ -463,6 +463,13 @@ void rdpcore_key_unicode(RDPCore *core, uint16_t unicode, bool down) {
     freerdp_input_send_unicode_keyboard_event(in, flags, unicode);
 }
 
+void rdpcore_key_scancode(RDPCore *core, uint8_t code, bool extended, bool down) {
+    rdpInput *in = coreInput(core); if (!in) return;
+    UINT16 flags = down ? KBD_FLAGS_DOWN : KBD_FLAGS_RELEASE;
+    if (extended) flags |= KBD_FLAGS_EXTENDED;
+    freerdp_input_send_keyboard_event(in, flags, code);
+}
+
 void rdpcore_key_special(RDPCore *core, int key, bool down) {
     rdpInput *in = coreInput(core); if (!in) return;
     UINT8 code = 0; BOOL ext = FALSE;

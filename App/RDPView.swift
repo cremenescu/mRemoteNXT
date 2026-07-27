@@ -231,8 +231,77 @@ final class RDPNSView: NSView, RDPClientDelegate {
             client?.keySpecial(special, down: down)
             return
         }
+        // Shortcuts (Ctrl+C, Cmd+Z, ...) must go out as scancodes: Windows treats a
+        // unicode key event as literal text and ignores the held modifiers, so the
+        // unicode path types the letter instead of firing the accelerator. Plain
+        // typing stays on unicode so any keyboard layout produces the right character
+        // without the client and server layouts having to agree.
+        let wantsShortcut = e.modifierFlags.contains(.control) || e.modifierFlags.contains(.command)
+        if wantsShortcut, let code = Self.scancode(for: e.keyCode) {
+            client?.keyScancode(code, extended: false, down: down)
+            return
+        }
         if let scalar = e.charactersIgnoringModifiers?.unicodeScalars.first {
             client?.keyChar(UInt16(scalar.value & 0xFFFF), down: down)
+        }
+    }
+
+    /// macOS virtual keycode -> PC set-1 scancode for the main typing block, by physical
+    /// key position (ANSI layout). Only used for modifier combos, where the character the
+    /// key would have produced is irrelevant.
+    static func scancode(for keyCode: UInt16) -> UInt8? {
+        switch keyCode {
+        // Letters
+        case 0:  return 0x1E  // A
+        case 11: return 0x30  // B
+        case 8:  return 0x2E  // C
+        case 2:  return 0x20  // D
+        case 14: return 0x12  // E
+        case 3:  return 0x21  // F
+        case 5:  return 0x22  // G
+        case 4:  return 0x23  // H
+        case 34: return 0x17  // I
+        case 38: return 0x24  // J
+        case 40: return 0x25  // K
+        case 37: return 0x26  // L
+        case 46: return 0x32  // M
+        case 45: return 0x31  // N
+        case 31: return 0x18  // O
+        case 35: return 0x19  // P
+        case 12: return 0x10  // Q
+        case 15: return 0x13  // R
+        case 1:  return 0x1F  // S
+        case 17: return 0x14  // T
+        case 32: return 0x16  // U
+        case 9:  return 0x2F  // V
+        case 13: return 0x11  // W
+        case 7:  return 0x2D  // X
+        case 16: return 0x15  // Y
+        case 6:  return 0x2C  // Z
+        // Digit row
+        case 29: return 0x0B  // 0
+        case 18: return 0x02  // 1
+        case 19: return 0x03  // 2
+        case 20: return 0x04  // 3
+        case 21: return 0x05  // 4
+        case 23: return 0x06  // 5
+        case 22: return 0x07  // 6
+        case 26: return 0x08  // 7
+        case 28: return 0x09  // 8
+        case 25: return 0x0A  // 9
+        // Punctuation
+        case 27: return 0x0C  // -
+        case 24: return 0x0D  // =
+        case 33: return 0x1A  // [
+        case 30: return 0x1B  // ]
+        case 42: return 0x2B  // \
+        case 41: return 0x27  // ;
+        case 39: return 0x28  // '
+        case 50: return 0x29  // `
+        case 43: return 0x33  // ,
+        case 47: return 0x34  // .
+        case 44: return 0x35  // /
+        default: return nil
         }
     }
 

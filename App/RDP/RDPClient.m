@@ -146,6 +146,9 @@ static void core_onDisconnected(void *ctx, const char *err) {
 - (void)mouseButton:(int)button down:(BOOL)down x:(int)x y:(int)y { rdpcore_mouse_button(_core, button, down, x, y); }
 - (void)scrollSteps:(int)steps x:(int)x y:(int)y { rdpcore_scroll(_core, steps, x, y); }
 - (void)keyChar:(uint16_t)unicode down:(BOOL)down { rdpcore_key_unicode(_core, unicode, down); }
+- (void)keyScancode:(uint8_t)code extended:(BOOL)extended down:(BOOL)down {
+    rdpcore_key_scancode(_core, code, extended, down);
+}
 - (void)keySpecial:(NSInteger)key down:(BOOL)down { rdpcore_key_special(_core, (int)key, down); }
 
 @end
