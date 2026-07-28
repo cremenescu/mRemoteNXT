@@ -101,8 +101,36 @@ final class MRNGTerminalView: LocalProcessTerminalView {
 
     @objc private func rightClickPaste() {
         if let text = NSPasteboard.general.string(forType: .string), !text.isEmpty {
-            send(txt: text)
+            pasteIntoTerminal(text)
         }
+    }
+
+    /// Cmd+V. SwiftTerm's own `paste` wraps the text in bracketed-paste markers but never
+    /// converts the line endings, so it hits the same problem as the right-click path.
+    override func paste(_ sender: Any) {
+        if let text = NSPasteboard.general.string(forType: .string), !text.isEmpty {
+            pasteIntoTerminal(text)
+        }
+    }
+
+    /// Paste the way a terminal has to.
+    ///
+    /// Newlines become CR: the Enter key sends CR (0x0D), and the tty turns that into a
+    /// newline for the application (ICRNL). Sending LF (0x0A) instead delivers ^J straight
+    /// to whatever is running — and in nano ^J is the *Justify* command, so pasting a
+    /// certificate silently reflowed it into two columns instead of inserting it.
+    ///
+    /// The run is also wrapped in bracketed-paste markers when the remote turned that mode
+    /// on (DECSET 2004), which is what tells an editor "this is pasted text, insert it
+    /// literally" — no command interpretation, no auto-indent stair-stepping.
+    private func pasteIntoTerminal(_ raw: String) {
+        let text = raw
+            .replacingOccurrences(of: "\r\n", with: "\r")
+            .replacingOccurrences(of: "\n", with: "\r")
+        let bracketed = getTerminal().bracketedPasteMode
+        if bracketed { send(data: EscapeSequences.bracketedPasteStart[0...]) }
+        send(txt: text)
+        if bracketed { send(data: EscapeSequences.bracketedPasteEnd[0...]) }
     }
 
     // MARK: - Auto-scroll during drag selection
