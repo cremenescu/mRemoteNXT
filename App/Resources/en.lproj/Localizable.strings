@@ -36,6 +36,9 @@
 "Settings.UIFontSize" = "UI font size: %d";
 "Settings.TerminalFontSize" = "Terminal font size: %d";
 "Settings.TerminalTheme" = "Terminal theme";
+"Settings.Scrollback" = "Terminal scrollback";
+"Settings.ScrollbackLines" = "%@ lines";
+"Settings.ScrollbackNote" = "How much history a terminal keeps. Applies to open tabs too; more lines means more memory.";
 "Settings.RowHeight" = "Row height: %d";
 "Settings.ShowProtocol" = "Show protocol type (RDP/SSH) in list";
 "Settings.CloseTabOnDisconnect" = "Close tab on disconnect (RDP)";

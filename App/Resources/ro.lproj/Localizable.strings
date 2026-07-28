@@ -30,6 +30,9 @@
 "Settings.UIFontSize" = "Marime text interfata: %d";
 "Settings.TerminalFontSize" = "Marime text terminal: %d";
 "Settings.TerminalTheme" = "Tema terminal";
+"Settings.Scrollback" = "Scrollback terminal";
+"Settings.ScrollbackLines" = "%@ linii";
+"Settings.ScrollbackNote" = "Cat istoric tine un terminal. Se aplica si tab-urilor deschise; mai multe linii inseamna mai multa memorie.";
 "Settings.RowHeight" = "Inaltime rand: %d";
 "Settings.ShowProtocol" = "Arata tip protocol (RDP/SSH) in lista";
 "Settings.CloseTabOnDisconnect" = "Inchide tab-ul la deconectare (RDP)";

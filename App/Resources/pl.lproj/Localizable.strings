@@ -36,6 +36,9 @@
 "Settings.UIFontSize" = "Rozmiar czcionki interfejsu: %d";
 "Settings.TerminalFontSize" = "Rozmiar czcionki terminala: %d";
 "Settings.TerminalTheme" = "Motyw terminala";
+"Settings.Scrollback" = "Bufor przewijania";
+"Settings.ScrollbackLines" = "%@ wierszy";
+"Settings.ScrollbackNote" = "Ile historii przechowuje terminal. Dotyczy tez otwartych kart; wiecej wierszy to wiecej pamieci.";
 "Settings.RowHeight" = "Wysokość wiersza: %d";
 "Settings.ShowProtocol" = "Pokaż typ protokołu (RDP/SSH) na liście";
 "Settings.CloseTabOnDisconnect" = "Zamknij kartę po rozłączeniu (RDP)";

@@ -142,6 +142,18 @@ struct AppearanceSettings: View {
                         Text(s.label).tag(s)
                     }
                 }
+                VStack(alignment: .leading, spacing: 4) {
+                    Picker(t("Settings.Scrollback"), selection: $model.scrollbackLines) {
+                        Text(String(format: t("Settings.ScrollbackLines"), "1.000")).tag(1000)
+                        Text(String(format: t("Settings.ScrollbackLines"), "5.000")).tag(5000)
+                        Text(String(format: t("Settings.ScrollbackLines"), "10.000")).tag(10000)
+                        Text(String(format: t("Settings.ScrollbackLines"), "25.000")).tag(25000)
+                        Text(String(format: t("Settings.ScrollbackLines"), "50.000")).tag(50000)
+                        Text(String(format: t("Settings.ScrollbackLines"), "100.000")).tag(100000)
+                    }
+                    Text(t("Settings.ScrollbackNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Toggle(t("Settings.UpdateTabTitleFromTerminal"), isOn: $model.updateTabTitleFromTerminal)
                 VStack(alignment: .leading) {
                     Text(String(format: t("Settings.RowHeight"), Int(model.rowHeight)))

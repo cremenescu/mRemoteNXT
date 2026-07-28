@@ -96,6 +96,11 @@ final class AppModel: ObservableObject {
     @Published var terminalTheme: String = "Implicit" {
         didSet { UserDefaults.standard.set(terminalTheme, forKey: "terminalTheme") }
     }
+    /// Scrollback buffer, in lines. SwiftTerm's own default is only 500, which loses the
+    /// top of anything longer than a screenful or two; 10 000 matches Terminal.app.
+    @Published var scrollbackLines: Int = 10000 {
+        didSet { UserDefaults.standard.set(scrollbackLines, forKey: "scrollbackLines") }
+    }
     @Published var rowHeight: Double = 22 {
         didSet { UserDefaults.standard.set(rowHeight, forKey: "rowHeight") }
     }
@@ -162,6 +167,7 @@ final class AppModel: ObservableObject {
         if let v = UserDefaults.standard.object(forKey: "uiFontSize") as? Double { uiFontSize = v }
         if let v = UserDefaults.standard.object(forKey: "terminalFontSize") as? Double { terminalFontSize = v }
         if let v = UserDefaults.standard.string(forKey: "terminalTheme") { terminalTheme = v }
+        if let v = UserDefaults.standard.object(forKey: "scrollbackLines") as? Int { scrollbackLines = v }
         if let v = UserDefaults.standard.object(forKey: "rowHeight") as? Double { rowHeight = v }
         if let v = UserDefaults.standard.object(forKey: "showProtocol") as? Bool { showProtocol = v }
         if let v = UserDefaults.standard.object(forKey: "showPasswordPlain") as? Bool { showPasswordPlain = v }

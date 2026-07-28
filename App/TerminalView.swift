@@ -267,6 +267,7 @@ struct TerminalContainer: NSViewRepresentable {
     let fontSize: Double
     var theme: String = "Implicit"
     var cursorBlinkSpeed: CursorBlinkSpeed = .medium
+    var scrollbackLines: Int = 10000
     /// Called when the underlying terminal reports a new title via OSC 0/1/2.
     /// AppModel uses it to rename the SwiftUI tab live (e.g. `user@host:cwd`).
     var onTitleChange: (String) -> Void = { _ in }
@@ -279,6 +280,12 @@ struct TerminalContainer: NSViewRepresentable {
         TerminalThemes.apply(theme, to: term)
         context.coordinator.onTitleChange = onTitleChange
         term.processDelegate = context.coordinator
+        // changeScrollback() is the supported way to resize the buffer: it updates
+        // Buffer.scrollback and lines.maxLength in place and keeps existing content.
+        // Setting terminal.options.scrollback does NOT survive — AppleTerminalView's
+        // setupOptions runs on every layout and rebuilds TerminalOptions with the 500
+        // default on top of it.
+        term.terminal.changeScrollback(max(500, scrollbackLines))
         let (exe, args) = Self.command(for: session)
         term.startProcess(executable: exe, args: args, environment: nil, execName: nil)
         // Apply blink after the child has had a moment to render the prompt.
@@ -294,6 +301,11 @@ struct TerminalContainer: NSViewRepresentable {
             nsView.font = desired
         }
         TerminalThemes.apply(theme, to: nsView)
+        // Re-apply on change so tabs that are already open pick up the new size too.
+        let wantScrollback = max(500, scrollbackLines)
+        if nsView.terminal.options.scrollback != wantScrollback {
+            nsView.terminal.changeScrollback(wantScrollback)
+        }
         context.coordinator.onTitleChange = onTitleChange
         if let term = nsView as? MRNGTerminalView {
             term.applyCursorBlinkSpeed(cursorBlinkSpeed)
