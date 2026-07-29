@@ -71,6 +71,10 @@ final class AppModel: ObservableObject {
     /// Node id the sidebar should scroll to; consumed (reset to nil) by the list.
     @Published var scrollTarget: String?
     @Published var pendingDelete: MRNGNode?
+    /// Tab being dragged in the session bar, and where it would land.
+    @Published var draggingSessionID: UUID?
+    @Published var tabDropTarget: Session?
+    @Published var tabDropBefore: Bool = true
     @Published var dropIndicator: DropIndicator?
     private var dropClearWork: DispatchWorkItem?
 
@@ -86,6 +90,32 @@ final class AppModel: ObservableObject {
     func clearDropIndicator() {
         dropClearWork?.cancel()
         dropIndicator = nil
+    }
+
+    func setTabDropTarget(_ session: Session, before: Bool) {
+        // Don't draw a marker on the tab being dragged itself.
+        guard session.id != draggingSessionID else { clearTabDropTarget(); return }
+        if tabDropTarget?.id != session.id { tabDropTarget = session }
+        if tabDropBefore != before { tabDropBefore = before }
+    }
+
+    func clearTabDropTarget() {
+        tabDropTarget = nil
+    }
+
+    /// Reorder the session tabs. `sessions` holds every panel's tabs in one array while the
+    /// bar shows a filtered slice, so the move is done by index in the full array — taking
+    /// the target's slot keeps the visible order matching what the drop marker showed.
+    func moveSession(_ draggedID: UUID, relativeTo target: Session, before: Bool) {
+        guard draggedID != target.id,
+              let from = sessions.firstIndex(where: { $0.id == draggedID }),
+              sessions[from].panel == target.panel else { return }
+        let moved = sessions.remove(at: from)
+        guard let t = sessions.firstIndex(where: { $0.id == target.id }) else {
+            sessions.insert(moved, at: min(from, sessions.count))
+            return
+        }
+        sessions.insert(moved, at: before ? t : t + 1)
     }
     @Published var uiFontSize: Double = 13 {
         didSet { UserDefaults.standard.set(uiFontSize, forKey: "uiFontSize") }

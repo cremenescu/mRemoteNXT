@@ -624,54 +624,131 @@ struct PanelTabBar: View {
 
 struct SessionTabBar: View {
     @EnvironmentObject var model: AppModel
+
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 2) {
-                ForEach(model.sessions(inPanel: model.selectedPanel)) { session in
-                    HStack(spacing: 6) {
-                        NodeIconView(node: session.node).frame(width: 14, height: 14)
-                        Text(session.title).lineLimit(1)
-                        Button {
-                            model.closeSession(session.id)
-                        } label: {
-                            Image(systemName: "xmark").font(.caption2)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(session.id == model.selectedSessionID
-                                ? Color.accentColor.opacity(0.22) : Color.clear)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .onTapGesture { model.selectedSessionID = session.id }
-                    .contextMenu {
-                        Button(t("Context.Reconnect")) { model.reconnect(session) }
-                        Button(t("Context.Disconnect")) { model.closeSession(session.id) }
-                        if session.kind == .rdp {
-                            Divider()
-                            Button(t("Context.SendCtrlAltDel")) { model.sendCtrlAltDel(session) }
-                        }
-                        Divider()
-                        Button(t("Context.RevealInSidebar")) { model.revealInSidebar(session.node) }
-                        Button(t("Context.EditConnection")) {
-                            // Jump straight to this connection's editor — also selects it
-                            // in the sidebar so it's clear which one is being edited,
-                            // instead of hunting for it in the tree.
-                            model.selectedNodeID = session.node.id
-                            model.editorVisible = true
-                        }
-                        Button(t("Context.RenameTab")) { model.promptAndRename(session) }
-                        Button(t("Context.DuplicateTab")) { model.duplicate(session) }
-                        if !session.password.isEmpty {
-                            Divider()
-                            Button(t("Context.CopyPassword")) { model.copyPassword(session) }
-                        }
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 2) {
+                    ForEach(model.sessions(inPanel: model.selectedPanel)) { session in
+                        SessionTabView(session: session)
                     }
                 }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
+            // Opening a connection from the sidebar selects its tab, but with enough tabs
+            // open that tab can be off-screen — it was selected and invisible until you
+            // scrolled the bar by hand. Bring it into view whenever the selection changes.
+            .onChange(of: model.selectedSessionID) { _, id in
+                guard let id else { return }
+                withAnimation { proxy.scrollTo(id, anchor: .center) }
+            }
+            .onAppear {
+                if let id = model.selectedSessionID { proxy.scrollTo(id, anchor: .center) }
+            }
         }
+    }
+}
+
+/// One tab. Extracted so it can measure its own width, which the drop delegate needs to
+/// decide whether a tab being dragged should land to the left or the right of this one.
+struct SessionTabView: View {
+    @EnvironmentObject var model: AppModel
+    let session: Session
+    @State private var width: CGFloat = 0
+
+    var body: some View {
+        HStack(spacing: 6) {
+            NodeIconView(node: session.node).frame(width: 14, height: 14)
+            Text(session.title).lineLimit(1)
+            Button {
+                model.closeSession(session.id)
+            } label: {
+                Image(systemName: "xmark").font(.caption2)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(session.id == model.selectedSessionID
+                    ? Color.accentColor.opacity(0.22) : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(alignment: dropEdge) {
+            // Insertion marker on the side the dragged tab would land.
+            if model.tabDropTarget?.id == session.id {
+                Rectangle().fill(Color.accentColor).frame(width: 2)
+            }
+        }
+        .background(
+            GeometryReader { geo in
+                Color.clear.onAppear { width = geo.size.width }
+                    .onChange(of: geo.size.width) { _, w in width = w }
+            }
+        )
+        .onTapGesture { model.selectedSessionID = session.id }
+        .onDrag {
+            model.draggingSessionID = session.id
+            return NSItemProvider(object: session.id.uuidString as NSString)
+        }
+        .onDrop(of: [.text],
+                delegate: TabDropDelegate(target: session, width: { width }, model: model))
+        .contextMenu {
+            Button(t("Context.Reconnect")) { model.reconnect(session) }
+            Button(t("Context.Disconnect")) { model.closeSession(session.id) }
+            if session.kind == .rdp {
+                Divider()
+                Button(t("Context.SendCtrlAltDel")) { model.sendCtrlAltDel(session) }
+            }
+            Divider()
+            Button(t("Context.RevealInSidebar")) { model.revealInSidebar(session.node) }
+            Button(t("Context.EditConnection")) {
+                // Jump straight to this connection's editor — also selects it
+                // in the sidebar so it's clear which one is being edited,
+                // instead of hunting for it in the tree.
+                model.selectedNodeID = session.node.id
+                model.editorVisible = true
+            }
+            Button(t("Context.RenameTab")) { model.promptAndRename(session) }
+            Button(t("Context.DuplicateTab")) { model.duplicate(session) }
+            if !session.password.isEmpty {
+                Divider()
+                Button(t("Context.CopyPassword")) { model.copyPassword(session) }
+            }
+        }
+    }
+
+    private var dropEdge: Alignment {
+        model.tabDropBefore ? .leading : .trailing
+    }
+}
+
+/// Reorders tabs by dragging. Which half of the target tab the cursor is over decides
+/// whether the dragged tab lands before or after it — same idea as the sidebar's rows,
+/// horizontal instead of vertical.
+struct TabDropDelegate: DropDelegate {
+    let target: Session
+    let width: () -> CGFloat
+    let model: AppModel
+
+    func validateDrop(info: DropInfo) -> Bool { info.hasItemsConforming(to: [.text]) }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        let w = width()
+        model.setTabDropTarget(target, before: w > 0 ? info.location.x < w / 2 : true)
+        return DropProposal(operation: .move)
+    }
+
+    func dropExited(info: DropInfo) {
+        if model.tabDropTarget?.id == target.id { model.clearTabDropTarget() }
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        let before = model.tabDropBefore
+        model.clearTabDropTarget()
+        guard let dragged = model.draggingSessionID else { return false }
+        model.draggingSessionID = nil
+        model.moveSession(dragged, relativeTo: target, before: before)
+        return true
     }
 }
 
