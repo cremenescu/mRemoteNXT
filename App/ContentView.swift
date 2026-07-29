@@ -639,6 +639,7 @@ struct SessionTabBar: View {
                 // still clears the dragging state instead of leaving a tab faded.
                 .onDrop(of: [.text], isTargeted: nil) { _ in
                     model.draggingSessionID = nil
+                    model.tabDropTargetID = nil
                     return true
                 }
             }
@@ -679,9 +680,17 @@ struct SessionTabView: View {
         .background(session.id == model.selectedSessionID
                     ? Color.accentColor.opacity(0.22) : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 6))
-        // The tab being dragged fades in place; its new position is shown by the other
-        // tabs sliding aside, so no separate insertion marker is needed.
         .opacity(isDragging ? 0.4 : 1)
+        // Insertion marker on the edge the dragged tab would land. Nothing actually moves
+        // until the drop, so the bar stays still while dragging.
+        .overlay(alignment: model.tabDropIsBefore(targetID: session.id) ? .leading : .trailing) {
+            if model.tabDropTargetID == session.id, !isDragging {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(Color.accentColor)
+                    .frame(width: 2)
+                    .padding(.vertical, 2)
+            }
+        }
         .onTapGesture { model.selectedSessionID = session.id }
         .onDrag {
             model.draggingSessionID = session.id
@@ -716,9 +725,11 @@ struct SessionTabView: View {
 
 /// Reorders tabs by dragging.
 ///
-/// The move happens in `dropEntered` — once per tab the drag crosses — rather than from
-/// `dropUpdated`, which fires on every mouse movement. Publishing model changes at mouse
-/// rate re-rendered the whole bar continuously and made the drag flicker.
+/// `dropEntered`/`dropExited` only record which tab is hovered, so the model publishes at
+/// most once per tab crossed — never per mouse move, which is what made the first version
+/// flicker. The reorder itself waits for the drop: moving tabs live while hovering made
+/// SwiftUI cross-fade two different-width tabs into each other, and every swap put a new
+/// tab under the cursor, which triggered the next swap.
 struct TabDropDelegate: DropDelegate {
     let target: Session
     let model: AppModel
@@ -727,16 +738,25 @@ struct TabDropDelegate: DropDelegate {
 
     func dropEntered(info: DropInfo) {
         guard let dragged = model.draggingSessionID, dragged != target.id else { return }
-        withAnimation(.easeInOut(duration: 0.15)) {
-            model.moveSession(dragged, onto: target)
-        }
+        model.tabDropTargetID = target.id
+    }
+
+    func dropExited(info: DropInfo) {
+        if model.tabDropTargetID == target.id { model.tabDropTargetID = nil }
     }
 
     // No state written here: this fires continuously while the pointer moves.
     func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: .move) }
 
     func performDrop(info: DropInfo) -> Bool {
-        model.draggingSessionID = nil
+        defer {
+            model.draggingSessionID = nil
+            model.tabDropTargetID = nil
+        }
+        guard let dragged = model.draggingSessionID else { return false }
+        withAnimation(.easeInOut(duration: 0.18)) {
+            model.moveSession(dragged, onto: target.id)
+        }
         return true
     }
 }
