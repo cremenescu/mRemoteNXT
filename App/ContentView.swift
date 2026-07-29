@@ -622,27 +622,37 @@ struct PanelTabBar: View {
     }
 }
 
+/// Measured frame of every tab, in the tab bar's coordinate space. The drag gesture needs
+/// them to tell which tab the pointer is over — the same job DockPanelSuite's hit-testing
+/// does on Windows.
+private struct TabFramesKey: PreferenceKey {
+    static var defaultValue: [UUID: CGRect] = [:]
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
 struct SessionTabBar: View {
     @EnvironmentObject var model: AppModel
+    @State private var frames: [UUID: CGRect] = [:]
+
+    static let space = "mrnxt.tabbar"
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 2) {
                     ForEach(model.sessions(inPanel: model.selectedPanel)) { session in
-                        SessionTabView(session: session)
+                        SessionTabView(session: session, frames: frames)
                     }
                 }
-                // Reordering must land in a single frame — see performDrop. This also
-                // blocks any ambient animation (the scroll-into-view one below) from
-                // picking the reorder up.
-                .animation(nil, value: model.sessions.map(\.id))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
-                // No drop handler on the container: it spans the tabs as well, so it raced
-                // with their delegates and often swallowed the drop — clearing the dragging
-                // id and reporting success while the reorder never ran. Cleanup for a drag
-                // that ends nowhere is handled by the next drag setting the id afresh.
+                .coordinateSpace(name: Self.space)
+                .onPreferenceChange(TabFramesKey.self) { frames = $0 }
+                // The reorder must land in one frame, and no ambient animation (the
+                // scroll-into-view one below) may adopt it.
+                .animation(nil, value: model.sessions.map(\.id))
             }
             // Opening a connection from the sidebar selects its tab, but with enough tabs
             // open that tab can be off-screen — it was selected and invisible until you
@@ -659,11 +669,20 @@ struct SessionTabBar: View {
 }
 
 /// One tab.
+///
+/// Reordering is driven by a DragGesture, not by `.onDrag`/`.onDrop`. Those are the system
+/// drag-and-drop machinery, and they brought overlapping drop targets that swallowed drops,
+/// a snapshot preview drawn over the bar, and no reliable cancel callback. mRemoteNG hits
+/// the same problem on Windows and solves it the same way: DockPanelSuite never calls
+/// DoDragDrop, it captures the mouse and tracks the moves itself.
 struct SessionTabView: View {
     @EnvironmentObject var model: AppModel
     let session: Session
+    let frames: [UUID: CGRect]
+    @State private var dragX: CGFloat = 0
 
     private var isDragging: Bool { model.draggingSessionID == session.id }
+    private var showsMarker: Bool { model.tabDropTargetID == session.id && !isDragging }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -681,23 +700,42 @@ struct SessionTabView: View {
         .background(session.id == model.selectedSessionID
                     ? Color.accentColor.opacity(0.22) : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 6))
-        .opacity(isDragging ? 0.4 : 1)
-        // Insertion marker on the edge the dragged tab would land. Nothing actually moves
-        // until the drop, so the bar stays still while dragging.
-        .overlay(alignment: model.tabDropIsBefore(targetID: session.id) ? .leading : .trailing) {
-            if model.tabDropTargetID == session.id, !isDragging {
+        // Insertion marker on the edge the tab would land on.
+        .overlay(alignment: model.tabDropBefore ? .leading : .trailing) {
+            if showsMarker {
                 RoundedRectangle(cornerRadius: 1)
                     .fill(Color.accentColor)
                     .frame(width: 2)
                     .padding(.vertical, 2)
             }
         }
+        // Report this tab's frame so the gesture can hit-test against it.
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: TabFramesKey.self,
+                    value: [session.id: geo.frame(in: .named(SessionTabBar.space))])
+            }
+        )
+        // The tab follows the pointer. .offset only moves the drawing, so the bar's layout
+        // stays put and nothing reflows mid-drag.
+        .offset(x: isDragging ? dragX : 0)
+        .opacity(isDragging ? 0.75 : 1)
+        .zIndex(isDragging ? 1 : 0)
         .onTapGesture { model.selectedSessionID = session.id }
-        .onDrag {
-            model.draggingSessionID = session.id
-            return NSItemProvider(object: session.id.uuidString as NSString)
-        }
-        .onDrop(of: [.text], delegate: TabDropDelegate(target: session, model: model))
+        .gesture(
+            DragGesture(minimumDistance: 6, coordinateSpace: .named(SessionTabBar.space))
+                .onChanged { value in
+                    if model.draggingSessionID != session.id { model.draggingSessionID = session.id }
+                    dragX = value.translation.width
+                    model.updateTabDrop(pointerX: value.location.x, frames: frames,
+                                        dragged: session.id)
+                }
+                .onEnded { _ in
+                    dragX = 0
+                    model.commitTabDrop()
+                }
+        )
         .contextMenu {
             Button(t("Context.Reconnect")) { model.reconnect(session) }
             Button(t("Context.Disconnect")) { model.closeSession(session.id) }
@@ -721,47 +759,6 @@ struct SessionTabView: View {
                 Button(t("Context.CopyPassword")) { model.copyPassword(session) }
             }
         }
-    }
-}
-
-/// Reorders tabs by dragging.
-///
-/// `dropEntered`/`dropExited` only record which tab is hovered, so the model publishes at
-/// most once per tab crossed — never per mouse move, which is what made the first version
-/// flicker. The reorder itself waits for the drop: moving tabs live while hovering made
-/// SwiftUI cross-fade two different-width tabs into each other, and every swap put a new
-/// tab under the cursor, which triggered the next swap.
-struct TabDropDelegate: DropDelegate {
-    let target: Session
-    let model: AppModel
-
-    func validateDrop(info: DropInfo) -> Bool { info.hasItemsConforming(to: [.text]) }
-
-    func dropEntered(info: DropInfo) {
-        guard let dragged = model.draggingSessionID, dragged != target.id else { return }
-        model.tabDropTargetID = target.id
-    }
-
-    func dropExited(info: DropInfo) {
-        if model.tabDropTargetID == target.id { model.tabDropTargetID = nil }
-    }
-
-    // No state written here: this fires continuously while the pointer moves.
-    func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: .move) }
-
-    func performDrop(info: DropInfo) -> Bool {
-        defer {
-            model.draggingSessionID = nil
-            model.tabDropTargetID = nil
-        }
-        guard let dragged = model.draggingSessionID else { return false }
-        // Deliberately NOT animated. Animating a ForEach reorder of different-width items
-        // in an HStack does not slide them past each other: SwiftUI cross-fades the
-        // removal and the insertion at the same position, so both tabs are drawn on top of
-        // each other, collapsed, while their neighbours gap open. Reordering in one frame
-        // has no in-between state to render wrong.
-        model.moveSession(dragged, onto: target.id)
-        return true
     }
 }
 

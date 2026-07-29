@@ -71,11 +71,15 @@ final class AppModel: ObservableObject {
     /// Node id the sidebar should scroll to; consumed (reset to nil) by the list.
     @Published var scrollTarget: String?
     @Published var pendingDelete: MRNGNode?
-    /// Tab being dragged in the session bar, and the tab it is currently hovering over.
-    /// Both are plain ids so a change is cheap to compare and publishes at most once per
-    /// tab crossed, never per mouse move.
+    /// Tab being dragged in the session bar, the tab it is over, and which side of it.
+    /// Driven by a DragGesture rather than the system drag-and-drop: mRemoteNG does the
+    /// same on Windows (DockPanelSuite captures the mouse and filters WM_MOUSEMOVE /
+    /// WM_LBUTTONUP; it never calls DoDragDrop). Tracking the mouse directly avoids the
+    /// overlapping drop targets and the missing cancel callback that come with the OS
+    /// drag machinery.
     @Published var draggingSessionID: UUID?
     @Published var tabDropTargetID: UUID?
+    @Published var tabDropBefore: Bool = true
     @Published var dropIndicator: DropIndicator?
     private var dropClearWork: DispatchWorkItem?
 
@@ -93,30 +97,42 @@ final class AppModel: ObservableObject {
         dropIndicator = nil
     }
 
-    /// Move the dragged tab into the target's slot. Called once, when the drag is dropped
-    /// — reordering live while hovering looked worse: with tabs of different widths the
-    /// ForEach cross-fades the two into each other, and each swap puts a different tab
-    /// under the cursor, which immediately triggers the next swap.
-    /// `sessions` holds every panel's tabs in one array while the bar shows a single
-    /// panel's slice, hence the index work; dragging across panels is refused.
-    func moveSession(_ draggedID: UUID, onto targetID: UUID) {
-        guard draggedID != targetID,
-              let from = sessions.firstIndex(where: { $0.id == draggedID }),
-              let to = sessions.firstIndex(where: { $0.id == targetID }),
-              sessions[from].panel == sessions[to].panel else { return }
-        let moved = sessions.remove(at: from)
-        // `to` is still the target's index when moving right (everything after `from`
-        // shifted left by one), and one past it when moving left.
-        sessions.insert(moved, at: to)
+    /// Work out which tab the pointer is over and which side of it, from the measured tab
+    /// frames. Only publishes when the answer actually changes, so a drag produces a few
+    /// updates rather than one per mouse move.
+    func updateTabDrop(pointerX: CGFloat, frames: [UUID: CGRect], dragged: UUID) {
+        var target: UUID?
+        var before = true
+        for (id, frame) in frames where id != dragged {
+            if pointerX >= frame.minX, pointerX <= frame.maxX {
+                target = id
+                before = pointerX < frame.midX
+                break
+            }
+        }
+        if tabDropTargetID != target { tabDropTargetID = target }
+        if tabDropBefore != before { tabDropBefore = before }
     }
 
-    /// True when the marker for `targetID` belongs on its leading edge: dragging a tab
-    /// leftwards inserts before the target, rightwards after it.
-    func tabDropIsBefore(targetID: UUID) -> Bool {
-        guard let dragged = draggingSessionID,
+    /// Apply the pending reorder. Not animated: animating a ForEach reorder of
+    /// different-width items makes SwiftUI cross-fade the removal against the insertion at
+    /// one position, drawing both tabs on top of each other instead of sliding them.
+    func commitTabDrop() {
+        defer {
+            draggingSessionID = nil
+            tabDropTargetID = nil
+        }
+        guard let dragged = draggingSessionID, let target = tabDropTargetID, dragged != target,
               let from = sessions.firstIndex(where: { $0.id == dragged }),
-              let to = sessions.firstIndex(where: { $0.id == targetID }) else { return true }
-        return to < from
+              let targetIdx = sessions.firstIndex(where: { $0.id == target }),
+              sessions[from].panel == sessions[targetIdx].panel else { return }
+        let moved = sessions.remove(at: from)
+        guard var insert = sessions.firstIndex(where: { $0.id == target }) else {
+            sessions.insert(moved, at: min(from, sessions.count))
+            return
+        }
+        if !tabDropBefore { insert += 1 }
+        sessions.insert(moved, at: insert)
     }
     @Published var uiFontSize: Double = 13 {
         didSet { UserDefaults.standard.set(uiFontSize, forKey: "uiFontSize") }
