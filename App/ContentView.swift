@@ -639,13 +639,10 @@ struct SessionTabBar: View {
                 .animation(nil, value: model.sessions.map(\.id))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
-                // Catch a drop on the empty part of the bar, so a drag that ends there
-                // still clears the dragging state instead of leaving a tab faded.
-                .onDrop(of: [.text], isTargeted: nil) { _ in
-                    model.draggingSessionID = nil
-                    model.tabDropTargetID = nil
-                    return true
-                }
+                // No drop handler on the container: it spans the tabs as well, so it raced
+                // with their delegates and often swallowed the drop — clearing the dragging
+                // id and reporting success while the reorder never ran. Cleanup for a drag
+                // that ends nowhere is handled by the next drag setting the id afresh.
             }
             // Opening a connection from the sidebar selects its tab, but with enough tabs
             // open that tab can be off-screen — it was selected and invisible until you
