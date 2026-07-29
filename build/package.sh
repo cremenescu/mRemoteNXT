@@ -33,7 +33,13 @@ APP_NAME="mRemoteNXT"
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"
 ENTITLEMENTS="$PROJECT_ROOT/build/entitlements.plist"
 
-# Developer ID signing config. Set DEVELOPER_ID="-" via env to force ad-hoc.
+# Signing config.
+#   DEVELOPER_ID="-"   -> ad-hoc (no Apple identity at all)
+#   SKIP_NOTARIZE=1    -> sign with the Developer ID but don't send it to Apple.
+#     For local test builds: notarization is the slow part, and a locally built app
+#     doesn't need it (quarantine is stripped on install anyway) — but the signing
+#     IDENTITY must stay the same as the released app, otherwise Sparkle refuses to
+#     update it and the app has to be reinstalled by hand.
 DEVELOPER_ID="${DEVELOPER_ID:-Developer ID Application: Vtun Hardware SRL (FU62DHV366)}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-mRemoteNXT-notary}"
 
@@ -299,6 +305,14 @@ rm -rf "$DMG_STAGE"
 if [ "$SIGN_MODE" = "developer-id" ]; then
     echo "==> Signing .dmg"
     codesign --force --sign "$DEVELOPER_ID" --timestamp "$DIST_DIR/$DMG_NAME"
+
+    if [ "${SKIP_NOTARIZE:-0}" = "1" ]; then
+        echo "==> SKIP_NOTARIZE=1 — signed with the Developer ID, not notarized."
+        echo "    Local testing only; do NOT publish this .dmg."
+        echo "==> Done (sign mode: developer-id, not notarized)"
+        echo "    DMG: $DIST_DIR/$DMG_NAME"
+        exit 0
+    fi
 
     echo "==> Submitting to Apple notary service (this can take a few minutes)"
     if ! xcrun notarytool submit "$DIST_DIR/$DMG_NAME" \
