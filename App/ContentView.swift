@@ -633,6 +633,10 @@ struct SessionTabBar: View {
                         SessionTabView(session: session)
                     }
                 }
+                // Reordering must land in a single frame — see performDrop. This also
+                // blocks any ambient animation (the scroll-into-view one below) from
+                // picking the reorder up.
+                .animation(nil, value: model.sessions.map(\.id))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
                 // Catch a drop on the empty part of the bar, so a drag that ends there
@@ -754,9 +758,12 @@ struct TabDropDelegate: DropDelegate {
             model.tabDropTargetID = nil
         }
         guard let dragged = model.draggingSessionID else { return false }
-        withAnimation(.easeInOut(duration: 0.18)) {
-            model.moveSession(dragged, onto: target.id)
-        }
+        // Deliberately NOT animated. Animating a ForEach reorder of different-width items
+        // in an HStack does not slide them past each other: SwiftUI cross-fades the
+        // removal and the insertion at the same position, so both tabs are drawn on top of
+        // each other, collapsed, while their neighbours gap open. Reordering in one frame
+        // has no in-between state to render wrong.
+        model.moveSession(dragged, onto: target.id)
         return true
     }
 }
