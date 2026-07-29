@@ -551,8 +551,13 @@ final class AppModel: ObservableObject {
     /// recreated and the underlying process restarts.
     func reconnect(_ session: Session) {
         guard let idx = sessions.firstIndex(where: { $0.id == session.id }) else { return }
+        // Re-read the password from the node instead of reusing the one captured when the
+        // tab was first opened. Editing the credentials of a failed session and hitting
+        // Reconnect otherwise retried with the stale password — the only way to pick up the
+        // change was closing the tab and opening it again from the sidebar. Everything else
+        // (host, user, domain) is already read live from the node at connect time.
         let fresh = Session(title: session.title, kind: session.kind, node: session.node,
-                            password: session.password, panel: session.panel)
+                            password: decryptedPassword(for: session.node), panel: session.panel)
         sessions[idx] = fresh
         selectedSessionID = fresh.id
         selectedPanel = fresh.panel
@@ -690,8 +695,10 @@ final class AppModel: ObservableObject {
     }
 
     func copyPassword(_ session: Session) {
+        // From the node, not the session's snapshot: after editing the credentials of an
+        // open tab, the snapshot still holds what was used at connect time.
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(session.password, forType: .string)
+        NSPasteboard.general.setString(decryptedPassword(for: session.node), forType: .string)
     }
 
     /// Send Ctrl+Alt+Del to the given RDP session.
