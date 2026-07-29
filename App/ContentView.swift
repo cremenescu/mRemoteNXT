@@ -635,6 +635,12 @@ struct SessionTabBar: View {
                 }
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
+                // Catch a drop on the empty part of the bar, so a drag that ends there
+                // still clears the dragging state instead of leaving a tab faded.
+                .onDrop(of: [.text], isTargeted: nil) { _ in
+                    model.draggingSessionID = nil
+                    return true
+                }
             }
             // Opening a connection from the sidebar selects its tab, but with enough tabs
             // open that tab can be off-screen — it was selected and invisible until you
@@ -650,12 +656,12 @@ struct SessionTabBar: View {
     }
 }
 
-/// One tab. Extracted so it can measure its own width, which the drop delegate needs to
-/// decide whether a tab being dragged should land to the left or the right of this one.
+/// One tab.
 struct SessionTabView: View {
     @EnvironmentObject var model: AppModel
     let session: Session
-    @State private var width: CGFloat = 0
+
+    private var isDragging: Bool { model.draggingSessionID == session.id }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -673,25 +679,15 @@ struct SessionTabView: View {
         .background(session.id == model.selectedSessionID
                     ? Color.accentColor.opacity(0.22) : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 6))
-        .overlay(alignment: dropEdge) {
-            // Insertion marker on the side the dragged tab would land.
-            if model.tabDropTarget?.id == session.id {
-                Rectangle().fill(Color.accentColor).frame(width: 2)
-            }
-        }
-        .background(
-            GeometryReader { geo in
-                Color.clear.onAppear { width = geo.size.width }
-                    .onChange(of: geo.size.width) { _, w in width = w }
-            }
-        )
+        // The tab being dragged fades in place; its new position is shown by the other
+        // tabs sliding aside, so no separate insertion marker is needed.
+        .opacity(isDragging ? 0.4 : 1)
         .onTapGesture { model.selectedSessionID = session.id }
         .onDrag {
             model.draggingSessionID = session.id
             return NSItemProvider(object: session.id.uuidString as NSString)
         }
-        .onDrop(of: [.text],
-                delegate: TabDropDelegate(target: session, width: { width }, model: model))
+        .onDrop(of: [.text], delegate: TabDropDelegate(target: session, model: model))
         .contextMenu {
             Button(t("Context.Reconnect")) { model.reconnect(session) }
             Button(t("Context.Disconnect")) { model.closeSession(session.id) }
@@ -716,38 +712,31 @@ struct SessionTabView: View {
             }
         }
     }
-
-    private var dropEdge: Alignment {
-        model.tabDropBefore ? .leading : .trailing
-    }
 }
 
-/// Reorders tabs by dragging. Which half of the target tab the cursor is over decides
-/// whether the dragged tab lands before or after it — same idea as the sidebar's rows,
-/// horizontal instead of vertical.
+/// Reorders tabs by dragging.
+///
+/// The move happens in `dropEntered` — once per tab the drag crosses — rather than from
+/// `dropUpdated`, which fires on every mouse movement. Publishing model changes at mouse
+/// rate re-rendered the whole bar continuously and made the drag flicker.
 struct TabDropDelegate: DropDelegate {
     let target: Session
-    let width: () -> CGFloat
     let model: AppModel
 
     func validateDrop(info: DropInfo) -> Bool { info.hasItemsConforming(to: [.text]) }
 
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        let w = width()
-        model.setTabDropTarget(target, before: w > 0 ? info.location.x < w / 2 : true)
-        return DropProposal(operation: .move)
+    func dropEntered(info: DropInfo) {
+        guard let dragged = model.draggingSessionID, dragged != target.id else { return }
+        withAnimation(.easeInOut(duration: 0.15)) {
+            model.moveSession(dragged, onto: target)
+        }
     }
 
-    func dropExited(info: DropInfo) {
-        if model.tabDropTarget?.id == target.id { model.clearTabDropTarget() }
-    }
+    // No state written here: this fires continuously while the pointer moves.
+    func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: .move) }
 
     func performDrop(info: DropInfo) -> Bool {
-        let before = model.tabDropBefore
-        model.clearTabDropTarget()
-        guard let dragged = model.draggingSessionID else { return false }
         model.draggingSessionID = nil
-        model.moveSession(dragged, relativeTo: target, before: before)
         return true
     }
 }
