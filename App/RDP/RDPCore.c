@@ -107,6 +107,7 @@ struct RDPCore {
     UINT32 clipboardWantedFormat;  // latest format the remote offered
     int clipboardRequestInFlight;  // a ClientFormatDataRequest is outstanding
     int clipboardReady;            // Monitor Ready seen: safe to announce formats
+    int gfxNegotiated;             // this session advertised the graphics pipeline
 
     RDPCoreCallbacks cb;
     void *ctx;
@@ -309,6 +310,25 @@ static BOOL mrng_post_connect(freerdp *instance) {
     RDPCore *core = coreFromContext(context);
     if (core->cb.onConnected)
         core->cb.onConnected(core->ctx, (int)context->gdi->width, (int)context->gdi->height);
+
+    // Spot a server too old for the graphics pipeline. By now the server's core data has
+    // been parsed and EarlyCapabilityFlags holds ITS flags (gcc_read_server_core_data
+    // overwrites the client's). RNS_UD_SC_EDGE_ACTIONS_SUPPORTED_V2 arrived with Windows
+    // 10 / Server 2016, so its absence means an older host — and on Server 2012 R2 EGFX
+    // negotiates, opens its channel, then paints nothing but a few stray fragments, which
+    // looks exactly like a black screen. Nothing can be changed for this connection: the
+    // pipeline was advertised in the client core data long before the server answered. So
+    // tell the app layer, which remembers the host and reconnects on the legacy path.
+    if (core->gfxNegotiated && core->cb.onLegacyGraphicsSuggested) {
+        const UINT32 serverCaps = freerdp_settings_get_uint32(context->settings,
+                                                              FreeRDP_EarlyCapabilityFlags);
+        if (!(serverCaps & RNS_UD_SC_EDGE_ACTIONS_SUPPORTED_V2)) {
+            WLog_INFO("com.mrng.core",
+                      "server predates Windows 10/2016 (early caps 0x%08x) — "
+                      "reconnecting without the graphics pipeline", serverCaps);
+            core->cb.onLegacyGraphicsSuggested(core->ctx);
+        }
+    }
     return TRUE;
 }
 
@@ -431,7 +451,7 @@ static char *dupstr(const char *s) {
 RDPCore *rdpcore_create(const char *host, int port, const char *user,
                         const char *domain, const char *pass,
                         int width, int height, int scalePercent,
-                        const char *sharePath,
+                        const char *sharePath, int useLegacyGraphics,
                         RDPCoreCallbacks cb, void *ctx) {
     RDPCore *core = calloc(1, sizeof(RDPCore));
     if (!core) return NULL;
@@ -499,9 +519,11 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     // what a server unhappy with it looks like. Turning it off falls back to legacy bitmap
     // updates — slower, but the code path Windows has had since 2003.
     //   defaults write ro.cremenescu.mRemoteNXT disableGfx -bool YES
-    const BOOL gfx = !CFPreferencesGetAppBooleanValue(CFSTR("disableGfx"),
+    const BOOL gfx = !useLegacyGraphics &&
+                     !CFPreferencesGetAppBooleanValue(CFSTR("disableGfx"),
                                                       kCFPreferencesCurrentApplication, NULL);
-    WLog_INFO("com.mrng.core", "graphics pipeline %s", gfx ? "on" : "OFF (disableGfx)");
+    WLog_INFO("com.mrng.core", "graphics pipeline %s", gfx ? "on" : "OFF (legacy bitmap path)");
+    core->gfxNegotiated = gfx ? 1 : 0;
     freerdp_settings_set_bool(s, FreeRDP_SupportGraphicsPipeline, gfx);
     // THE crash fix: force single-threaded codec decoding. The startup crash
     // (EXC_BAD_ACCESS / heap corruption in progressive_decompress ->

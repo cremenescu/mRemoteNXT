@@ -18,6 +18,7 @@ enum { MRNG_CF_UNICODETEXT = 13, MRNG_CF_DIB = 8, MRNG_CF_DIBV5 = 17 };
     BOOL _updateScheduled;
     NSTimer *_clipboardTimer;   // polls the local pasteboard for changes
     NSString *_sharedFolder;    // macOS folder exposed as a redirected drive (nil = none)
+    BOOL _useLegacyGraphics;    // skip EGFX, take the classic bitmap update path
     NSInteger _lastPasteboardChangeCount;
 }
 - (void)enqueueImage:(CGImageRef)img;
@@ -115,6 +116,15 @@ static void core_onClipboardRemoteData(void *ctx, uint32_t formatId, const uint8
     });
 }
 
+// Server too old for the graphics pipeline: hand it to the delegate, which reconnects.
+static void core_onLegacyGraphicsSuggested(void *ctx) {
+    RDPClient *self = (__bridge RDPClient *)ctx;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if ([self.delegate respondsToSelector:@selector(rdpClientNeedsLegacyGraphics:)])
+            [self.delegate rdpClientNeedsLegacyGraphics:self];
+    });
+}
+
 // Remote pasted (wants our clipboard) -> answer from the local pasteboard.
 static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
     RDPClient *self = (__bridge RDPClient *)ctx;
@@ -145,7 +155,8 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
 - (instancetype)initWithHost:(NSString *)host port:(int)port username:(NSString *)username
                       domain:(NSString *)domain password:(NSString *)password
                        width:(int)width height:(int)height scale:(int)scalePercent
-                sharedFolder:(NSString *)sharedFolder {
+                sharedFolder:(NSString *)sharedFolder
+           useLegacyGraphics:(BOOL)useLegacyGraphics {
     if (self = [super init]) {
         _host = [host copy];
         _port = port;
@@ -156,6 +167,7 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
         _height = height;
         _scale = scalePercent;
         _sharedFolder = [sharedFolder copy];
+        _useLegacyGraphics = useLegacyGraphics;
     }
     return self;
 }
@@ -168,6 +180,7 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
         .onDisconnected = core_onDisconnected,
         .onClipboardRemoteData = core_onClipboardRemoteData,
         .onClipboardDataRequested = core_onClipboardDataRequested,
+        .onLegacyGraphicsSuggested = core_onLegacyGraphicsSuggested,
     };
     // core holds a +1 retain on self for the lifetime of the connection
     // (released in core_onDisconnected).
@@ -176,6 +189,7 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
                            self.username.UTF8String, self.domain.UTF8String,
                            self.password.UTF8String, self.width, self.height, self.scale,
                            _sharedFolder.length ? _sharedFolder.fileSystemRepresentation : NULL,
+                           _useLegacyGraphics ? 1 : 0,
                            cb, ctx);
     rdpcore_start(_core);
 

@@ -185,6 +185,7 @@
 "Quit.BodyBoth" = "Nadal otwarte połączenia: %d, a konfiguracja ma niezapisane zmiany.";
 "Quit.Confirm" = "Zamknij";
 "Quit.SaveAndQuit" = "Zapisz i zamknij";
+"Status.ReconnectingLegacyGraphics" = "Starszy serwer — ponowne łączenie bez potoku graficznego...";
 "CloseWindow.Title" = "Zamknąć to okno?";
 "CloseWindow.BodySessions" = "W tym oknie otwarte połączenia: %d. Zostaną rozłączone.";
 "CloseWindow.BodyUnsaved" = "Konfiguracja w tym oknie ma niezapisane zmiany.";

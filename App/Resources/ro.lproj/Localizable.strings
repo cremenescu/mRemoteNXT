@@ -179,6 +179,7 @@
 "Quit.BodyBoth" = "%d conexiune(i) sunt inca deschise, iar configuratia are modificari nesalvate.";
 "Quit.Confirm" = "Inchide";
 "Quit.SaveAndQuit" = "Salveaza si inchide";
+"Status.ReconnectingLegacyGraphics" = "Server mai vechi — reconectare fara pipeline-ul grafic...";
 "CloseWindow.Title" = "Inchizi fereastra?";
 "CloseWindow.BodySessions" = "%d conexiune(i) sunt deschise in aceasta fereastra si vor fi deconectate.";
 "CloseWindow.BodyUnsaved" = "Configuratia din aceasta fereastra are modificari nesalvate.";

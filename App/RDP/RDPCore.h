@@ -26,6 +26,10 @@ typedef struct {
     void (*onClipboardRemoteFormats)(void *ctx, bool hasText, bool hasImage); // remote copied something
     void (*onClipboardRemoteData)(void *ctx, uint32_t formatId, const uint8_t *data, uint32_t size);
     void (*onClipboardDataRequested)(void *ctx, uint32_t formatId); // remote wants our clipboard
+    /// The server turned out to be too old for the graphics pipeline, and this session
+    /// negotiated it anyway. Fired once, right after connecting: the caller should
+    /// remember the host and reconnect with useLegacyGraphics.
+    void (*onLegacyGraphicsSuggested)(void *ctx);
 } RDPCoreCallbacks;
 
 // Special key codes (must match RDPSpecialKey in RDPClient.h).
@@ -38,10 +42,12 @@ enum {
 // sharePath = absolute path of a macOS folder to expose in the session as a
 // redirected drive (read/write, so files move both ways). NULL or empty disables
 // device redirection entirely — nothing on this Mac is reachable from the remote.
+// useLegacyGraphics != 0 skips the graphics pipeline and takes the classic bitmap
+// update path — needed by servers that negotiate EGFX and then never paint with it.
 RDPCore *rdpcore_create(const char *host, int port, const char *user,
                         const char *domain, const char *pass,
                         int width, int height, int scalePercent,
-                        const char *sharePath,
+                        const char *sharePath, int useLegacyGraphics,
                         RDPCoreCallbacks cb, void *ctx);
 void rdpcore_start(RDPCore *core);
 void rdpcore_stop(RDPCore *core);

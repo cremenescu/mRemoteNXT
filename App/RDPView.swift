@@ -11,6 +11,29 @@ extension Notification.Name {
     static let mrngSendCAD = Notification.Name("MRNG.SendCtrlAltDel")
 }
 
+/// Hosts that turned out to be too old for the graphics pipeline. Kept in the app's own
+/// preferences rather than in confCons: mRemoteNG drops attributes it doesn't know at the
+/// first save, so anything written there would vanish the moment the file is opened on
+/// Windows — and this is a property of the server, not of the connection entry.
+enum LegacyGraphicsHosts {
+    private static let key = "legacyGraphicsHosts"
+
+    static func contains(_ host: String) -> Bool {
+        guard !host.isEmpty else { return false }
+        let all = UserDefaults.standard.stringArray(forKey: key) ?? []
+        return all.contains(host.lowercased())
+    }
+
+    static func add(_ host: String) {
+        guard !host.isEmpty else { return }
+        var all = UserDefaults.standard.stringArray(forKey: key) ?? []
+        let h = host.lowercased()
+        guard !all.contains(h) else { return }
+        all.append(h)
+        UserDefaults.standard.set(all, forKey: key)
+    }
+}
+
 final class RDPNSView: NSView, RDPClientDelegate {
     private var client: RDPClient?
     private var desktop = CGSize(width: 1280, height: 800)
@@ -20,6 +43,9 @@ final class RDPNSView: NSView, RDPClientDelegate {
     private var cadObserver: NSObjectProtocol?
     /// Called on disconnect AFTER a successful connection (not on connect failure).
     var onDisconnect: (() -> Void)?
+    /// Asks the app layer to reconnect this tab (used after learning that the server
+    /// needs the legacy graphics path).
+    var onNeedsReconnect: (() -> Void)?
 
     private let session: Session
     private var didStart = false
@@ -92,7 +118,8 @@ final class RDPNSView: NSView, RDPClientDelegate {
                               if !own.isEmpty { return own }
                               let p = UserDefaults.standard.string(forKey: "sharedFolderPath") ?? ""
                               return p.isEmpty ? nil : p
-                          }())
+                          }(),
+                          useLegacyGraphics: LegacyGraphicsHosts.contains(node.hostname))
         c.delegate = self
         client = c
         c.start()
@@ -161,6 +188,16 @@ final class RDPNSView: NSView, RDPClientDelegate {
     func rdpClient(_ client: RDPClient, didUpdate image: CGImage) {
         clearStatus()
         layer?.contents = image
+    }
+
+    func rdpClientNeedsLegacyGraphics(_ client: RDPClient) {
+        let host = session.node.hostname
+        guard !LegacyGraphicsHosts.contains(host) else { return }
+        LegacyGraphicsHosts.add(host)
+        // The pipeline was advertised before the server identified itself, so this
+        // connection can't be salvaged — reconnect, which now starts on the legacy path.
+        showStatus(t("Status.ReconnectingLegacyGraphics"))
+        onNeedsReconnect?()
     }
 
     func rdpClient(_ client: RDPClient, didDisconnectWithError error: String?) {
@@ -339,10 +376,12 @@ struct RDPContainer: NSViewRepresentable {
     let session: Session
     let isActive: Bool
     var onDisconnect: () -> Void = {}
+    var onNeedsReconnect: () -> Void = {}
 
     func makeNSView(context: Context) -> RDPNSView {
         let view = RDPNSView(session: session)
         view.onDisconnect = onDisconnect
+        view.onNeedsReconnect = onNeedsReconnect
         return view
     }
 

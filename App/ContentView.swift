@@ -789,6 +789,8 @@ struct SessionView: View {
         case .rdp:
             RDPContainer(session: session, isActive: isActive, onDisconnect: {
                 if model.closeTabOnDisconnect { model.closeSession(session.id) }
+            }, onNeedsReconnect: {
+                model.reconnect(session)
             })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .http:

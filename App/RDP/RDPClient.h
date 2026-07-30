@@ -14,6 +14,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)rdpClient:(RDPClient *)client didConnectWithWidth:(int)width height:(int)height;
 - (void)rdpClient:(RDPClient *)client didUpdateImage:(CGImageRef)image;
 - (void)rdpClient:(RDPClient *)client didDisconnectWithError:(nullable NSString *)error;
+@optional
+/// The server is too old for the graphics pipeline. Remember the host and reconnect
+/// with useLegacyGraphics — this connection can no longer be changed.
+- (void)rdpClientNeedsLegacyGraphics:(RDPClient *)client;
 @end
 
 /// Wrapper around FreeRDP3: connects on its own thread, software GDI rendering (BGRA),
@@ -37,7 +41,8 @@ NS_ASSUME_NONNULL_BEGIN
                        width:(int)width
                       height:(int)height
                        scale:(int)scalePercent
-                   sharedFolder:(nullable NSString *)sharedFolder;
+                   sharedFolder:(nullable NSString *)sharedFolder
+             useLegacyGraphics:(BOOL)useLegacyGraphics;
 
 - (void)start;
 - (void)stop;

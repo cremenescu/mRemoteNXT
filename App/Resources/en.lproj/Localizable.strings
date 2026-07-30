@@ -185,6 +185,7 @@
 "Quit.BodyBoth" = "%d connection(s) are still open, and the configuration has unsaved changes.";
 "Quit.Confirm" = "Quit";
 "Quit.SaveAndQuit" = "Save and quit";
+"Status.ReconnectingLegacyGraphics" = "Older server — reconnecting without the graphics pipeline...";
 "CloseWindow.Title" = "Close this window?";
 "CloseWindow.BodySessions" = "%d connection(s) are open in this window and will be disconnected.";
 "CloseWindow.BodyUnsaved" = "This window's configuration has unsaved changes.";
