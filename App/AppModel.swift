@@ -49,6 +49,10 @@ private struct SavedSessionState: Codable {
 
 @MainActor
 final class AppModel: ObservableObject {
+    /// The live model, for the AppKit-side pieces that can't be handed an
+    /// @EnvironmentObject — currently the quit confirmation in QuitGuardDelegate.
+    static weak var current: AppModel?
+
     @Published var doc: ConfCons?
     @Published var loadError: String?
     @Published var fileURL: URL?
@@ -216,6 +220,7 @@ final class AppModel: ObservableObject {
     @Published var needsMasterPassword: URL?
 
     init() {
+        defer { AppModel.current = self }
         if let v = UserDefaults.standard.object(forKey: "uiFontSize") as? Double { uiFontSize = v }
         if let v = UserDefaults.standard.object(forKey: "terminalFontSize") as? Double { terminalFontSize = v }
         if let v = UserDefaults.standard.string(forKey: "terminalTheme") { terminalTheme = v }

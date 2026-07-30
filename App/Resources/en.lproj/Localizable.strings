@@ -165,6 +165,12 @@
 "Delete.Connection" = "The connection will be deleted.";
 "Delete.Confirm" = "Delete";
 "Delete.Cancel" = "Cancel";
+"Quit.Title" = "Quit mRemoteNXT?";
+"Quit.BodySessions" = "%d connection(s) are still open and will be disconnected.";
+"Quit.BodyUnsaved" = "The configuration has unsaved changes.";
+"Quit.BodyBoth" = "%d connection(s) are still open, and the configuration has unsaved changes.";
+"Quit.Confirm" = "Quit";
+"Quit.SaveAndQuit" = "Save and quit";
 
 /* Errors / load */
 "Error.ParseFailed" = "Could not parse: %@";

@@ -165,6 +165,12 @@
 "Delete.Connection" = "Połączenie zostanie usunięte.";
 "Delete.Confirm" = "Usuń";
 "Delete.Cancel" = "Anuluj";
+"Quit.Title" = "Zamknąć mRemoteNXT?";
+"Quit.BodySessions" = "Nadal otwarte połączenia: %d. Zostaną rozłączone.";
+"Quit.BodyUnsaved" = "Konfiguracja ma niezapisane zmiany.";
+"Quit.BodyBoth" = "Nadal otwarte połączenia: %d, a konfiguracja ma niezapisane zmiany.";
+"Quit.Confirm" = "Zamknij";
+"Quit.SaveAndQuit" = "Zapisz i zamknij";
 
 /* Errors / load */
 "Error.ParseFailed" = "Nie można przetworzyć: %@";

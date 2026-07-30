@@ -159,6 +159,12 @@
 "Delete.Connection" = "Conexiunea va fi stearsa.";
 "Delete.Confirm" = "Sterge";
 "Delete.Cancel" = "Anuleaza";
+"Quit.Title" = "Inchizi mRemoteNXT?";
+"Quit.BodySessions" = "%d conexiune(i) sunt inca deschise si vor fi deconectate.";
+"Quit.BodyUnsaved" = "Configuratia are modificari nesalvate.";
+"Quit.BodyBoth" = "%d conexiune(i) sunt inca deschise, iar configuratia are modificari nesalvate.";
+"Quit.Confirm" = "Inchide";
+"Quit.SaveAndQuit" = "Salveaza si inchide";
 
 /* Erori / incarcare */
 "Error.ParseFailed" = "Nu am putut parsa: %@";

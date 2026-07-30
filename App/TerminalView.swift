@@ -47,6 +47,8 @@ enum CursorBlinkSpeed: String, CaseIterable, Identifiable {
 ///     into the model and re-render the SessionTabBar.
 final class MRNGTerminalView: LocalProcessTerminalView {
     private var mouseUpMonitor: Any?
+    private var wheelMonitor: Any?
+    private var shiftClickMonitor: Any?
     private var autoScrollTimer: Timer?
     private var lastDragWindowLocation: NSPoint?
     /// > 0 = scroll DOWN (cursor below view, want newer content),
@@ -60,11 +62,13 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupPuttyMouse()
+        installMouseFixes()
         installFocusObserver()
     }
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupPuttyMouse()
+        installMouseFixes()
         installFocusObserver()
     }
 
@@ -97,6 +101,62 @@ final class MRNGTerminalView: LocalProcessTerminalView {
             }
             return event
         }
+    }
+
+    // MARK: - Mouse: scrolling and selection vs. mouse reporting
+
+    /// True while a Shift-drag is in progress, during which mouse reporting is suppressed.
+    private var shiftSelecting = false
+
+    /// SwiftTerm declares scrollWheel/mouseDown `public`, not `open`, so neither can be
+    /// overridden from outside its module. Both are intercepted with an event monitor
+    /// instead — the same mechanism the auto-scroll fix above already uses. Returning nil
+    /// consumes the event so SwiftTerm never sees it.
+    private func installMouseFixes() {
+        wheelMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self] event in
+            guard let self, event.window === self.window,
+                  self.hitTestIsMine(event) else { return event }
+            return self.handleScroll(event) ? nil : event
+        }
+        shiftClickMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .leftMouseUp]
+        ) { [weak self] event in
+            guard let self, event.window === self.window else { return event }
+            if event.type == .leftMouseDown,
+               event.modifierFlags.contains(.shift), self.allowMouseReporting,
+               self.hitTestIsMine(event) {
+                // Shift is the conventional escape hatch from mouse reporting: without it,
+                // a program that grabs the mouse (Midnight Commander, vim) takes every
+                // click and text can never be selected for copying.
+                self.shiftSelecting = true
+                self.allowMouseReporting = false
+            } else if event.type == .leftMouseUp, self.shiftSelecting {
+                self.shiftSelecting = false
+                self.allowMouseReporting = true
+            }
+            return event
+        }
+    }
+
+    private func hitTestIsMine(_ event: NSEvent) -> Bool {
+        bounds.contains(convert(event.locationInWindow, from: nil))
+    }
+
+    /// Wheel on the alternate screen. SwiftTerm scrolls its own scrollback and never looks
+    /// at the terminal state — but the alternate screen, which `mc`, `less` and `vim` run
+    /// on, HAS no scrollback, so the wheel did nothing at all and the only way through a
+    /// file was Page Down. Send cursor keys there, which is what those programs expect.
+    ///
+    /// Returns true when the event was handled and should not reach SwiftTerm.
+    private func handleScroll(_ event: NSEvent) -> Bool {
+        guard getTerminal().isCurrentBufferAlternate, event.deltaY != 0 else { return false }
+        // Application cursor mode changes the arrow encoding (SS3 rather than CSI).
+        let app = getTerminal().applicationCursor
+        let up = app ? "\u{1b}OA" : "\u{1b}[A"
+        let down = app ? "\u{1b}OB" : "\u{1b}[B"
+        let lines = max(1, min(5, Int(abs(event.deltaY).rounded())))
+        send(txt: String(repeating: event.deltaY > 0 ? up : down, count: lines))
+        return true
     }
 
     @objc private func rightClickPaste() {
@@ -235,6 +295,8 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     deinit {
         autoScrollTimer?.invalidate()
         if let m = mouseUpMonitor { NSEvent.removeMonitor(m) }
+        if let m = wheelMonitor { NSEvent.removeMonitor(m) }
+        if let m = shiftClickMonitor { NSEvent.removeMonitor(m) }
         if let o = focusObserver { NotificationCenter.default.removeObserver(o) }
     }
 }

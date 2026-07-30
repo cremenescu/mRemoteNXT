@@ -9,6 +9,7 @@ import Sparkle
 struct MRemoteApp: App {
     @StateObject private var model = AppModel()
     @StateObject private var lang = LanguageManager.shared
+    @NSApplicationDelegateAdaptor(QuitGuardDelegate.self) private var appDelegate
     @Environment(\.openWindow) private var openWindow
 
     // Sparkle auto-updater. Held for the app's lifetime (no AppDelegate in a
@@ -38,6 +39,7 @@ struct MRemoteApp: App {
                 .environmentObject(model)
                 .environmentObject(lang)
                 .frame(minWidth: 900, minHeight: 560)
+                .background(WindowChrome(fileURL: model.fileURL))
         }
         .commands {
             CommandGroup(replacing: .appInfo) {
