@@ -14,6 +14,9 @@
 "Menu.NewFile" = "Configuratie noua...";
 "Menu.OpenFile" = "Deschide confCons.xml...";
 "Menu.CloseFile" = "Inchide configuratia";
+"Menu.NewWindow" = "Fereastra noua";
+"Menu.CloseTab" = "Inchide tab-ul";
+"Menu.CloseWindow" = "Inchide fereastra";
 "Menu.ImportRoyalTS" = "Importa document Royal TS...";
 "Import.RoyalPrompt" = "Alege un document Royal TS (.rtsz)";
 "Import.DoneTitle" = "Import terminat";
@@ -23,6 +26,7 @@
 "Import.FailedTitle" = "Importul a esuat";
 "Menu.Save" = "Salveaza";
 "NewDoc.Prompt" = "Alege unde salvezi configuratia noua.";
+"NewDoc.FailedTitle" = "Nu am putut crea configuratia";
 "Error.SaveFailed" = "Salvare esuata: %@";
 "Menu.ZoomIn" = "Mareste textul terminalului";
 "Menu.ZoomOut" = "Micsoreaza textul terminalului";
@@ -44,6 +48,8 @@
 "Settings.ShowProtocol" = "Arata tip protocol (RDP/SSH) in lista";
 "Settings.CloseTabOnDisconnect" = "Inchide tab-ul la deconectare (RDP)";
 "Settings.RestoreSessions" = "Redeschide conexiunile din sesiunea anterioara la pornire";
+"Settings.RestoreWindows" = "Redeschide aceleasi fisiere de configuratie la pornire";
+"Settings.RestoreWindowsNote" = "Cate o fereastra per fisier, cum au ramas. Debifat, pornesti cu o singura fereastra.";
 "Settings.DiagnosticLogging" = "Log de diagnostic (RDP)";
 "Settings.DiagnosticLoggingNote" = "Scrie in ~/Library/Logs/mRemoteNXT/mRemoteNXT.log";
 "Settings.RevealLog" = "Arata in Finder";
@@ -53,6 +59,7 @@
 "Settings.MasterPasswordCustom" = "proprie";
 "Settings.MasterPasswordChange" = "Schimba...";
 "Settings.MasterPasswordNote" = "Cu ea sunt criptate parolele salvate. Passphrase-ul implicit al mRemoteNG e public, deci cu el oricine are fisierul poate citi toate parolele. Se aplica fisierului deschis; salveaza ca sa fie scrisa pe disc.";
+"Settings.MasterPasswordFor" = "Se aplica la %@ — fereastra din fata.";
 "Unlock.Title" = "Fisierul e protejat";
 "Unlock.Body" = "%@ e criptat cu o parola master. Pana nu o introduci, conexiunile nu au parole utilizabile.";
 "Unlock.Wrong" = "Parola gresita.";
@@ -172,6 +179,12 @@
 "Quit.BodyBoth" = "%d conexiune(i) sunt inca deschise, iar configuratia are modificari nesalvate.";
 "Quit.Confirm" = "Inchide";
 "Quit.SaveAndQuit" = "Salveaza si inchide";
+"CloseWindow.Title" = "Inchizi fereastra?";
+"CloseWindow.BodySessions" = "%d conexiune(i) sunt deschise in aceasta fereastra si vor fi deconectate.";
+"CloseWindow.BodyUnsaved" = "Configuratia din aceasta fereastra are modificari nesalvate.";
+"CloseWindow.BodyBoth" = "%d conexiune(i) sunt deschise in aceasta fereastra, iar configuratia are modificari nesalvate.";
+"CloseWindow.Confirm" = "Inchide";
+"CloseWindow.SaveAndClose" = "Salveaza si inchide";
 
 /* Erori / incarcare */
 "Error.ParseFailed" = "Nu am putut parsa: %@";

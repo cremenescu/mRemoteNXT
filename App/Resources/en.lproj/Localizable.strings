@@ -20,6 +20,9 @@
 "Menu.NewFile" = "New configuration...";
 "Menu.OpenFile" = "Open confCons.xml...";
 "Menu.CloseFile" = "Close configuration";
+"Menu.NewWindow" = "New window";
+"Menu.CloseTab" = "Close tab";
+"Menu.CloseWindow" = "Close window";
 "Menu.ImportRoyalTS" = "Import Royal TS document...";
 "Import.RoyalPrompt" = "Choose a Royal TS document (.rtsz)";
 "Import.DoneTitle" = "Import finished";
@@ -29,6 +32,7 @@
 "Import.FailedTitle" = "Import failed";
 "Menu.Save" = "Save";
 "NewDoc.Prompt" = "Choose where to save the new configuration.";
+"NewDoc.FailedTitle" = "Could not create the configuration";
 "Error.SaveFailed" = "Save failed: %@";
 "Menu.ZoomIn" = "Larger terminal text";
 "Menu.ZoomOut" = "Smaller terminal text";
@@ -50,6 +54,8 @@
 "Settings.ShowProtocol" = "Show protocol type (RDP/SSH) in list";
 "Settings.CloseTabOnDisconnect" = "Close tab on disconnect (RDP)";
 "Settings.RestoreSessions" = "Reopen last session's connections on launch";
+"Settings.RestoreWindows" = "Reopen the same configuration files on launch";
+"Settings.RestoreWindowsNote" = "One window per file, the way they were left. Off means a single window at startup.";
 "Settings.DiagnosticLogging" = "Diagnostic logging (RDP)";
 "Settings.DiagnosticLoggingNote" = "Writes to ~/Library/Logs/mRemoteNXT/mRemoteNXT.log";
 "Settings.RevealLog" = "Show in Finder";
@@ -59,6 +65,7 @@
 "Settings.MasterPasswordCustom" = "your own";
 "Settings.MasterPasswordChange" = "Change...";
 "Settings.MasterPasswordNote" = "Stored passwords are encrypted with this. mRemoteNG's default passphrase is public knowledge, so with it anyone holding the file can read every password. Applies to the open file; save to write it out.";
+"Settings.MasterPasswordFor" = "Applies to %@ — the frontmost window.";
 "Unlock.Title" = "This file is protected";
 "Unlock.Body" = "%@ is encrypted with a master password. Until it is entered, connections have no usable passwords.";
 "Unlock.Wrong" = "Wrong password.";
@@ -178,6 +185,12 @@
 "Quit.BodyBoth" = "%d connection(s) are still open, and the configuration has unsaved changes.";
 "Quit.Confirm" = "Quit";
 "Quit.SaveAndQuit" = "Save and quit";
+"CloseWindow.Title" = "Close this window?";
+"CloseWindow.BodySessions" = "%d connection(s) are open in this window and will be disconnected.";
+"CloseWindow.BodyUnsaved" = "This window's configuration has unsaved changes.";
+"CloseWindow.BodyBoth" = "%d connection(s) are open in this window, and its configuration has unsaved changes.";
+"CloseWindow.Confirm" = "Close";
+"CloseWindow.SaveAndClose" = "Save and close";
 
 /* Errors / load */
 "Error.ParseFailed" = "Could not parse: %@";

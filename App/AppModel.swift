@@ -4,6 +4,7 @@
 
 import SwiftUI
 import AppKit
+import Combine
 import MRNGCore
 
 /// An open session backed by a tab.
@@ -47,12 +48,11 @@ private struct SavedSessionState: Codable {
     let selectedPanel: String?
 }
 
+/// Everything about one open configuration file: the tree, the sessions on its tabs, and
+/// the passphrase they are stored under. There is one per window — the AppKit-side pieces
+/// that need a model without an @EnvironmentObject find it through WindowRegistry.
 @MainActor
 final class AppModel: ObservableObject {
-    /// The live model, for the AppKit-side pieces that can't be handed an
-    /// @EnvironmentObject — currently the quit confirmation in QuitGuardDelegate.
-    static weak var current: AppModel?
-
     @Published var doc: ConfCons?
     @Published var loadError: String?
     @Published var fileURL: URL?
@@ -138,77 +138,63 @@ final class AppModel: ObservableObject {
         if !tabDropBefore { insert += 1 }
         sessions.insert(moved, at: insert)
     }
-    @Published var uiFontSize: Double = 13 {
-        didSet { UserDefaults.standard.set(uiFontSize, forKey: "uiFontSize") }
-    }
-    @Published var terminalFontSize: Double = 13 {
-        didSet { UserDefaults.standard.set(terminalFontSize, forKey: "terminalFontSize") }
-    }
-    @Published var terminalTheme: String = "Implicit" {
-        didSet { UserDefaults.standard.set(terminalTheme, forKey: "terminalTheme") }
-    }
-    /// Scrollback buffer, in lines. SwiftTerm's own default is only 500, which loses the
-    /// top of anything longer than a screenful or two; 10 000 matches Terminal.app.
-    @Published var scrollbackLines: Int = 10000 {
-        didSet { UserDefaults.standard.set(scrollbackLines, forKey: "scrollbackLines") }
-    }
-    @Published var rowHeight: Double = 22 {
-        didSet { UserDefaults.standard.set(rowHeight, forKey: "rowHeight") }
-    }
-    @Published var showProtocol: Bool = false {
-        didSet { UserDefaults.standard.set(showProtocol, forKey: "showProtocol") }
-    }
-    @Published var showPasswordPlain: Bool = false {
-        didSet { UserDefaults.standard.set(showPasswordPlain, forKey: "showPasswordPlain") }
-    }
-    @Published var cursorBlinkSpeed: CursorBlinkSpeed = .medium {
-        didSet { UserDefaults.standard.set(cursorBlinkSpeed.rawValue, forKey: "cursorBlinkSpeed") }
-    }
-    @Published var updateTabTitleFromTerminal: Bool = true {
-        didSet { UserDefaults.standard.set(updateTabTitleFromTerminal, forKey: "updateTabTitleFromTerminal") }
-    }
     /// Deliberately NOT persisted: it is the visibility of a modal, not a preference.
     /// It used to be saved and restored, but selectedNodeID isn't, so quitting with the
     /// editor open reopened it on an empty selection — a blank sheet with no buttons and
     /// no way out.
     @Published var editorVisible: Bool = false
-    @Published var closeTabOnDisconnect: Bool = false {
-        didSet { UserDefaults.standard.set(closeTabOnDisconnect, forKey: "closeTabOnDisconnect") }
-    }
-    /// Reopen (and reconnect) the connections that were open when the app last
-    /// quit. Default on. Restored on launch after the file auto-loads.
-    @Published var restoreSessions: Bool = true {
-        didSet { UserDefaults.standard.set(restoreSessions, forKey: "restoreSessions") }
-    }
-    /// macOS folder exposed to RDP sessions as a redirected drive. Empty = feature off:
-    /// nothing on this Mac is reachable from any session. Read at connect time, so a
-    /// change applies to sessions opened afterwards.
-    @Published var sharedFolderPath: String = "" {
-        didSet { UserDefaults.standard.set(sharedFolderPath, forKey: "sharedFolderPath") }
-    }
-    /// When on, FreeRDP writes a DEBUG log to ~/Library/Logs/mRemoteNXT/mRemoteNXT.log
-    /// so RDP connection failures can be diagnosed. Off by default (verbose).
-    @Published var diagnosticLogging: Bool = false {
-        didSet {
-            UserDefaults.standard.set(diagnosticLogging, forKey: "diagnosticLogging")
-            AppModel.applyDiagnosticLogging(diagnosticLogging)
-        }
-    }
-    @Published var externalTools: [ExternalTool] = [] {
-        didSet { saveTools() }
-    }
 
-    /// Directory where diagnostic logs are written.
-    static var logDirectory: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Logs/mRemoteNXT", isDirectory: true)
-    }
+    // MARK: - Application preferences
 
-    static func applyDiagnosticLogging(_ on: Bool) {
-        if on {
-            try? FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: true)
-        }
-        RDPClient.setDiagnosticLogging(on, directory: logDirectory.path)
+    /// These belong to the app, not to the file, so they live in a single shared object
+    /// (see Preferences). They are forwarded here because every view already reaches them
+    /// through the model, and because a per-window copy would have let two windows disagree
+    /// about the font size. The relay below republishes the shared object's changes as our
+    /// own, so all windows redraw together.
+    private let prefs = Preferences.shared
+    private var prefsRelay: AnyCancellable?
+
+    var uiFontSize: Double {
+        get { prefs.uiFontSize } set { prefs.uiFontSize = newValue }
+    }
+    var terminalFontSize: Double {
+        get { prefs.terminalFontSize } set { prefs.terminalFontSize = newValue }
+    }
+    var terminalTheme: String {
+        get { prefs.terminalTheme } set { prefs.terminalTheme = newValue }
+    }
+    var scrollbackLines: Int {
+        get { prefs.scrollbackLines } set { prefs.scrollbackLines = newValue }
+    }
+    var rowHeight: Double {
+        get { prefs.rowHeight } set { prefs.rowHeight = newValue }
+    }
+    var showProtocol: Bool {
+        get { prefs.showProtocol } set { prefs.showProtocol = newValue }
+    }
+    var showPasswordPlain: Bool {
+        get { prefs.showPasswordPlain } set { prefs.showPasswordPlain = newValue }
+    }
+    var cursorBlinkSpeed: CursorBlinkSpeed {
+        get { prefs.cursorBlinkSpeed } set { prefs.cursorBlinkSpeed = newValue }
+    }
+    var updateTabTitleFromTerminal: Bool {
+        get { prefs.updateTabTitleFromTerminal } set { prefs.updateTabTitleFromTerminal = newValue }
+    }
+    var closeTabOnDisconnect: Bool {
+        get { prefs.closeTabOnDisconnect } set { prefs.closeTabOnDisconnect = newValue }
+    }
+    var restoreSessions: Bool {
+        get { prefs.restoreSessions } set { prefs.restoreSessions = newValue }
+    }
+    var sharedFolderPath: String {
+        get { prefs.sharedFolderPath } set { prefs.sharedFolderPath = newValue }
+    }
+    var diagnosticLogging: Bool {
+        get { prefs.diagnosticLogging } set { prefs.diagnosticLogging = newValue }
+    }
+    var externalTools: [ExternalTool] {
+        get { prefs.externalTools } set { prefs.externalTools = newValue }
     }
 
     /// Passphrase the file's stored passwords are encrypted with. Starts as mRemoteNG's
@@ -220,29 +206,42 @@ final class AppModel: ObservableObject {
     @Published var needsMasterPassword: URL?
 
     init() {
-        defer { AppModel.current = self }
-        if let v = UserDefaults.standard.object(forKey: "uiFontSize") as? Double { uiFontSize = v }
-        if let v = UserDefaults.standard.object(forKey: "terminalFontSize") as? Double { terminalFontSize = v }
-        if let v = UserDefaults.standard.string(forKey: "terminalTheme") { terminalTheme = v }
-        if let v = UserDefaults.standard.object(forKey: "scrollbackLines") as? Int { scrollbackLines = v }
-        if let v = UserDefaults.standard.object(forKey: "rowHeight") as? Double { rowHeight = v }
-        if let v = UserDefaults.standard.object(forKey: "showProtocol") as? Bool { showProtocol = v }
-        if let v = UserDefaults.standard.object(forKey: "showPasswordPlain") as? Bool { showPasswordPlain = v }
-        if let v = UserDefaults.standard.string(forKey: "sharedFolderPath") { sharedFolderPath = v }
-        if let v = UserDefaults.standard.string(forKey: "cursorBlinkSpeed"),
-           let s = CursorBlinkSpeed(rawValue: v) { cursorBlinkSpeed = s }
-        if let v = UserDefaults.standard.object(forKey: "updateTabTitleFromTerminal") as? Bool { updateTabTitleFromTerminal = v }
-        if let v = UserDefaults.standard.object(forKey: "closeTabOnDisconnect") as? Bool { closeTabOnDisconnect = v }
-        if let v = UserDefaults.standard.object(forKey: "restoreSessions") as? Bool { restoreSessions = v }
-        if let v = UserDefaults.standard.object(forKey: "diagnosticLogging") as? Bool { diagnosticLogging = v }
-        AppModel.applyDiagnosticLogging(diagnosticLogging)
-        loadTools()
-        // Auto-reopen the last file used (if it still exists on disk).
-        if let saved = UserDefaults.standard.string(forKey: "lastOpenedFile"),
-           FileManager.default.fileExists(atPath: saved) {
-            load(url: URL(fileURLWithPath: saved))
-            restoreOpenSessions()
+        // Take the snapshot of what was open at quit before any window rewrites the list.
+        _ = LaunchState.openDocuments
+        prefsRelay = prefs.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
         }
+        WindowRegistry.shared.register(self)
+    }
+
+    private var started = false
+
+    /// Load whatever this window is meant to show. `request` is a specific file, a
+    /// deliberately blank window, or — when nil, which is the window macOS opens at launch —
+    /// whatever was open last time. Called from the window's onAppear, which can fire more
+    /// than once, so it only ever runs its first time.
+    func start(request: WindowRequest?) {
+        guard !started else { return }
+        started = true
+
+        let path: String?
+        if let request {
+            path = request.path.isEmpty ? nil : request.path
+        } else {
+            path = LaunchState.openDocuments.first ?? UserDefaults.standard.string(forKey: "lastOpenedFile")
+        }
+        guard let path, FileManager.default.fileExists(atPath: path) else { return }
+        let url = URL(fileURLWithPath: path)
+        // Another window may already have it: two windows on one file would be two
+        // independent copies of the tree, and the last save would win. This is the restore
+        // path racing with whatever macOS reopened by itself, so the spare window goes away
+        // rather than sitting there empty.
+        if let existing = WindowRegistry.shared.model(withFile: url), existing !== self {
+            DispatchQueue.main.async { WindowRegistry.shared.window(for: self)?.close() }
+            return
+        }
+        load(url: url)
+        restoreOpenSessions()
     }
 
     func zoomTerminal(_ delta: Double) {
@@ -299,30 +298,17 @@ final class AppModel: ObservableObject {
     }
 
     func openFilePanel() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = []
-        panel.allowsOtherFileTypes = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        if panel.runModal() == .OK, let url = panel.url {
-            load(url: url)
-        }
+        WindowRouter.shared.openFilePanel(preferring: self)
     }
 
     /// Create a new, empty confCons.xml at a user-chosen location and open it.
     func newDocumentPanel() {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = []
-        panel.allowsOtherFileTypes = true
-        panel.nameFieldStringValue = "confCons.xml"
-        panel.message = t("NewDoc.Prompt")
-        if panel.runModal() == .OK, let url = panel.url {
-            createNewDocument(at: url)
-        }
+        WindowRouter.shared.newDocumentPanel(preferring: self)
     }
 
-    /// Build an empty ConfCons (mRemoteNG 2.6, default passphrase) and save it.
-    func createNewDocument(at url: URL) {
+    /// Build an empty ConfCons (mRemoteNG 2.6, default passphrase) and write it to disk.
+    /// Returns nil on success, or a message describing why it failed.
+    static func writeEmptyDocument(to url: URL) -> String? {
         let iterations = 1000
         let protectedEnc = MRNGCrypto.encrypt(
             plaintext: "ThisIsNotProtected",
@@ -340,15 +326,16 @@ final class AppModel: ObservableObject {
         do {
             let xml = ConfConsSerializer.serialize(blank)
             try xml.write(to: url, atomically: true, encoding: String.Encoding.utf8)
-            load(url: url)
+            return nil
         } catch {
-            loadError = String(format: t("Error.SaveFailed"), error.localizedDescription)
+            return String(format: t("Error.SaveFailed"), error.localizedDescription)
         }
     }
 
     /// Close the current document and return to the empty state.
     /// Disconnects all sessions; the next launch will not auto-reopen anything.
     func closeDocument() {
+        let closing = fileURL
         // Stop all open sessions (RDP threads, terminal subprocesses, etc.).
         for s in sessions { closeSession(s.id) }
         sessions.removeAll()
@@ -363,7 +350,10 @@ final class AppModel: ObservableObject {
         editorVisible = false
         pendingDelete = nil
         dirty = false
-        UserDefaults.standard.removeObject(forKey: "lastOpenedFile")
+        if UserDefaults.standard.string(forKey: "lastOpenedFile") == closing?.path {
+            UserDefaults.standard.removeObject(forKey: "lastOpenedFile")
+        }
+        WindowRegistry.shared.syncOpenDocuments()
     }
 
     func load(url: URL) {
@@ -373,6 +363,7 @@ final class AppModel: ObservableObject {
             self.doc = parsed
             self.loadError = nil
             UserDefaults.standard.set(url.path, forKey: "lastOpenedFile")
+            WindowRegistry.shared.syncOpenDocuments()
             loadExpanded(for: parsed)
             // Work out the passphrase: the public default, one already in the keychain for
             // this file, or ask. An empty Protected attribute means nothing to check against.
@@ -733,11 +724,18 @@ final class AppModel: ObservableObject {
 
     // MARK: - Session restore (remember open connections across launches)
 
+    /// Key under which one file's open connections are remembered. Keyed by path because
+    /// several files can be open at once, one window each — a single shared key meant the
+    /// last window to touch a tab overwrote every other window's list.
+    private static func sessionsKey(for path: String) -> String { "openSessions:" + path }
+
     /// Persist the currently open connections for the loaded file. Only node IDs
     /// + panel are written (never passwords); external-tool tabs are excluded.
     private func persistSessionState() {
         guard restoreSessions, let file = fileURL?.path else {
-            UserDefaults.standard.removeObject(forKey: "openSessions")
+            if let file = fileURL?.path {
+                UserDefaults.standard.removeObject(forKey: AppModel.sessionsKey(for: file))
+            }
             return
         }
         let restorable: Set<Session.Kind> = [.ssh, .telnet, .http, .rdp, .sftp]
@@ -754,7 +752,7 @@ final class AppModel: ObservableObject {
             selectedPanel: selectedPanel
         )
         if let data = try? JSONEncoder().encode(state) {
-            UserDefaults.standard.set(data, forKey: "openSessions")
+            UserDefaults.standard.set(data, forKey: AppModel.sessionsKey(for: file))
         }
     }
 
@@ -762,9 +760,18 @@ final class AppModel: ObservableObject {
     /// on and the saved state belongs to the file that just loaded. Nodes that
     /// no longer exist in the file are skipped.
     private func restoreOpenSessions() {
-        guard restoreSessions,
-              let file = fileURL?.path,
-              let data = UserDefaults.standard.data(forKey: "openSessions"),
+        guard restoreSessions, let file = fileURL?.path else { return }
+        var blob = UserDefaults.standard.data(forKey: AppModel.sessionsKey(for: file))
+        if blob == nil {
+            // Written by versions before the key was split per file; consume it once.
+            if let legacy = UserDefaults.standard.data(forKey: "openSessions"),
+               let state = try? JSONDecoder().decode(SavedSessionState.self, from: legacy),
+               state.file == file {
+                blob = legacy
+                UserDefaults.standard.removeObject(forKey: "openSessions")
+            }
+        }
+        guard let data = blob,
               let state = try? JSONDecoder().decode(SavedSessionState.self, from: data),
               state.file == file else { return }
         for item in state.items {
@@ -779,25 +786,6 @@ final class AppModel: ObservableObject {
     }
 
     // MARK: - External Tools
-
-    private func loadTools() {
-        if let data = UserDefaults.standard.data(forKey: "externalTools"),
-           let tools = try? JSONDecoder().decode([ExternalTool].self, from: data) {
-            externalTools = tools
-        } else {
-            externalTools = [
-                ExternalTool(name: "Ping", commandLine: "ping -c 5 %Host%"),
-                ExternalTool(name: "Traceroute", commandLine: "traceroute %Host%"),
-                ExternalTool(name: "Open in browser", commandLine: "open http://%Host%"),
-            ]
-        }
-    }
-
-    private func saveTools() {
-        if let data = try? JSONEncoder().encode(externalTools) {
-            UserDefaults.standard.set(data, forKey: "externalTools")
-        }
-    }
 
     func substituteMacros(_ template: String, node: MRNGNode) -> String {
         var s = template
@@ -827,9 +815,6 @@ final class AppModel: ObservableObject {
         selectedSessionID = session.id
         selectedPanel = session.panel
     }
-
-    func addTool() { externalTools.append(ExternalTool(name: "New tool", commandLine: "")) }
-    func deleteTool(_ tool: ExternalTool) { externalTools.removeAll { $0.id == tool.id } }
 
     /// Open an SFTP tab (a terminal running sftp) for an SSH connection.
     func openSFTP(_ node: MRNGNode) {

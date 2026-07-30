@@ -20,6 +20,9 @@
 "Menu.NewFile" = "Nowa konfiguracja...";
 "Menu.OpenFile" = "Otwórz confCons.xml...";
 "Menu.CloseFile" = "Zamknij konfigurację";
+"Menu.NewWindow" = "Nowe okno";
+"Menu.CloseTab" = "Zamknij kartę";
+"Menu.CloseWindow" = "Zamknij okno";
 "Menu.ImportRoyalTS" = "Importuj dokument Royal TS...";
 "Import.RoyalPrompt" = "Wybierz dokument Royal TS (.rtsz)";
 "Import.DoneTitle" = "Import zakończony";
@@ -29,6 +32,7 @@
 "Import.FailedTitle" = "Import nie powiódł się";
 "Menu.Save" = "Zapisz";
 "NewDoc.Prompt" = "Wybierz miejsce zapisania nowej konfiguracji.";
+"NewDoc.FailedTitle" = "Nie udało się utworzyć konfiguracji";
 "Error.SaveFailed" = "Zapisywanie nie powiodło się: %@";
 "Menu.ZoomIn" = "Większy tekst terminala";
 "Menu.ZoomOut" = "Mniejszy tekst terminala";
@@ -50,6 +54,8 @@
 "Settings.ShowProtocol" = "Pokaż typ protokołu (RDP/SSH) na liście";
 "Settings.CloseTabOnDisconnect" = "Zamknij kartę po rozłączeniu (RDP)";
 "Settings.RestoreSessions" = "Otwórz ponownie połączenia z poprzedniej sesji przy starcie";
+"Settings.RestoreWindows" = "Otwórz ponownie te same pliki konfiguracji przy starcie";
+"Settings.RestoreWindowsNote" = "Jedno okno na plik, tak jak zostały zostawione. Wyłączone: jedno okno przy starcie.";
 "Settings.DiagnosticLogging" = "Dziennik diagnostyczny (RDP)";
 "Settings.DiagnosticLoggingNote" = "Zapisuje do ~/Library/Logs/mRemoteNXT/mRemoteNXT.log";
 "Settings.RevealLog" = "Pokaż w Finderze";
@@ -59,6 +65,7 @@
 "Settings.MasterPasswordCustom" = "własne";
 "Settings.MasterPasswordChange" = "Zmień...";
 "Settings.MasterPasswordNote" = "Nim szyfrowane są zapisane hasła. Domyślne hasło mRemoteNG jest powszechnie znane, więc każdy, kto ma plik, odczyta wszystkie hasła. Dotyczy otwartego pliku; zapisz, aby utrwalić.";
+"Settings.MasterPasswordFor" = "Dotyczy %@ — okno na pierwszym planie.";
 "Unlock.Title" = "Plik jest chroniony";
 "Unlock.Body" = "%@ jest zaszyfrowany hasłem głównym. Dopóki go nie podasz, połączenia nie mają użytecznych haseł.";
 "Unlock.Wrong" = "Błędne hasło.";
@@ -178,6 +185,12 @@
 "Quit.BodyBoth" = "Nadal otwarte połączenia: %d, a konfiguracja ma niezapisane zmiany.";
 "Quit.Confirm" = "Zamknij";
 "Quit.SaveAndQuit" = "Zapisz i zamknij";
+"CloseWindow.Title" = "Zamknąć to okno?";
+"CloseWindow.BodySessions" = "W tym oknie otwarte połączenia: %d. Zostaną rozłączone.";
+"CloseWindow.BodyUnsaved" = "Konfiguracja w tym oknie ma niezapisane zmiany.";
+"CloseWindow.BodyBoth" = "W tym oknie otwarte połączenia: %d, a konfiguracja ma niezapisane zmiany.";
+"CloseWindow.Confirm" = "Zamknij";
+"CloseWindow.SaveAndClose" = "Zapisz i zamknij";
 
 /* Errors / load */
 "Error.ParseFailed" = "Nie można przetworzyć: %@";

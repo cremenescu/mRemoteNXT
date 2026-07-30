@@ -9,8 +9,12 @@ import AppKit
 /// `representedURL` gives the proxy icon, so Cmd- or right-clicking the title shows the
 /// full folder path — the quick way to tell apart several confCons.xml files living in
 /// different directories. The subtitle spells the folder out without any clicking.
+///
+/// It is also where a window first meets its model: this is the only place in the SwiftUI
+/// tree that can see the NSWindow, so it registers the pair with WindowRegistry.
 struct WindowChrome: NSViewRepresentable {
     let fileURL: URL?
+    let model: AppModel
 
     func makeNSView(context: Context) -> NSView {
         let v = NSView(frame: .zero)
@@ -24,6 +28,7 @@ struct WindowChrome: NSViewRepresentable {
 
     private func apply(from view: NSView) {
         guard let window = view.window else { return }
+        WindowRegistry.shared.attach(model: model, to: window)
         window.representedURL = fileURL
         if let url = fileURL {
             window.title = url.lastPathComponent
@@ -36,16 +41,40 @@ struct WindowChrome: NSViewRepresentable {
     }
 }
 
-/// Confirms Cmd+Q while connections are open or edits are unsaved.
+/// Confirms Cmd+Q while connections are open or edits are unsaved, anywhere in the app.
 ///
 /// Quitting used to be instant, which is unforgiving next to Cmd+W on a keyboard where the
-/// two keys are neighbours: one slip and every session is gone.
+/// two keys are neighbours: one slip and every session is gone. (Cmd+W now closes a tab;
+/// the per-window equivalent of this guard is WindowCloseGuard.)
 final class QuitGuardDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // SwiftUI builds the main menu after launch, so the Cmd+W fixup has to wait for it.
+        // (Reopening last session's windows is driven from the first window's onAppear,
+        // where the open-window action is available.)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            MainMenuFixup.apply()
+        }
+    }
+
+    /// Keep the app alive with no windows open, like Finder or Mail: the menu bar stays,
+    /// and Cmd+N or the Dock icon brings a window back. Closing the last window is not a
+    /// decision to quit — especially now that closing one is a routine thing to do.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let model = AppModel.current else { return .terminateNow }
-        let sessions = model.sessions.count
-        let dirty = model.dirty
-        guard sessions > 0 || dirty else { return .terminateNow }
+        MainActor.assumeIsolated { confirmQuit() }
+    }
+
+    @MainActor
+    private func confirmQuit() -> NSApplication.TerminateReply {
+        let registry = WindowRegistry.shared
+        let (sessions, dirty) = registry.totals
+        guard sessions > 0 || dirty else {
+            registry.beginTermination()
+            return .terminateNow
+        }
 
         let alert = NSAlert()
         alert.alertStyle = .warning
@@ -64,9 +93,11 @@ final class QuitGuardDelegate: NSObject, NSApplicationDelegate {
 
         switch alert.runModal() {
         case .alertFirstButtonReturn:
+            registry.beginTermination()
             return .terminateNow
         case .alertThirdButtonReturn where dirty:
-            model.save()
+            registry.saveAllDirty()
+            registry.beginTermination()
             return .terminateNow
         default:
             return .terminateCancel
