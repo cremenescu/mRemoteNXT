@@ -519,21 +519,6 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     // Clipboard redirection (cliprdr). Enabling it makes client/common load the
     // channel; the handlers are wired in on_channel_connected.
     freerdp_settings_set_bool(s, FreeRDP_RedirectClipboard, TRUE);
-    // Everything that rides on the rdpdr channel, off unless explicitly asked for.
-    // client/common loads rdpdr for any redirectable device, and audio counts as one —
-    // so rdpdr was being negotiated on every connection even with nothing shared, with
-    // rdpsnd falling back to its fake backend and playing nothing anyway. Dead weight
-    // at best: against 172.16.80.17 (an older Windows — it announces rdpdr 1.12 where
-    // the hosts that work announce 1.13) the server resets the TCP connection within
-    // 40ms of the rdpdr handshake reaching READY, twice out of two attempts, while the
-    // session is otherwise fully established. The drive redirect below is now the only
-    // thing that turns the channel back on.
-    freerdp_settings_set_bool(s, FreeRDP_AudioPlayback, FALSE);
-    freerdp_settings_set_bool(s, FreeRDP_AudioCapture, FALSE);
-    freerdp_settings_set_bool(s, FreeRDP_RedirectPrinters, FALSE);
-    freerdp_settings_set_bool(s, FreeRDP_RedirectSmartCards, FALSE);
-    freerdp_settings_set_bool(s, FreeRDP_RedirectDrives, FALSE);
-    freerdp_settings_set_bool(s, FreeRDP_DeviceRedirection, FALSE);
     // Drive redirection: only the folder the user picked in Settings, mapped
     // read/write so files move both ways (\\tsclient\\<name> in the session).
     // No folder configured -> device redirection stays off and nothing on this Mac
