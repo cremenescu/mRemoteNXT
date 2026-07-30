@@ -123,6 +123,7 @@ struct SettingsView: View {
 
 struct AppearanceSettings: View {
     @EnvironmentObject var model: AppModel
+    @State private var changingMaster = false
     var body: some View {
         Form {
             Section(t("Settings.Appearance")) {
@@ -163,6 +164,24 @@ struct AppearanceSettings: View {
                 Toggle(t("Settings.CloseTabOnDisconnect"), isOn: $model.closeTabOnDisconnect)
                 Toggle(t("Settings.RestoreSessions"), isOn: $model.restoreSessions)
                 Toggle(t("Settings.ShowPasswordPlain"), isOn: $model.showPasswordPlain)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(t("Settings.MasterPassword"))
+                        Spacer()
+                        Text(model.hasCustomMasterPassword
+                             ? t("Settings.MasterPasswordCustom")
+                             : t("Settings.MasterPasswordDefault"))
+                            .foregroundStyle(model.hasCustomMasterPassword ? Color.secondary : Color.red)
+                        Button(t("Settings.MasterPasswordChange")) { changingMaster = true }
+                            .disabled(model.doc == nil)
+                    }
+                    Text(t("Settings.MasterPasswordNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .sheet(isPresented: $changingMaster) {
+                    ChangeMasterPasswordSheet(isPresented: $changingMaster).environmentObject(model)
+                }
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(t("Settings.SharedFolder"))

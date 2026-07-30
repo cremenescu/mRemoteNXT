@@ -242,6 +242,10 @@ struct ContentView: View {
         } message: { node in
             Text(node.isContainer ? t("Delete.Folder") : t("Delete.Connection"))
         }
+        // Locked file: ask for the passphrase before anything tries to use a password.
+        .sheet(item: $model.needsMasterPassword) { url in
+            UnlockSheet(fileURL: url).environmentObject(model)
+        }
         .sheet(isPresented: $model.editorVisible) {
             if let id = model.selectedNodeID, model.node(byID: id) != nil {
                 EditorSheet(nodeID: id).environmentObject(model)

@@ -52,6 +52,20 @@ public enum MRNGCrypto {
         }
     }
 
+    /// Marker plaintexts mRemoteNG seals into the root `Protected` attribute. It writes
+    /// "ThisIsProtected" when a custom master password is set and "ThisIsNotProtected"
+    /// when the file still uses the default one (XmlRootNodeSerializer.cs), so writing the
+    /// wrong one produces a file mRemoteNG no longer treats correctly.
+    public static let protectedMarker = "ThisIsProtected"
+    public static let unprotectedMarker = "ThisIsNotProtected"
+
+    /// Build the root `Protected` blob for a master password, picking the marker the same
+    /// way mRemoteNG does.
+    public static func makeProtected(password: String, iterations: Int) -> String {
+        let marker = password == defaultPassword ? unprotectedMarker : protectedMarker
+        return encrypt(plaintext: marker, password: password, iterations: iterations)
+    }
+
     /// Checks whether a password successfully decrypts the root `Protected` attribute.
     public static func passwordIsCorrect(protectedBase64: String, password: String, iterations: Int) -> Bool {
         return decrypt(base64: protectedBase64, password: password, iterations: iterations) != nil

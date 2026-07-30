@@ -207,8 +207,13 @@ final class AppModel: ObservableObject {
         RDPClient.setDiagnosticLogging(on, directory: logDirectory.path)
     }
 
-    /// v1: assume the default passphrase. Phase 2: prompt the user when Protected fails to validate.
+    /// Passphrase the file's stored passwords are encrypted with. Starts as mRemoteNG's
+    /// default and is replaced once the user unlocks a file that uses a custom one.
     private(set) var masterPassword = MRNGCrypto.defaultPassword
+    /// True when the open file uses a passphrase other than mRemoteNG's public default.
+    var hasCustomMasterPassword: Bool { masterPassword != MRNGCrypto.defaultPassword }
+    /// Set while a file is open but still locked, so the UI can ask for the passphrase.
+    @Published var needsMasterPassword: URL?
 
     init() {
         if let v = UserDefaults.standard.object(forKey: "uiFontSize") as? Double { uiFontSize = v }
@@ -315,12 +320,22 @@ final class AppModel: ObservableObject {
             self.loadError = nil
             UserDefaults.standard.set(url.path, forKey: "lastOpenedFile")
             loadExpanded(for: parsed)
-            // Determine the master password: default, or (phase 2) prompted from the user.
+            // Work out the passphrase: the public default, one already in the keychain for
+            // this file, or ask. An empty Protected attribute means nothing to check against.
+            self.masterPassword = MRNGCrypto.defaultPassword
+            self.needsMasterPassword = nil
             if !parsed.protected.isEmpty,
                !MRNGCrypto.passwordIsCorrect(protectedBase64: parsed.protected,
                                              password: MRNGCrypto.defaultPassword,
                                              iterations: parsed.kdfIterations) {
-                self.loadError = t("Error.CustomMaster")
+                if let saved = MasterPasswordStore.password(for: url),
+                   MRNGCrypto.passwordIsCorrect(protectedBase64: parsed.protected,
+                                                password: saved,
+                                                iterations: parsed.kdfIterations) {
+                    self.masterPassword = saved
+                } else {
+                    self.needsMasterPassword = url
+                }
             }
         } catch {
             self.doc = nil
@@ -337,6 +352,54 @@ final class AppModel: ObservableObject {
         let enc = node.encryptedPassword
         guard !enc.isEmpty, let doc else { return "" }
         return MRNGCrypto.decrypt(base64: enc, password: masterPassword, iterations: doc.kdfIterations) ?? ""
+    }
+
+    /// Try to unlock the open file with `candidate`. Returns false if it doesn't decrypt
+    /// the Protected blob, leaving the file locked.
+    @discardableResult
+    func unlock(with candidate: String, remember: Bool) -> Bool {
+        guard let doc, !doc.protected.isEmpty else { return false }
+        guard MRNGCrypto.passwordIsCorrect(protectedBase64: doc.protected,
+                                           password: candidate,
+                                           iterations: doc.kdfIterations) else { return false }
+        masterPassword = candidate
+        needsMasterPassword = nil
+        if remember, let url = fileURL { MasterPasswordStore.save(candidate, for: url) }
+        treeVersion &+= 1
+        return true
+    }
+
+    /// Change the file's master password: every stored password is decrypted with the old
+    /// passphrase and re-encrypted with the new one, and the root Protected blob is rebuilt
+    /// with the marker mRemoteNG expects. Nothing is written to disk until the file is
+    /// saved, so a mistake can still be abandoned by closing without saving.
+    ///
+    /// Passing mRemoteNG's default passphrase removes the protection.
+    func changeMasterPassword(to newPassword: String) {
+        guard var doc else { return }
+        let old = masterPassword
+        guard old != newPassword else { return }
+        for node in doc.allNodes() {
+            let enc = node.attributes["Password"] ?? ""
+            guard !enc.isEmpty else { continue }
+            guard let plain = MRNGCrypto.decrypt(base64: enc, password: old,
+                                                 iterations: doc.kdfIterations) else { continue }
+            node.attributes["Password"] = MRNGCrypto.encrypt(plaintext: plain,
+                                                             password: newPassword,
+                                                             iterations: doc.kdfIterations)
+        }
+        doc.protected = MRNGCrypto.makeProtected(password: newPassword,
+                                                 iterations: doc.kdfIterations)
+        self.doc = doc
+        masterPassword = newPassword
+        if let url = fileURL {
+            if newPassword == MRNGCrypto.defaultPassword {
+                MasterPasswordStore.clear(for: url)
+            } else {
+                MasterPasswordStore.save(newPassword, for: url)
+            }
+        }
+        markDirty()
     }
 
     func encrypt(_ plaintext: String) -> String {
