@@ -503,7 +503,39 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     freerdp_settings_set_bool(s, FreeRDP_GfxProgressive, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_GfxH264, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_GfxAVC444v2, TRUE);
-    freerdp_settings_set_bool(s, FreeRDP_NetworkAutoDetect, TRUE);
+    // Keep the rdpdr channel out of the connection unless something is genuinely being
+    // redirected. Setting DeviceRedirection to FALSE is not enough on its own:
+    // freerdp_client_load_addins() (client/common/cmdline.c, 3.27.1) turns it straight
+    // back on for any of NetworkAutoDetect, SupportHeartbeatPdu or SupportMultitransport
+    // — "these RDP8 features require rdpdr to be registered" — and once rdpdr is in, it
+    // adds a fake rdpsnd alongside it. So those three have to go too; the only thing that
+    // may switch device redirection back on is the shared folder below.
+    //
+    // Why it matters: against 172.16.80.17 the server resets the TCP connection within
+    // 80ms of the rdpdr handshake reaching READY — 37ms, 0ms and 76ms on three separate
+    // attempts — with the session otherwise fully established and the desktop already
+    // drawn. Every other transport failure in the log is a plain read timeout.
+    // NetworkAutoDetect only fed the codec's bandwidth estimate; multitransport (UDP)
+    // and the heartbeat PDU were never depended on.
+    freerdp_settings_set_bool(s, FreeRDP_NetworkAutoDetect, FALSE);
+    freerdp_settings_set_bool(s, FreeRDP_SupportHeartbeatPdu, FALSE);
+    freerdp_settings_set_bool(s, FreeRDP_SupportMultitransport, FALSE);
+    freerdp_settings_set_bool(s, FreeRDP_AudioPlayback, FALSE);
+    freerdp_settings_set_bool(s, FreeRDP_AudioCapture, FALSE);
+    freerdp_settings_set_bool(s, FreeRDP_DeviceRedirection, FALSE);
+    // TCP keepalive. FreeRDP's defaults are 5s idle then 3 probes 2s apart, so a session
+    // that sends nothing for 11 seconds is declared dead — and on macOS those really are
+    // applied per socket (tcp.c defines TCP_KEEPIDLE as TCP_KEEPALIVE on Apple, so the
+    // system's 2h idle default is overridden). A session sitting on a Windows pre-logon
+    // screen paints nothing at all, which is exactly the case that trips it: connect,
+    // splash, silence, dead at 11.5s with ERRCONNECT_CONNECT_TRANSPORT_FAILED. Sessions
+    // on a live desktop never notice, because a blinking cursor keeps the socket busy.
+    // Aggressive probes are also the ones stateful firewalls are most likely to drop,
+    // since they deliberately carry an out-of-window sequence number.
+    // 60s idle + 4 probes 15s apart -> a genuinely dead path is still caught in ~2min.
+    freerdp_settings_set_uint32(s, FreeRDP_TcpKeepAliveDelay, 60);
+    freerdp_settings_set_uint32(s, FreeRDP_TcpKeepAliveInterval, 15);
+    freerdp_settings_set_uint32(s, FreeRDP_TcpKeepAliveRetries, 4);
     // Skip TLS certificate verification entirely. These are self-signed Windows
     // hosts on a trusted LAN, reached by IP — so every cert is self-signed, the
     // name never matches (CN is the FQDN, we connect by IP), and a reinstalled
