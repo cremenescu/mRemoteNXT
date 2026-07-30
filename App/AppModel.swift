@@ -249,6 +249,55 @@ final class AppModel: ObservableObject {
         terminalFontSize = min(28, max(8, terminalFontSize + delta))
     }
 
+    /// Import a Royal TS / Royal TSX document into the open configuration. The imported
+    /// tree is appended at the root; nothing is written to disk until the file is saved,
+    /// so a bad import can be abandoned by closing without saving.
+    func importRoyalTSPanel() {
+        guard doc != nil else { return }
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = []
+        panel.allowsOtherFileTypes = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.message = t("Import.RoyalPrompt")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            let result = try RoyalTSImporter.load(fileURL: url) { [weak self] plain in
+                self?.encrypt(plain) ?? ""
+            }
+            guard var d = doc else { return }
+            for root in result.roots {
+                root.parent = nil
+                d.roots.append(root)
+                expandedIDs.insert(root.id)
+            }
+            doc = d
+            markDirty()
+
+            let alert = NSAlert()
+            alert.messageText = t("Import.DoneTitle")
+            var body = String(format: t("Import.DoneBody"),
+                              result.connections, result.withPassword, result.documentName)
+            if result.connections > result.withPassword {
+                body += "\n\n" + t("Import.NoPasswordNote")
+            }
+            if !result.skipped.isEmpty {
+                let list = result.skipped.sorted { $0.key < $1.key }
+                    .map { "\($0.key) × \($0.value)" }.joined(separator: ", ")
+                body += "\n\n" + String(format: t("Import.SkippedNote"), list)
+            }
+            alert.informativeText = body
+            alert.runModal()
+        } catch {
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = t("Import.FailedTitle")
+            alert.informativeText = error.localizedDescription
+            alert.runModal()
+        }
+    }
+
     func openFilePanel() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = []

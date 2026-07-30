@@ -76,6 +76,9 @@ struct MRemoteApp: App {
                 Button(t("Menu.OpenFile")) { model.openFilePanel() }
                     .keyboardShortcut("o")
                 Divider()
+                Button(t("Menu.ImportRoyalTS")) { model.importRoyalTSPanel() }
+                    .disabled(model.doc == nil)
+                Divider()
                 Button(t("Menu.CloseFile")) { model.closeDocument() }
                     .keyboardShortcut("w", modifiers: [.command, .shift])
                     .disabled(model.doc == nil)

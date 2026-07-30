@@ -20,6 +20,13 @@
 "Menu.NewFile" = "Nowa konfiguracja...";
 "Menu.OpenFile" = "Otwórz confCons.xml...";
 "Menu.CloseFile" = "Zamknij konfigurację";
+"Menu.ImportRoyalTS" = "Importuj dokument Royal TS...";
+"Import.RoyalPrompt" = "Wybierz dokument Royal TS (.rtsz)";
+"Import.DoneTitle" = "Import zakończony";
+"Import.DoneBody" = "Zaimportowano %1$d połączeń z \"%3$@\", w tym %2$d z hasłem.";
+"Import.NoPasswordNote" = "Połączenia bez hasła pochodzą z dokumentu Royal, który przechowuje je zaszyfrowane, albo nie miały zapisanego hasła.";
+"Import.SkippedNote" = "Pominięto, brak odpowiednika w mRemoteNG: %@.";
+"Import.FailedTitle" = "Import nie powiódł się";
 "Menu.Save" = "Zapisz";
 "NewDoc.Prompt" = "Wybierz miejsce zapisania nowej konfiguracji.";
 "Error.SaveFailed" = "Zapisywanie nie powiodło się: %@";
