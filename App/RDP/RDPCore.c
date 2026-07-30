@@ -23,6 +23,8 @@
 #include <winpr/error.h>
 #include <winpr/wlog.h>
 
+#include <CoreFoundation/CoreFoundation.h>
+
 #include <openssl/provider.h>
 
 #include <pthread.h>
@@ -476,14 +478,31 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     freerdp_settings_set_uint32(s, FreeRDP_DesktopHeight, (UINT32)core->height);
     freerdp_settings_set_uint32(s, FreeRDP_ColorDepth, 32);
     freerdp_settings_set_bool(s, FreeRDP_SoftwareGdi, TRUE);
-    freerdp_settings_set_uint32(s, FreeRDP_DesktopScaleFactor, (UINT32)core->scalePercent);
-    freerdp_settings_set_uint32(s, FreeRDP_DeviceScaleFactor, deviceScaleFor(core->scalePercent));
+    // Both scale factors get the device value (100/140/180) rather than the true desktop
+    // percentage, because freerdp_settings_check_client_after_preconnect() in 3.27.1 reads
+    // them into the synthesised monitor definition CROSSED — DeviceScaleFactor is stored as
+    // the monitor's desktopScaleFactor and vice versa (libfreerdp/core/settings.c, ~1783).
+    // With a Retina tab that put deviceScaleFactor=200 on the wire, and MS-RDPBCGR allows
+    // only 100, 140 or 180 there. Feeding both slots a legal device value makes the packet
+    // valid whichever way round they end up, and keeps working if upstream fixes the swap.
+    const UINT32 scale = deviceScaleFor(core->scalePercent);
+    freerdp_settings_set_uint32(s, FreeRDP_DesktopScaleFactor, scale);
+    freerdp_settings_set_uint32(s, FreeRDP_DeviceScaleFactor, scale);
     freerdp_settings_set_bool(s, FreeRDP_SupportDynamicChannels, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_SupportDisplayControl, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_DynamicResolutionUpdate, TRUE);
     // GFX pipeline (essential on Win10/11 — otherwise it falls back to the slow legacy bitmap path).
     // The pipeline is wired to gdi in on_channel_connected (RDPGFX_DVC_CHANNEL_NAME).
-    freerdp_settings_set_bool(s, FreeRDP_SupportGraphicsPipeline, TRUE);
+    //
+    // Escape hatch for old hosts: EGFX is the newest and least solid part of the protocol on
+    // Server 2012 R2, and a session that connects, paints a little and then dies is exactly
+    // what a server unhappy with it looks like. Turning it off falls back to legacy bitmap
+    // updates — slower, but the code path Windows has had since 2003.
+    //   defaults write ro.cremenescu.mRemoteNXT disableGfx -bool YES
+    const BOOL gfx = !CFPreferencesGetAppBooleanValue(CFSTR("disableGfx"),
+                                                      kCFPreferencesCurrentApplication, NULL);
+    WLog_INFO("com.mrng.core", "graphics pipeline %s", gfx ? "on" : "OFF (disableGfx)");
+    freerdp_settings_set_bool(s, FreeRDP_SupportGraphicsPipeline, gfx);
     // THE crash fix: force single-threaded codec decoding. The startup crash
     // (EXC_BAD_ACCESS / heap corruption in progressive_decompress ->
     // winpr_SubmitThreadpoolWork, NULL work object) came from FreeRDP's
@@ -594,7 +613,9 @@ void rdpcore_resize(RDPCore *core, int width, int height, int scalePercent) {
     layout.Width = (UINT32)width;
     layout.Height = (UINT32)height;
     layout.Orientation = 0;
-    layout.DesktopScaleFactor = (UINT32)core->scalePercent;
+    // Same value in both, matching what the connect path advertises, so the server never
+    // sees the scale change mid-session.
+    layout.DesktopScaleFactor = deviceScaleFor(core->scalePercent);
     layout.DeviceScaleFactor = deviceScaleFor(core->scalePercent);
     disp->SendMonitorLayout(disp, 1, &layout);
     pthread_mutex_unlock(&core->chanLock);
