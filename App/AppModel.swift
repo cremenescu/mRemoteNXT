@@ -187,6 +187,9 @@ final class AppModel: ObservableObject {
     var restoreSessions: Bool {
         get { prefs.restoreSessions } set { prefs.restoreSessions = newValue }
     }
+    var autosaveMinutes: Int {
+        get { prefs.autosaveMinutes } set { prefs.autosaveMinutes = newValue }
+    }
     var sharedFolderPath: String {
         get { prefs.sharedFolderPath } set { prefs.sharedFolderPath = newValue }
     }
@@ -210,8 +213,45 @@ final class AppModel: ObservableObject {
         _ = LaunchState.openDocuments
         prefsRelay = prefs.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
+            // The interval may be what just changed; rescheduling is a no-op if it isn't.
+            DispatchQueue.main.async { self?.rescheduleAutosave() }
         }
         WindowRegistry.shared.register(self)
+        rescheduleAutosave()
+    }
+
+    deinit { autosaveTimer?.invalidate() }
+
+    // MARK: - Autosave
+
+    private var autosaveTimer: Timer?
+    private var autosaveTimerMinutes = 0
+    /// Whether this document has been backed up since it was opened. The backup exists to
+    /// preserve the state you had BEFORE today's edits, so one per open file is enough —
+    /// making one on every autosave would bury that first copy under hundreds of others.
+    private var didBackUpSinceLoad = false
+
+    private func rescheduleAutosave() {
+        let minutes = prefs.autosaveMinutes
+        guard minutes != autosaveTimerMinutes else { return }
+        autosaveTimerMinutes = minutes
+        autosaveTimer?.invalidate()
+        autosaveTimer = nil
+        guard minutes > 0 else { return }
+        let t = Timer(timeInterval: TimeInterval(minutes) * 60, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.autosave() }
+        }
+        // .common so it keeps firing while a menu is open or a window is being dragged.
+        RunLoop.main.add(t, forMode: .common)
+        autosaveTimer = t
+    }
+
+    private func autosave() {
+        guard prefs.autosaveMinutes > 0, dirty, doc != nil, fileURL != nil else { return }
+        // Never write out a file that is still locked: its passwords are encrypted with a
+        // passphrase we haven't been given, and nothing here should touch it unattended.
+        guard needsMasterPassword == nil else { return }
+        save()
     }
 
     private var started = false
@@ -363,6 +403,7 @@ final class AppModel: ObservableObject {
             self.doc = parsed
             self.loadError = nil
             UserDefaults.standard.set(url.path, forKey: "lastOpenedFile")
+            didBackUpSinceLoad = false
             WindowRegistry.shared.syncOpenDocuments()
             loadExpanded(for: parsed)
             // Work out the passphrase: the public default, one already in the keychain for
@@ -634,11 +675,14 @@ final class AppModel: ObservableObject {
         let dir = url.deletingLastPathComponent()
         let backups = dir.appendingPathComponent("backups", isDirectory: true)
         try? FileManager.default.createDirectory(at: backups, withIntermediateDirectories: true)
-        // Back up the current file before overwriting it.
-        if FileManager.default.fileExists(atPath: url.path) {
+        // Back up the current file before overwriting it — once per opened document, so
+        // autosaving every few minutes doesn't flood the folder and bury the copy that
+        // actually matters (the one from before this session's edits).
+        if !didBackUpSinceLoad, FileManager.default.fileExists(atPath: url.path) {
             let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd_HHmmss"
             let bak = backups.appendingPathComponent("confCons-\(fmt.string(from: Date())).xml")
             try? FileManager.default.copyItem(at: url, to: bak)
+            didBackUpSinceLoad = true
         }
         do {
             try xml.write(to: url, atomically: true, encoding: .utf8)

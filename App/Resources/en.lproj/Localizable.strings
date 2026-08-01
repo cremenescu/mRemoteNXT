@@ -54,6 +54,10 @@
 "Settings.ShowProtocol" = "Show protocol type (RDP/SSH) in list";
 "Settings.CloseTabOnDisconnect" = "Close tab on disconnect (RDP)";
 "Settings.RestoreSessions" = "Reopen last session's connections on launch";
+"Settings.Autosave" = "Save changes automatically";
+"Settings.AutosaveOff" = "Off";
+"Settings.AutosaveMinutes" = "Every %d min";
+"Settings.AutosaveNote" = "Writes the configuration out on its own while it has unsaved changes, so closing a window or quitting cannot lose them. The backup in the backups folder is still made once per opened file, before the first save.";
 "Settings.RestoreWindows" = "Reopen the same configuration files on launch";
 "Settings.RestoreWindowsNote" = "One window per file, the way they were left. Off means a single window at startup.";
 "Settings.DiagnosticLogging" = "Diagnostic logging (RDP)";

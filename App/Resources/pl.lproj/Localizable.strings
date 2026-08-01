@@ -54,6 +54,10 @@
 "Settings.ShowProtocol" = "Pokaż typ protokołu (RDP/SSH) na liście";
 "Settings.CloseTabOnDisconnect" = "Zamknij kartę po rozłączeniu (RDP)";
 "Settings.RestoreSessions" = "Otwórz ponownie połączenia z poprzedniej sesji przy starcie";
+"Settings.Autosave" = "Zapisuj zmiany automatycznie";
+"Settings.AutosaveOff" = "Wyłączone";
+"Settings.AutosaveMinutes" = "Co %d min";
+"Settings.AutosaveNote" = "Zapisuje konfigurację samodzielnie, dopóki ma niezapisane zmiany, więc zamknięcie okna ani wyjście z programu ich nie utraci. Kopia w folderze backups nadal powstaje raz na otwarty plik, przed pierwszym zapisem.";
 "Settings.RestoreWindows" = "Otwórz ponownie te same pliki konfiguracji przy starcie";
 "Settings.RestoreWindowsNote" = "Jedno okno na plik, tak jak zostały zostawione. Wyłączone: jedno okno przy starcie.";
 "Settings.DiagnosticLogging" = "Dziennik diagnostyczny (RDP)";

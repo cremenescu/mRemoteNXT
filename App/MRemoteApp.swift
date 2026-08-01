@@ -231,6 +231,17 @@ struct AppearanceSettings: View {
                 Toggle(t("Settings.CloseTabOnDisconnect"), isOn: $prefs.closeTabOnDisconnect)
                 Toggle(t("Settings.RestoreSessions"), isOn: $prefs.restoreSessions)
                 VStack(alignment: .leading, spacing: 4) {
+                    Picker(t("Settings.Autosave"), selection: $prefs.autosaveMinutes) {
+                        Text(t("Settings.AutosaveOff")).tag(0)
+                        ForEach([1, 2, 5, 10, 15, 30], id: \.self) { m in
+                            Text(String(format: t("Settings.AutosaveMinutes"), m)).tag(m)
+                        }
+                    }
+                    Text(t("Settings.AutosaveNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 4) {
                     Toggle(t("Settings.RestoreWindows"), isOn: $prefs.restoreWindows)
                     Text(t("Settings.RestoreWindowsNote"))
                         .font(.caption).foregroundStyle(.secondary)

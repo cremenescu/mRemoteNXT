@@ -48,6 +48,10 @@
 "Settings.ShowProtocol" = "Arata tip protocol (RDP/SSH) in lista";
 "Settings.CloseTabOnDisconnect" = "Inchide tab-ul la deconectare (RDP)";
 "Settings.RestoreSessions" = "Redeschide conexiunile din sesiunea anterioara la pornire";
+"Settings.Autosave" = "Salveaza automat modificarile";
+"Settings.AutosaveOff" = "Oprit";
+"Settings.AutosaveMinutes" = "La %d min";
+"Settings.AutosaveNote" = "Scrie configuratia singur cat timp are modificari nesalvate, ca inchiderea unei ferestre sau iesirea din app sa nu le poata pierde. Backup-ul din folderul backups se face in continuare o data per fisier deschis, inainte de prima salvare.";
 "Settings.RestoreWindows" = "Redeschide aceleasi fisiere de configuratie la pornire";
 "Settings.RestoreWindowsNote" = "Cate o fereastra per fisier, cum au ramas. Debifat, pornesti cu o singura fereastra.";
 "Settings.DiagnosticLogging" = "Log de diagnostic (RDP)";

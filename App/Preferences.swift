@@ -53,6 +53,12 @@ final class Preferences: ObservableObject {
     @Published var restoreSessions: Bool = true {
         didSet { UserDefaults.standard.set(restoreSessions, forKey: "restoreSessions") }
     }
+    /// Minutes between automatic saves of a changed configuration; 0 = off. The quit and
+    /// close confirmations already stand between you and losing work, but only if you read
+    /// them — this is the net for when you don't.
+    @Published var autosaveMinutes: Int = 5 {
+        didSet { UserDefaults.standard.set(autosaveMinutes, forKey: "autosaveMinutes") }
+    }
     /// Reopen every configuration file that was open at quit, one window each.
     @Published var restoreWindows: Bool = true {
         didSet { UserDefaults.standard.set(restoreWindows, forKey: "restoreWindows") }
@@ -90,6 +96,7 @@ final class Preferences: ObservableObject {
         if let v = d.object(forKey: "closeTabOnDisconnect") as? Bool { closeTabOnDisconnect = v }
         if let v = d.object(forKey: "restoreSessions") as? Bool { restoreSessions = v }
         if let v = d.object(forKey: "restoreWindows") as? Bool { restoreWindows = v }
+        if let v = d.object(forKey: "autosaveMinutes") as? Int { autosaveMinutes = v }
         if let v = d.object(forKey: "diagnosticLogging") as? Bool { diagnosticLogging = v }
         Preferences.applyDiagnosticLogging(diagnosticLogging)
         loadTools()
