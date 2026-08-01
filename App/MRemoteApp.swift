@@ -16,6 +16,7 @@ struct MRemoteApp: App {
     private let updaterController: SPUStandardUpdaterController
 
     init() {
+        MRemoteApp.raiseFileDescriptorLimit()
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
         // Faster tooltips (macOS default is around 2 seconds).
@@ -29,6 +30,22 @@ struct MRemoteApp: App {
         // non-AD Windows hosts — otherwise NLA fails with a misleading
         // "transport failed". Must run before the first connection.
         RDPClient.initCrypto()
+    }
+
+    /// macOS hands a GUI app a soft limit of 256 open file descriptors, and an RDP session
+    /// is expensive in them: every WinPR event, message queue and channel is a pipe, so
+    /// seven of them plus a few terminals sit right on the ceiling. The session that crosses
+    /// it fails deep inside the connect — "MessageQueue_New failed!", then
+    /// ERRCONNECT_POST_CONNECT_FAILED — which reads like a server problem and is not one.
+    /// Measured on a real tree: highest descriptor in use 255, limit 256, the seventh RDP
+    /// tab dead. The hard limit is kern.maxfilesperproc (92160 here), so there is room.
+    private static func raiseFileDescriptorLimit() {
+        var lim = rlimit()
+        guard getrlimit(RLIMIT_NOFILE, &lim) == 0 else { return }
+        let wanted: rlim_t = 8192
+        guard lim.rlim_cur < wanted else { return }
+        lim.rlim_cur = min(wanted, lim.rlim_max)
+        setrlimit(RLIMIT_NOFILE, &lim)
     }
 
     var body: some Scene {
