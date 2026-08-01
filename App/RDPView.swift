@@ -72,6 +72,19 @@ final class RDPNSView: NSView, RDPClientDelegate {
     // Connect only after the view has a real size -> RDP resolution = tab pixels (Retina-aware).
     override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); startIfNeeded() }
 
+    /// Connecting is gated on the view having a real size, and a view can be handed one
+    /// long after it was created — the last restored tab is laid out once, at zero size,
+    /// with nothing changing afterwards to lay it out again, so it would sit black forever.
+    /// Every path that can give it a size ends up here.
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        startIfNeeded()
+    }
+
+    /// Called from the SwiftUI container on every update, so selecting a tab that never got
+    /// off the ground is enough to start it.
+    func ensureStarted() { startIfNeeded() }
+
     // MARK: - Remote pointer
     //
     // The desktop image never contains the pointer — the server sends its shape separately
@@ -450,6 +463,7 @@ struct RDPContainer: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: RDPNSView, context: Context) {
+        nsView.ensureStarted()
         guard isActive else { return }
         DispatchQueue.main.async {
             guard let w = nsView.window else { return }
