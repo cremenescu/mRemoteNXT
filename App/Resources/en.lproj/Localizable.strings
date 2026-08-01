@@ -58,6 +58,10 @@
 "Settings.AutosaveOff" = "Off";
 "Settings.AutosaveMinutes" = "Every %d min";
 "Settings.AutosaveNote" = "Writes the configuration out on its own while it has unsaved changes, so closing a window or quitting cannot lose them. The backup in the backups folder is still made once per opened file, before the first save.";
+"Settings.BackupKeep" = "Backup copies to keep";
+"Settings.BackupKeepOff" = "Do not back up";
+"Settings.BackupKeepCount" = "%d copies";
+"Settings.BackupKeepNote" = "Every save first copies the file into the backups folder next to it, then deletes the oldest copies beyond this count — the same as mRemoteNG on Windows, which keeps 10. With automatic saving on, the history reaches back roughly this many times the interval, so raise it if you want more. Turning it off stops new copies; the existing ones are left alone.";
 "Settings.RestoreWindows" = "Reopen the same configuration files on launch";
 "Settings.RestoreWindowsNote" = "One window per file, the way they were left. Off means a single window at startup.";
 "Settings.DiagnosticLogging" = "Diagnostic logging (RDP)";

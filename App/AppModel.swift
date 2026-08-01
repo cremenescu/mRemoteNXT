@@ -190,6 +190,9 @@ final class AppModel: ObservableObject {
     var autosaveMinutes: Int {
         get { prefs.autosaveMinutes } set { prefs.autosaveMinutes = newValue }
     }
+    var backupKeepCount: Int {
+        get { prefs.backupKeepCount } set { prefs.backupKeepCount = newValue }
+    }
     var sharedFolderPath: String {
         get { prefs.sharedFolderPath } set { prefs.sharedFolderPath = newValue }
     }
@@ -226,11 +229,6 @@ final class AppModel: ObservableObject {
 
     private var autosaveTimer: Timer?
     private var autosaveTimerMinutes = 0
-    /// Whether this document has been backed up since it was opened. The backup exists to
-    /// preserve the state you had BEFORE today's edits, so one per open file is enough —
-    /// making one on every autosave would bury that first copy under hundreds of others.
-    private var didBackUpSinceLoad = false
-
     private func rescheduleAutosave() {
         let minutes = prefs.autosaveMinutes
         guard minutes != autosaveTimerMinutes else { return }
@@ -403,7 +401,6 @@ final class AppModel: ObservableObject {
             self.doc = parsed
             self.loadError = nil
             UserDefaults.standard.set(url.path, forKey: "lastOpenedFile")
-            didBackUpSinceLoad = false
             WindowRegistry.shared.syncOpenDocuments()
             loadExpanded(for: parsed)
             // Work out the passphrase: the public default, one already in the keychain for
@@ -672,23 +669,57 @@ final class AppModel: ObservableObject {
     func save() {
         guard let doc, let url = fileURL else { return }
         let xml = ConfConsSerializer.serialize(doc)
-        let dir = url.deletingLastPathComponent()
-        let backups = dir.appendingPathComponent("backups", isDirectory: true)
-        try? FileManager.default.createDirectory(at: backups, withIntermediateDirectories: true)
-        // Back up the current file before overwriting it — once per opened document, so
-        // autosaving every few minutes doesn't flood the folder and bury the copy that
-        // actually matters (the one from before this session's edits).
-        if !didBackUpSinceLoad, FileManager.default.fileExists(atPath: url.path) {
-            let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd_HHmmss"
-            let bak = backups.appendingPathComponent("confCons-\(fmt.string(from: Date())).xml")
-            try? FileManager.default.copyItem(at: url, to: bak)
-            didBackUpSinceLoad = true
-        }
+        backUp(url)
         do {
             try xml.write(to: url, atomically: true, encoding: .utf8)
             dirty = false
         } catch {
             loadError = String(format: t("Error.SaveFailed"), error.localizedDescription)
+        }
+    }
+
+    /// Copy the file aside before overwriting it, then drop the oldest copies beyond the
+    /// configured count. Same shape as mRemoteNG (FileBackupCreator + FileBackupPruner):
+    /// one copy per save, newest N kept, count 0 turns the feature off.
+    ///
+    /// One deliberate difference: a count of 0 only stops NEW copies, it does not delete
+    /// the ones already there. mRemoteNG's pruner would remove all of them, and quietly
+    /// throwing away every backup because a setting was toggled is not a trade worth making.
+    private func backUp(_ url: URL) {
+        let keep = prefs.backupKeepCount
+        guard keep > 0, FileManager.default.fileExists(atPath: url.path) else { return }
+        let backups = url.deletingLastPathComponent()
+            .appendingPathComponent("backups", isDirectory: true)
+        try? FileManager.default.createDirectory(at: backups, withIntermediateDirectories: true)
+
+        // Named after the file being saved, not a fixed "confCons": several documents can
+        // live in one folder and share this backups directory, and a shared name would let
+        // one document's rotation delete another's copies.
+        let base = url.deletingPathExtension().lastPathComponent
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd_HHmmss"
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        let stamp = fmt.string(from: Date())
+        try? FileManager.default.copyItem(
+            at: url, to: backups.appendingPathComponent("\(base)-\(stamp).xml"))
+
+        prune(backups, base: base, keep: keep)
+    }
+
+    private func prune(_ dir: URL, base: String, keep: Int) {
+        guard let all = try? FileManager.default.contentsOfDirectory(
+                at: dir, includingPropertiesForKeys: nil) else { return }
+        // Strict match on our own naming, so nothing else the user keeps in that folder is
+        // ever a candidate for deletion.
+        let escaped = NSRegularExpression.escapedPattern(for: base)
+        guard let re = try? NSRegularExpression(
+                pattern: "^\(escaped)-\\d{4}-\\d{2}-\\d{2}_\\d{6}\\.xml$") else { return }
+        let mine = all.map(\.lastPathComponent).filter { name in
+            re.firstMatch(in: name, range: NSRange(name.startIndex..., in: name)) != nil
+        }
+        // The stamp sorts lexicographically, so descending by name is newest first.
+        for name in mine.sorted(by: >).dropFirst(keep) {
+            try? FileManager.default.removeItem(at: dir.appendingPathComponent(name))
         }
     }
 

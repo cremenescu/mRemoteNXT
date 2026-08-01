@@ -59,6 +59,12 @@ final class Preferences: ObservableObject {
     @Published var autosaveMinutes: Int = 5 {
         didSet { UserDefaults.standard.set(autosaveMinutes, forKey: "autosaveMinutes") }
     }
+    /// How many timestamped copies to keep in the backups folder, per configuration file;
+    /// 0 = stop making them. mRemoteNG keeps 10 by default (BackupFileKeepCount) and does
+    /// the same thing: copy before every save, then delete the oldest beyond the count.
+    @Published var backupKeepCount: Int = 10 {
+        didSet { UserDefaults.standard.set(backupKeepCount, forKey: "backupKeepCount") }
+    }
     /// Reopen every configuration file that was open at quit, one window each.
     @Published var restoreWindows: Bool = true {
         didSet { UserDefaults.standard.set(restoreWindows, forKey: "restoreWindows") }
@@ -97,6 +103,7 @@ final class Preferences: ObservableObject {
         if let v = d.object(forKey: "restoreSessions") as? Bool { restoreSessions = v }
         if let v = d.object(forKey: "restoreWindows") as? Bool { restoreWindows = v }
         if let v = d.object(forKey: "autosaveMinutes") as? Int { autosaveMinutes = v }
+        if let v = d.object(forKey: "backupKeepCount") as? Int { backupKeepCount = v }
         if let v = d.object(forKey: "diagnosticLogging") as? Bool { diagnosticLogging = v }
         Preferences.applyDiagnosticLogging(diagnosticLogging)
         loadTools()

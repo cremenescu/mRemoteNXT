@@ -52,6 +52,10 @@
 "Settings.AutosaveOff" = "Oprit";
 "Settings.AutosaveMinutes" = "La %d min";
 "Settings.AutosaveNote" = "Scrie configuratia singur cat timp are modificari nesalvate, ca inchiderea unei ferestre sau iesirea din app sa nu le poata pierde. Backup-ul din folderul backups se face in continuare o data per fisier deschis, inainte de prima salvare.";
+"Settings.BackupKeep" = "Copii de siguranta pastrate";
+"Settings.BackupKeepOff" = "Fara backup";
+"Settings.BackupKeepCount" = "%d copii";
+"Settings.BackupKeepNote" = "Fiecare salvare copiaza intai fisierul in folderul backups de langa el, apoi sterge copiile cele mai vechi peste numarul asta — la fel ca mRemoteNG pe Windows, care pastreaza 10. Cu salvarea automata pornita, istoricul se intinde cam cat numarul asta inmultit cu intervalul, deci creste-l daca vrei mai mult. Oprit inseamna ca nu se mai fac copii noi; cele existente raman pe loc.";
 "Settings.RestoreWindows" = "Redeschide aceleasi fisiere de configuratie la pornire";
 "Settings.RestoreWindowsNote" = "Cate o fereastra per fisier, cum au ramas. Debifat, pornesti cu o singura fereastra.";
 "Settings.DiagnosticLogging" = "Log de diagnostic (RDP)";

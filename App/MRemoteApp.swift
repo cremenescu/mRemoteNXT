@@ -242,6 +242,17 @@ struct AppearanceSettings: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 VStack(alignment: .leading, spacing: 4) {
+                    Picker(t("Settings.BackupKeep"), selection: $prefs.backupKeepCount) {
+                        Text(t("Settings.BackupKeepOff")).tag(0)
+                        ForEach([5, 10, 20, 50, 100], id: \.self) { n in
+                            Text(String(format: t("Settings.BackupKeepCount"), n)).tag(n)
+                        }
+                    }
+                    Text(t("Settings.BackupKeepNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 4) {
                     Toggle(t("Settings.RestoreWindows"), isOn: $prefs.restoreWindows)
                     Text(t("Settings.RestoreWindowsNote"))
                         .font(.caption).foregroundStyle(.secondary)

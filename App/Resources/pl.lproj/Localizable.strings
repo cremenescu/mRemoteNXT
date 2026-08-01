@@ -58,6 +58,10 @@
 "Settings.AutosaveOff" = "Wyłączone";
 "Settings.AutosaveMinutes" = "Co %d min";
 "Settings.AutosaveNote" = "Zapisuje konfigurację samodzielnie, dopóki ma niezapisane zmiany, więc zamknięcie okna ani wyjście z programu ich nie utraci. Kopia w folderze backups nadal powstaje raz na otwarty plik, przed pierwszym zapisem.";
+"Settings.BackupKeep" = "Przechowywane kopie zapasowe";
+"Settings.BackupKeepOff" = "Bez kopii";
+"Settings.BackupKeepCount" = "%d kopii";
+"Settings.BackupKeepNote" = "Każdy zapis najpierw kopiuje plik do folderu backups obok niego, a potem usuwa najstarsze kopie ponad tę liczbę — tak jak mRemoteNG w Windows, który trzyma 10. Przy włączonym zapisie automatycznym historia sięga mniej więcej tyle razy interwał, więc zwiększ ją, jeśli chcesz więcej. Wyłączenie zatrzymuje nowe kopie; istniejące pozostają.";
 "Settings.RestoreWindows" = "Otwórz ponownie te same pliki konfiguracji przy starcie";
 "Settings.RestoreWindowsNote" = "Jedno okno na plik, tak jak zostały zostawione. Wyłączone: jedno okno przy starcie.";
 "Settings.DiagnosticLogging" = "Dziennik diagnostyczny (RDP)";
