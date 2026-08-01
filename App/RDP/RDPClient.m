@@ -116,6 +116,59 @@ static void core_onClipboardRemoteData(void *ctx, uint32_t formatId, const uint8
     });
 }
 
+// Remote pointer shape -> CGImage -> delegate (which turns it into an NSCursor).
+static void core_onCursorShape(void *ctx, const uint8_t *bgra, int w, int h, int hotX, int hotY) {
+    RDPClient *self = (__bridge RDPClient *)ctx;
+    if (w <= 0 || h <= 0) return;
+    const size_t stride = (size_t)w * 4;
+    const size_t len = stride * (size_t)h;
+    uint8_t *copy = malloc(len);
+    if (!copy) return;
+    memcpy(copy, bgra, len);
+
+    // FreeRDP hands back straight alpha; CoreGraphics wants it premultiplied, and without
+    // this the semi-transparent edge of a cursor comes out as a bright halo.
+    for (size_t i = 0; i < len; i += 4) {
+        const uint32_t a = copy[i + 3];
+        if (a == 255) continue;
+        copy[i + 0] = (uint8_t)((copy[i + 0] * a + 127) / 255);
+        copy[i + 1] = (uint8_t)((copy[i + 1] * a + 127) / 255);
+        copy[i + 2] = (uint8_t)((copy[i + 2] * a + 127) / 255);
+    }
+
+    CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
+    CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, copy, len, freeImageData);
+    CGBitmapInfo info = kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little; // BGRA32
+    CGImageRef img = CGImageCreate((size_t)w, (size_t)h, 8, 32, stride, cs, info,
+                                   provider, NULL, false, kCGRenderingIntentDefault);
+    CGDataProviderRelease(provider);
+    CGColorSpaceRelease(cs);
+    if (!img) return;
+
+    const CGPoint hot = CGPointMake(hotX, hotY);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if ([self.delegate respondsToSelector:@selector(rdpClient:didUpdateCursor:hotSpot:)])
+            [self.delegate rdpClient:self didUpdateCursor:img hotSpot:hot];
+        CGImageRelease(img);
+    });
+}
+
+static void core_onCursorHidden(void *ctx) {
+    RDPClient *self = (__bridge RDPClient *)ctx;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if ([self.delegate respondsToSelector:@selector(rdpClientDidHideCursor:)])
+            [self.delegate rdpClientDidHideCursor:self];
+    });
+}
+
+static void core_onCursorDefault(void *ctx) {
+    RDPClient *self = (__bridge RDPClient *)ctx;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if ([self.delegate respondsToSelector:@selector(rdpClientDidResetCursor:)])
+            [self.delegate rdpClientDidResetCursor:self];
+    });
+}
+
 // Server too old for the graphics pipeline: hand it to the delegate, which reconnects.
 static void core_onLegacyGraphicsSuggested(void *ctx) {
     RDPClient *self = (__bridge RDPClient *)ctx;
@@ -181,6 +234,9 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
         .onClipboardRemoteData = core_onClipboardRemoteData,
         .onClipboardDataRequested = core_onClipboardDataRequested,
         .onLegacyGraphicsSuggested = core_onLegacyGraphicsSuggested,
+        .onCursorShape = core_onCursorShape,
+        .onCursorHidden = core_onCursorHidden,
+        .onCursorDefault = core_onCursorDefault,
     };
     // core holds a +1 retain on self for the lifetime of the connection
     // (released in core_onDisconnected).

@@ -17,6 +17,7 @@
 #include <freerdp/channels/rdpgfx.h>
 #include <freerdp/client/rdpgfx.h>
 #include <freerdp/codec/color.h>
+#include <freerdp/graphics.h>
 #include <freerdp/input.h>
 #include <freerdp/event.h>
 #include <winpr/synch.h>
@@ -301,8 +302,88 @@ static BOOL mrng_pre_connect(freerdp *instance) {
     return TRUE;
 }
 
+// MARK: - Mouse pointer
+//
+// Without these the remote pointer is simply dropped: the desktop image never contains it
+// (the server sends the shape out of band, expecting the client to draw it), so the Mac
+// arrow stays an arrow no matter what is under it — no resize arrows on a window edge, no
+// I-beam over text, no drag feedback in Explorer.
+
+typedef struct {
+    rdpPointer base;
+    BYTE *bgra;      // premultiplied, width*height*4
+    UINT32 length;
+} mrngPointer;
+
+static BOOL mrng_pointer_new(rdpContext *context, rdpPointer *pointer) {
+    mrngPointer *p = (mrngPointer *)pointer;
+    if (pointer->width == 0 || pointer->height == 0) return TRUE;
+
+    const UINT32 stride = pointer->width * 4;
+    p->length = stride * pointer->height;
+    p->bgra = calloc(1, p->length);
+    if (!p->bgra) return FALSE;
+
+    // Turns the RDP AND/XOR mask pair into straight BGRA, whatever the source depth.
+    if (!freerdp_image_copy_from_pointer_data(p->bgra, PIXEL_FORMAT_BGRA32, stride, 0, 0,
+                                              pointer->width, pointer->height,
+                                              pointer->xorMaskData, pointer->lengthXorMask,
+                                              pointer->andMaskData, pointer->lengthAndMask,
+                                              pointer->xorBpp, &context->gdi->palette)) {
+        free(p->bgra);
+        p->bgra = NULL;
+        return FALSE;
+    }
+    return TRUE;
+}
+
+static void mrng_pointer_free(rdpContext *context, rdpPointer *pointer) {
+    (void)context;
+    mrngPointer *p = (mrngPointer *)pointer;
+    free(p->bgra);
+    p->bgra = NULL;
+}
+
+static BOOL mrng_pointer_set(rdpContext *context, rdpPointer *pointer) {
+    mrngPointer *p = (mrngPointer *)pointer;
+    RDPCore *core = coreFromContext(context);
+    if (!p->bgra || !core->cb.onCursorShape) return TRUE;
+    core->cb.onCursorShape(core->ctx, p->bgra, (int)pointer->width, (int)pointer->height,
+                           (int)pointer->xPos, (int)pointer->yPos);
+    return TRUE;
+}
+
+static BOOL mrng_pointer_set_null(rdpContext *context) {
+    RDPCore *core = coreFromContext(context);
+    if (core->cb.onCursorHidden) core->cb.onCursorHidden(core->ctx);
+    return TRUE;
+}
+
+static BOOL mrng_pointer_set_default(rdpContext *context) {
+    RDPCore *core = coreFromContext(context);
+    if (core->cb.onCursorDefault) core->cb.onCursorDefault(core->ctx);
+    return TRUE;
+}
+
+// The server moving the pointer itself (rare — only when it warps the cursor). Ignored:
+// the pointer belongs to the Mac, and letting the remote move it would fight the user.
+static BOOL mrng_pointer_set_position(rdpContext *context, UINT32 x, UINT32 y) {
+    (void)context; (void)x; (void)y;
+    return TRUE;
+}
+
 static BOOL mrng_post_connect(freerdp *instance) {
     if (!gdi_init(instance, PIXEL_FORMAT_BGRA32)) return FALSE;
+
+    rdpPointer pointer = {0};
+    pointer.size = sizeof(mrngPointer);
+    pointer.New = mrng_pointer_new;
+    pointer.Free = mrng_pointer_free;
+    pointer.Set = mrng_pointer_set;
+    pointer.SetNull = mrng_pointer_set_null;
+    pointer.SetDefault = mrng_pointer_set_default;
+    pointer.SetPosition = mrng_pointer_set_position;
+    graphics_register_pointer(instance->context->graphics, &pointer);
     rdpContext *context = instance->context;
     context->update->BeginPaint = mrng_begin_paint;
     context->update->EndPaint = mrng_end_paint;

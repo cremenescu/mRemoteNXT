@@ -71,6 +71,43 @@ final class RDPNSView: NSView, RDPClientDelegate {
 
     // Connect only after the view has a real size -> RDP resolution = tab pixels (Retina-aware).
     override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); startIfNeeded() }
+
+    // MARK: - Remote pointer
+    //
+    // The desktop image never contains the pointer — the server sends its shape separately
+    // and expects the client to draw it. Until this was wired up the Mac arrow stayed an
+    // arrow over everything: no resize arrows on a window edge, no I-beam over text, no
+    // drag feedback in Explorer.
+
+    /// Cursor the remote asked for, nil = the system arrow.
+    private var remoteCursor: NSCursor?
+
+    /// AppKit asks for the cursor through the tracking machinery, so a change only takes
+    /// effect once the rects are rebuilt.
+    override func resetCursorRects() {
+        if let c = remoteCursor {
+            addCursorRect(bounds, cursor: c)
+        } else {
+            super.resetCursorRects()
+        }
+    }
+
+    /// Belt and braces: while the pointer is already inside the view AppKit sends this
+    /// instead of rebuilding the rects.
+    override func cursorUpdate(with event: NSEvent) {
+        if let c = remoteCursor { c.set() } else { super.cursorUpdate(with: event) }
+    }
+
+    private func applyCursor(_ cursor: NSCursor?) {
+        remoteCursor = cursor
+        window?.invalidateCursorRects(for: self)
+        // If the pointer is over us right now, nothing would repaint it until the next
+        // mouse move without this.
+        if let w = window, let c = cursor,
+           bounds.contains(convert(w.mouseLocationOutsideOfEventStream, from: nil)) {
+            c.set()
+        }
+    }
     override func layout() {
         super.layout()
         if !didStart { startIfNeeded() } else { scheduleResize() }
@@ -188,6 +225,33 @@ final class RDPNSView: NSView, RDPClientDelegate {
     func rdpClient(_ client: RDPClient, didUpdate image: CGImage) {
         clearStatus()
         layer?.contents = image
+    }
+
+    func rdpClient(_ client: RDPClient, didUpdateCursor image: CGImage, hotSpot: CGPoint) {
+        // The image is in remote pixels, which are backing pixels here (the desktop is
+        // requested at the tab's pixel size), so points = pixels / backing scale. Without
+        // dividing, every cursor would be drawn at twice its size on a Retina display.
+        let scale = window?.backingScaleFactor ?? 2.0
+        let size = NSSize(width: CGFloat(image.width) / scale, height: CGFloat(image.height) / scale)
+        guard size.width > 0, size.height > 0 else { return }
+        let nsImage = NSImage(cgImage: image, size: size)
+        let hot = NSPoint(x: hotSpot.x / scale, y: hotSpot.y / scale)
+        applyCursor(NSCursor(image: nsImage, hotSpot: hot))
+    }
+
+    func rdpClientDidHideCursor(_ client: RDPClient) {
+        // A fully transparent cursor rather than NSCursor.hide(), which is a global
+        // counter: one unbalanced call and the pointer stays gone across the whole app.
+        let blank = NSImage(size: NSSize(width: 1, height: 1))
+        blank.lockFocus()
+        NSColor.clear.set()
+        NSBezierPath.fill(NSRect(x: 0, y: 0, width: 1, height: 1))
+        blank.unlockFocus()
+        applyCursor(NSCursor(image: blank, hotSpot: .zero))
+    }
+
+    func rdpClientDidResetCursor(_ client: RDPClient) {
+        applyCursor(nil)
     }
 
     func rdpClientNeedsLegacyGraphics(_ client: RDPClient) {

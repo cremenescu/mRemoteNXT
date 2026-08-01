@@ -30,6 +30,14 @@ typedef struct {
     /// negotiated it anyway. Fired once, right after connecting: the caller should
     /// remember the host and reconnect with useLegacyGraphics.
     void (*onLegacyGraphicsSuggested)(void *ctx);
+    /// The remote pointer shape changed. bgra is premultiplied BGRA of width*height
+    /// pixels in REMOTE pixels, valid only during the callback — copy synchronously.
+    /// hotX/hotY are the click point inside that image.
+    void (*onCursorShape)(void *ctx, const uint8_t *bgra, int width, int height,
+                          int hotX, int hotY);
+    /// The remote hid the pointer, or asked for the plain system arrow.
+    void (*onCursorHidden)(void *ctx);
+    void (*onCursorDefault)(void *ctx);
 } RDPCoreCallbacks;
 
 // Special key codes (must match RDPSpecialKey in RDPClient.h).

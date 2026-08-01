@@ -18,6 +18,11 @@ NS_ASSUME_NONNULL_BEGIN
 /// The server is too old for the graphics pipeline. Remember the host and reconnect
 /// with useLegacyGraphics — this connection can no longer be changed.
 - (void)rdpClientNeedsLegacyGraphics:(RDPClient *)client;
+/// The remote pointer changed shape. `hotSpot` is in image pixels, top-left origin.
+- (void)rdpClient:(RDPClient *)client didUpdateCursor:(CGImageRef)image hotSpot:(CGPoint)hotSpot;
+/// The remote hid the pointer, or asked for the plain system arrow.
+- (void)rdpClientDidHideCursor:(RDPClient *)client;
+- (void)rdpClientDidResetCursor:(RDPClient *)client;
 @end
 
 /// Wrapper around FreeRDP3: connects on its own thread, software GDI rendering (BGRA),
