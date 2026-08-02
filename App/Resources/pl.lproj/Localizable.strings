@@ -8,7 +8,7 @@
 "Toolbar.ExpandAll" = "Rozwiń wszystko";
 "Toolbar.CollapseAll" = "Zwiń wszystko";
 "Toolbar.SortAlphabetical" = "Sortuj alfabetycznie (najpierw połączenia, potem foldery)";
-"Toolbar.EditSelected" = "Edytuj wybrane połączenie...";
+"Toolbar.EditSelected" = "Edytuj wszystkie właściwości połączenia zaznaczonego na pasku bocznym";
 
 /* Menus */
 "Menu.About" = "O programie mRemoteNXT";
@@ -129,6 +129,8 @@
 "StatusBar.NoSelection" = "Nie wybrano połączenia";
 "StatusBar.Host" = "Host";
 "StatusBar.User" = "Użytkownik";
+"StatusBar.Domain" = "Domena";
+"StatusBar.InheritedHint" = "Dziedziczone z folderu — odznacz dziedziczenie w edytorze, aby ustawić tutaj.";
 "StatusBar.Pass" = "Hasło";
 "StatusBar.Copied" = "Skopiowano: %@";
 "StatusBar.CopyHint" = "Kopiuj %@";

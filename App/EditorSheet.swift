@@ -469,10 +469,22 @@ struct EditorSheet: View {
     }
 }
 
-/// Status bar at the bottom of the sidebar: Host / User / Pass with click-to-copy.
+/// The panel at the bottom of the sidebar. Shows the connection selected in the TREE and
+/// lets the fields you change most be edited in place, writing as you type — the same model
+/// mRemoteNG uses for its docked property grid, which is fed only from the tree selection
+/// (ConnectionTree.tvConnections_AfterSelect -> ConfigForm.SelectedTreeNode).
+///
+/// The full editor sheet stays for everything else. Two surfaces onto the same MRNGNode is
+/// fine because it is a class — but both must call markDirty(), or the sidebar row keeps
+/// showing the old name and the change looks lost.
 struct ConnectionStatusBar: View {
     @EnvironmentObject var model: AppModel
     @State private var flash: String?
+    @State private var passwordPlain = ""
+    @State private var passwordRevealed = false
+    /// Set while the password field is being filled from the selected node, so the onChange
+    /// that writes back doesn't fire for our own load and clear the inherit flag.
+    @State private var loadingPassword = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -483,11 +495,20 @@ struct ConnectionStatusBar: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.bar)
         }
+        .onChange(of: model.selectedNodeID) { _, _ in loadPassword() }
+        .onAppear { loadPassword() }
+    }
+
+    private func loadPassword() {
+        loadingPassword = true
+        passwordRevealed = false
+        passwordPlain = model.node(byID: model.selectedNodeID).map { model.decryptedPassword(for: $0) } ?? ""
+        DispatchQueue.main.async { loadingPassword = false }
     }
 
     @ViewBuilder private var content: some View {
         if let node = model.node(byID: model.selectedNodeID), !node.isContainer {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     NodeIconView(node: node).frame(width: 14, height: 14)
                     Text(node.name).font(.callout).lineLimit(1)
@@ -496,9 +517,12 @@ struct ConnectionStatusBar: View {
                         Text(f).font(.caption2).foregroundStyle(.green)
                     }
                 }
-                row(icon: "network", label: t("StatusBar.Host"), value: node.hostname, display: hostString(node))
-                row(icon: "person", label: t("StatusBar.User"), value: node.username)
-                row(icon: "key", label: t("StatusBar.Pass"), value: model.decryptedPassword(for: node), masked: !model.showPasswordPlain)
+                hostRow(node)
+                editRow("person", t("StatusBar.User"), node,
+                        key: "Username", inheritKey: "InheritUsername")
+                editRow("building.2", t("StatusBar.Domain"), node,
+                        key: "Domain", inheritKey: "InheritDomain")
+                passwordRow(node)
             }
         } else if let node = model.node(byID: model.selectedNodeID), node.isContainer {
             HStack(spacing: 6) {
@@ -517,53 +541,117 @@ struct ConnectionStatusBar: View {
         }
     }
 
-    private func hostString(_ node: MRNGNode) -> String {
-        let h = node.hostname
-        let p = node.port
-        return h.isEmpty ? "" : "\(h):\(p)"
+    /// Host and port share a line: the port is narrow and the two are read together.
+    @ViewBuilder private func hostRow(_ node: MRNGNode) -> some View {
+        let portInherited = node.attributes["InheritPort"] == "true"
+        HStack(spacing: 6) {
+            rowLabel("network", t("StatusBar.Host"))
+            TextField("", text: Binding(
+                get: { node.attributes["Hostname"] ?? "" },
+                set: { node.attributes["Hostname"] = $0; model.markDirty() }))
+                .textFieldStyle(.roundedBorder)
+                .font(.system(.callout, design: .monospaced))
+            Text(":").foregroundStyle(.secondary)
+            TextField("", text: Binding(
+                get: {
+                    portInherited ? (node.resolved("Port", inheritKey: "InheritPort") ?? "")
+                                  : (node.attributes["Port"] ?? "")
+                },
+                set: { v in
+                    node.attributes["Port"] = v
+                    node.attributes["InheritPort"] = "false"
+                    model.markDirty()
+                }))
+                .textFieldStyle(.roundedBorder)
+                .font(.system(.callout, design: .monospaced))
+                .frame(width: 52)
+                .disabled(portInherited)
+                .foregroundStyle(portInherited ? .secondary : .primary)
+            copyButton(t("StatusBar.Host"), hostString(node))
+        }
     }
 
-    /// `value` = what gets copied to the clipboard; `display` = what is shown
-    /// (defaults to value). When `masked` is true, the display is masked with •
-    /// but copying still puts the cleartext on the clipboard.
-    private func row(icon: String, label: String, value: String, display: String? = nil, masked: Bool = false) -> some View {
-        let shown: String = {
-            if value.isEmpty { return "—" }
-            if masked { return String(repeating: "•", count: min(value.count, 12)) }
-            return display ?? value
-        }()
-        return HStack(spacing: 6) {
-            Image(systemName: icon).frame(width: 14).foregroundStyle(.secondary).font(.caption)
-            Text(label).font(.caption).foregroundStyle(.secondary).frame(width: 34, alignment: .leading)
-            Text(shown)
+    @ViewBuilder private func editRow(_ icon: String, _ label: String, _ node: MRNGNode,
+                                      key: String, inheritKey: String) -> some View {
+        let inheriting = node.attributes[inheritKey] == "true"
+        let shown = inheriting ? (node.resolved(key, inheritKey: inheritKey) ?? "")
+                               : (node.attributes[key] ?? "")
+        HStack(spacing: 6) {
+            rowLabel(icon, label)
+            TextField("", text: Binding(
+                get: { shown },
+                set: { v in
+                    node.attributes[key] = v
+                    node.attributes[inheritKey] = "false"
+                    model.markDirty()
+                }))
+                .textFieldStyle(.roundedBorder)
                 .font(.system(.callout, design: .monospaced))
-                .lineLimit(1).truncationMode(.middle)
-            Spacer()
-            if !value.isEmpty {
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(value, forType: .string)
-                    let msg = String(format: t("StatusBar.Copied"), label)
-                    flash = msg
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                        if flash == msg { flash = nil }
-                    }
-                } label: {
-                    Image(systemName: "doc.on.doc").font(.caption)
+                .disabled(inheriting)
+                .foregroundStyle(inheriting ? .secondary : .primary)
+                .help(inheriting ? t("StatusBar.InheritedHint") : "")
+            copyButton(label, shown)
+        }
+    }
+
+    @ViewBuilder private func passwordRow(_ node: MRNGNode) -> some View {
+        let inheriting = node.attributes["InheritPassword"] == "true"
+        HStack(spacing: 6) {
+            rowLabel("key", t("StatusBar.Pass"))
+            Group {
+                if passwordRevealed || model.showPasswordPlain {
+                    TextField("", text: $passwordPlain)
+                } else {
+                    SecureField("", text: $passwordPlain)
                 }
-                .buttonStyle(.borderless)
-                .help(String(format: t("StatusBar.CopyHint"), label.lowercased()))
             }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            guard !value.isEmpty else { return }
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(value, forType: .string)
-            flash = "\(label) copiat"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                if flash == "\(label) copiat" { flash = nil }
+            .textFieldStyle(.roundedBorder)
+            .font(.system(.callout, design: .monospaced))
+            .disabled(inheriting)
+            .foregroundStyle(inheriting ? .secondary : .primary)
+            .onChange(of: passwordPlain) { _, newValue in
+                guard !loadingPassword, !inheriting else { return }
+                node.attributes["Password"] = newValue.isEmpty ? "" : model.encrypt(newValue)
+                node.attributes["InheritPassword"] = "false"
+                model.markDirty()
             }
+            Button { passwordRevealed.toggle() } label: {
+                Image(systemName: passwordRevealed ? "eye.slash" : "eye").font(.caption)
+            }
+            .buttonStyle(.borderless)
+            .help(t(passwordRevealed ? "Editor.HidePassword" : "Editor.ShowPassword"))
+            copyButton(t("StatusBar.Pass"), passwordPlain)
         }
+    }
+
+    private func rowLabel(_ icon: String, _ text: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon).frame(width: 13).foregroundStyle(.secondary).font(.caption)
+            Text(text).font(.caption).foregroundStyle(.secondary)
+                .frame(width: 46, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder private func copyButton(_ label: String, _ value: String) -> some View {
+        if !value.isEmpty {
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(value, forType: .string)
+                let msg = String(format: t("StatusBar.Copied"), label)
+                flash = msg
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    if flash == msg { flash = nil }
+                }
+            } label: {
+                Image(systemName: "doc.on.doc").font(.caption)
+            }
+            .buttonStyle(.borderless)
+            .help(String(format: t("StatusBar.CopyHint"), label.lowercased()))
+        }
+    }
+
+    private func hostString(_ node: MRNGNode) -> String {
+        let h = node.hostname
+        return h.isEmpty ? "" : "\(h):\(node.port)"
     }
 }

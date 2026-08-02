@@ -8,7 +8,7 @@
 "Toolbar.ExpandAll" = "Expand all";
 "Toolbar.CollapseAll" = "Collapse all";
 "Toolbar.SortAlphabetical" = "Sort alphabetically (connections, then folders)";
-"Toolbar.EditSelected" = "Edit selected connection...";
+"Toolbar.EditSelected" = "Edit all properties of the connection selected in the sidebar";
 
 /* Menus */
 "Menu.About" = "About mRemoteNXT";
@@ -129,6 +129,8 @@
 "StatusBar.NoSelection" = "No connection selected";
 "StatusBar.Host" = "Host";
 "StatusBar.User" = "User";
+"StatusBar.Domain" = "Domain";
+"StatusBar.InheritedHint" = "Inherited from the folder — clear the Inherit checkbox in the editor to set it here.";
 "StatusBar.Pass" = "Pass";
 "StatusBar.Copied" = "%@ copied";
 "StatusBar.CopyHint" = "Copy %@";

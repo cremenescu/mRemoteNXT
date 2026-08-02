@@ -8,7 +8,7 @@
 "Toolbar.ExpandAll" = "Expandeaza tot";
 "Toolbar.CollapseAll" = "Restrange tot";
 "Toolbar.SortAlphabetical" = "Sorteaza alfabetic (conexiuni, apoi foldere)";
-"Toolbar.EditSelected" = "Editeaza conexiunea selectata...";
+"Toolbar.EditSelected" = "Editeaza toate proprietatile conexiunii selectate in sidebar";
 
 /* Meniuri */
 "Menu.NewFile" = "Configuratie noua...";
@@ -123,6 +123,8 @@
 "StatusBar.NoSelection" = "Nicio conexiune selectata";
 "StatusBar.Host" = "Host";
 "StatusBar.User" = "User";
+"StatusBar.Domain" = "Domeniu";
+"StatusBar.InheritedHint" = "Mostenit de la folder — scoate bifa de mostenire din editor ca sa il setezi aici.";
 "StatusBar.Pass" = "Pass";
 "StatusBar.Copied" = "%@ copiat";
 "StatusBar.CopyHint" = "Copiaza %@";
