@@ -523,8 +523,14 @@ struct ConnectionStatusBar: View {
                 hostRow(node)
                 editRow("person", t("StatusBar.User"), node,
                         key: "Username", inheritKey: "InheritUsername")
-                editRow("building.2", t("StatusBar.Domain"), node,
-                        key: "Domain", inheritKey: "InheritDomain")
+                // Only when it carries something. The usual way to name an account is
+                // DOMAIN\\user in the username field, which leaves this empty on nearly
+                // every connection — an always-blank row in a panel this small is a waste.
+                // It is still there in the editor sheet for the connections that need it.
+                if !domainValue(node).isEmpty {
+                    editRow("building.2", t("StatusBar.Domain"), node,
+                            key: "Domain", inheritKey: "InheritDomain")
+                }
                 passwordRow(node)
             }
         } else if let node = model.node(byID: model.selectedNodeID), node.isContainer {
@@ -625,6 +631,12 @@ struct ConnectionStatusBar: View {
             .help(t(passwordRevealed ? "Editor.HidePassword" : "Editor.ShowPassword"))
             copyButton(t("StatusBar.Pass"), passwordPlain)
         }
+    }
+
+    private func domainValue(_ node: MRNGNode) -> String {
+        node.attributes["InheritDomain"] == "true"
+            ? (node.resolved("Domain", inheritKey: "InheritDomain") ?? "")
+            : (node.attributes["Domain"] ?? "")
     }
 
     private func rowLabel(_ icon: String, _ text: String) -> some View {
