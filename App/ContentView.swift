@@ -205,29 +205,62 @@ struct ContentView: View {
         } detail: {
             detail
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .navigation) {
-                Button { model.addConnection() } label: { Image(systemName: "plus.rectangle") }
-                    .help(t("Toolbar.NewConnection"))
-                Button { model.addFolder() } label: { Image(systemName: "folder.badge.plus") }
-                    .help(t("Toolbar.NewFolder"))
+        // Customizable: every item carries a stable id, so macOS offers View > Customize
+        // Toolbar and remembers what was put where, per window. The default layout is the
+        // one that was hardcoded before, so nothing moves until it is moved on purpose.
+        .toolbar(id: "main") {
+            ToolbarItem(id: "newConnection", placement: .navigation) {
+                Button { model.addConnection() } label: {
+                    Label(t("Toolbar.NewConnection"), systemImage: "plus.rectangle")
+                }
+                .help(t("Toolbar.NewConnection"))
+            }
+            ToolbarItem(id: "newFolder", placement: .navigation) {
+                Button { model.addFolder() } label: {
+                    Label(t("Toolbar.NewFolder"), systemImage: "folder.badge.plus")
+                }
+                .help(t("Toolbar.NewFolder"))
+            }
+            ToolbarItem(id: "save", placement: .navigation) {
                 Button { model.save() } label: {
-                    Image(systemName: model.dirty ? "square.and.arrow.down.fill" : "square.and.arrow.down")
-                }.help(t("Toolbar.Save")).disabled(!model.dirty)
-                Button { model.expandAll() } label: { Image(systemName: "arrow.up.backward.and.arrow.down.forward") }
-                    .help(t("Toolbar.ExpandAll"))
-                Button { model.collapseAll() } label: { Image(systemName: "arrow.down.forward.and.arrow.up.backward") }
-                    .help(t("Toolbar.CollapseAll"))
-                Button { model.sortAlphabetical() } label: { Image(systemName: "arrow.up.arrow.down") }
-                    .help(t("Toolbar.SortAlphabetical"))
+                    Label(t("Toolbar.Save"),
+                          systemImage: model.dirty ? "square.and.arrow.down.fill" : "square.and.arrow.down")
+                }
+                .help(t("Toolbar.Save"))
+                .disabled(!model.dirty)
+            }
+            ToolbarItem(id: "expandAll", placement: .navigation) {
+                Button { model.expandAll() } label: {
+                    Label(t("Toolbar.ExpandAll"), systemImage: "arrow.up.backward.and.arrow.down.forward")
+                }
+                .help(t("Toolbar.ExpandAll"))
+            }
+            ToolbarItem(id: "collapseAll", placement: .navigation) {
+                Button { model.collapseAll() } label: {
+                    Label(t("Toolbar.CollapseAll"), systemImage: "arrow.down.forward.and.arrow.up.backward")
+                }
+                .help(t("Toolbar.CollapseAll"))
+            }
+            ToolbarItem(id: "sort", placement: .navigation) {
+                Button { model.sortAlphabetical() } label: {
+                    Label(t("Toolbar.SortAlphabetical"), systemImage: "arrow.up.arrow.down")
+                }
+                .help(t("Toolbar.SortAlphabetical"))
+            }
+            ToolbarItem(id: "edit", placement: .navigation) {
                 Button { if model.selectedNodeID != nil { model.editorVisible = true } } label: {
-                    Image(systemName: "slider.horizontal.3")
-                }.help(t("Toolbar.EditSelected"))
+                    Label(t("Toolbar.EditSelected"), systemImage: "slider.horizontal.3")
+                }
+                .help(t("Toolbar.EditSelected"))
                 .disabled(model.selectedNodeID == nil)
             }
-            ToolbarItem(placement: .principal) {
+            // The panel switcher is where you are, not a tool — it stays put and can't be
+            // dragged out, or a window with several panels would lose its only way between
+            // them with no hint that it had one.
+            ToolbarItem(id: "panels", placement: .principal) {
                 if !model.sessions.isEmpty { PanelTabBar() }
             }
+            .customizationBehavior(.disabled)
         }
         // The window title is SwiftUI's to own. It used to be poked straight onto the
         // NSWindow from WindowChrome, which raced with this modifier — an empty title set
