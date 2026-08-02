@@ -115,7 +115,7 @@
 "Context.DuplicateTab" = "Duplikuj kartę";
 "Context.CopyPassword" = "Kopiuj hasło";
 "Context.EditConnection" = "Edytuj połączenie...";
-"Context.RevealInSidebar" = "Pokaż na pasku bocznym";
+"Context.RevealInSidebar" = "GO TO IN SIDEBAR";
 
 /* Sidebar search */
 "Search.Placeholder" = "Szukaj połączeń";

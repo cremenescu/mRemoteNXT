@@ -229,7 +229,17 @@ struct ContentView: View {
                 if !model.sessions.isEmpty { PanelTabBar() }
             }
         }
-        .navigationTitle("")
+        // The window title is SwiftUI's to own. It used to be poked straight onto the
+        // NSWindow from WindowChrome, which raced with this modifier — an empty title set
+        // by SwiftUI could land after the file name and wipe it, which is exactly what
+        // happened once every window started updating far more often.
+        .navigationTitle(model.fileURL?.lastPathComponent ?? "mRemoteNXT")
+        .navigationSubtitle(model.fileURL.map {
+            ($0.deletingLastPathComponent().path as NSString).abbreviatingWithTildeInPath
+        } ?? "")
+        // Gives the proxy icon, so Cmd- or right-clicking the title shows the full path —
+        // the quick way to tell apart several confCons.xml files in different folders.
+        .navigationDocument(model.fileURL ?? URL(fileURLWithPath: "/"))
         .id(lang.choice) // force whole tree rebuild on language switch
         .confirmationDialog(
             String(format: t("Delete.Title"), model.pendingDelete?.name ?? ""),

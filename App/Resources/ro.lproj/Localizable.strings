@@ -109,7 +109,7 @@
 "Context.DuplicateTab" = "Duplica tab";
 "Context.CopyPassword" = "Copiaza parola";
 "Context.EditConnection" = "Editeaza conexiunea...";
-"Context.RevealInSidebar" = "Arata in sidebar";
+"Context.RevealInSidebar" = "GO TO IN SIDEBAR";
 
 /* Cautare sidebar */
 "Search.Placeholder" = "Cauta conexiuni";

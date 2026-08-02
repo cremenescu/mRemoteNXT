@@ -115,7 +115,7 @@
 "Context.DuplicateTab" = "Duplicate tab";
 "Context.CopyPassword" = "Copy password";
 "Context.EditConnection" = "Edit connection...";
-"Context.RevealInSidebar" = "Go to in sidebar";
+"Context.RevealInSidebar" = "GO TO IN SIDEBAR";
 
 /* Sidebar search */
 "Search.Placeholder" = "Search connections";

@@ -5,13 +5,11 @@
 import SwiftUI
 import AppKit
 
-/// Puts the open configuration file in the window's title bar the way macOS documents do:
-/// `representedURL` gives the proxy icon, so Cmd- or right-clicking the title shows the
-/// full folder path — the quick way to tell apart several confCons.xml files living in
-/// different directories. The subtitle spells the folder out without any clicking.
+/// Where a window first meets its model: the only place in the SwiftUI tree that can see
+/// the NSWindow, so it registers the pair with WindowRegistry.
 ///
-/// It is also where a window first meets its model: this is the only place in the SwiftUI
-/// tree that can see the NSWindow, so it registers the pair with WindowRegistry.
+/// The title bar itself is set with navigationTitle/Subtitle/Document in ContentView.
+/// Writing it onto the NSWindow from here as well raced with SwiftUI and lost.
 struct WindowChrome: NSViewRepresentable {
     let fileURL: URL?
     let model: AppModel
@@ -29,15 +27,6 @@ struct WindowChrome: NSViewRepresentable {
     private func apply(from view: NSView) {
         guard let window = view.window else { return }
         WindowRegistry.shared.attach(model: model, to: window)
-        window.representedURL = fileURL
-        if let url = fileURL {
-            window.title = url.lastPathComponent
-            window.subtitle = (url.deletingLastPathComponent().path as NSString)
-                .abbreviatingWithTildeInPath
-        } else {
-            window.title = "mRemoteNXT"
-            window.subtitle = ""
-        }
     }
 }
 
