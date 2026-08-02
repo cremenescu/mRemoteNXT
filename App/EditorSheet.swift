@@ -501,7 +501,10 @@ struct ConnectionStatusBar: View {
 
     private func loadPassword() {
         loadingPassword = true
-        passwordRevealed = false
+        // The setting decides how the field STARTS; the eye decides from then on. Or-ing
+        // the two, as this first did, left the eye unable to hide anything while the
+        // setting was on — it could reveal and never put it back.
+        passwordRevealed = model.showPasswordPlain
         passwordPlain = model.node(byID: model.selectedNodeID).map { model.decryptedPassword(for: $0) } ?? ""
         DispatchQueue.main.async { loadingPassword = false }
     }
@@ -599,7 +602,7 @@ struct ConnectionStatusBar: View {
         HStack(spacing: 6) {
             rowLabel("key", t("StatusBar.Pass"))
             Group {
-                if passwordRevealed || model.showPasswordPlain {
+                if passwordRevealed {
                     TextField("", text: $passwordPlain)
                 } else {
                     SecureField("", text: $passwordPlain)
