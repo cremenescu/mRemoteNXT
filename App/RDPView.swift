@@ -113,13 +113,14 @@ final class RDPNSView: NSView, RDPClientDelegate {
 
     private func applyCursor(_ cursor: NSCursor?) {
         remoteCursor = cursor
-        window?.invalidateCursorRects(for: self)
-        // If the pointer is over us right now, nothing would repaint it until the next
-        // mouse move without this.
-        if let w = window, let c = cursor,
-           bounds.contains(convert(w.mouseLocationOutsideOfEventStream, from: nil)) {
-            c.set()
-        }
+        // Apply it straight away when the pointer is already over us; AppKit asks again
+        // through cursorUpdate(with:) on the next move. Deliberately no
+        // invalidateCursorRects here — it ran on every shape change and, during a drag,
+        // rebuilding the window's cursor rects interferes with the drag itself.
+        guard let w = window,
+              bounds.contains(convert(w.mouseLocationOutsideOfEventStream, from: nil))
+        else { return }
+        (cursor ?? .arrow).set()
     }
     override func layout() {
         super.layout()
@@ -320,8 +321,13 @@ final class RDPNSView: NSView, RDPClientDelegate {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
+        // .cursorUpdate is what makes AppKit ask US for the cursor. Without it the only
+        // route is the cursor-rect machinery, which SwiftUI resets underneath a view that
+        // redraws every frame — so the remote cursor arrived, was installed, and was
+        // immediately replaced by the arrow again.
         let ta = NSTrackingArea(rect: bounds,
-                                options: [.activeInKeyWindow, .mouseMoved, .inVisibleRect],
+                                options: [.activeInKeyWindow, .mouseMoved, .cursorUpdate,
+                                          .inVisibleRect],
                                 owner: self, userInfo: nil)
         addTrackingArea(ta)
     }

@@ -109,6 +109,7 @@ struct RDPCore {
     int clipboardRequestInFlight;  // a ClientFormatDataRequest is outstanding
     int clipboardReady;            // Monitor Ready seen: safe to announce formats
     int gfxNegotiated;             // this session advertised the graphics pipeline
+    const void *lastPointer;       // last shape handed up, to skip repeats
 
     RDPCoreCallbacks cb;
     void *ctx;
@@ -338,7 +339,8 @@ static BOOL mrng_pointer_new(rdpContext *context, rdpPointer *pointer) {
 }
 
 static void mrng_pointer_free(rdpContext *context, rdpPointer *pointer) {
-    (void)context;
+    RDPCore *core = coreFromContext(context);
+    if (core->lastPointer == (const void *)pointer) core->lastPointer = NULL;
     mrngPointer *p = (mrngPointer *)pointer;
     free(p->bgra);
     p->bgra = NULL;
@@ -348,6 +350,11 @@ static BOOL mrng_pointer_set(rdpContext *context, rdpPointer *pointer) {
     mrngPointer *p = (mrngPointer *)pointer;
     RDPCore *core = coreFromContext(context);
     if (!p->bgra || !core->cb.onCursorShape) return TRUE;
+    // FreeRDP re-sets the same pointer constantly — 403 calls for 65 distinct shapes in
+    // one session. Rebuilding an NSCursor that often is pure waste, and the cursor-rect
+    // invalidation it used to trigger was fighting the mouse during a drag.
+    if (core->lastPointer == (const void *)pointer) return TRUE;
+    core->lastPointer = (const void *)pointer;
     core->cb.onCursorShape(core->ctx, p->bgra, (int)pointer->width, (int)pointer->height,
                            (int)pointer->xPos, (int)pointer->yPos);
     return TRUE;
@@ -355,12 +362,14 @@ static BOOL mrng_pointer_set(rdpContext *context, rdpPointer *pointer) {
 
 static BOOL mrng_pointer_set_null(rdpContext *context) {
     RDPCore *core = coreFromContext(context);
+    core->lastPointer = NULL;
     if (core->cb.onCursorHidden) core->cb.onCursorHidden(core->ctx);
     return TRUE;
 }
 
 static BOOL mrng_pointer_set_default(rdpContext *context) {
     RDPCore *core = coreFromContext(context);
+    core->lastPointer = NULL;
     if (core->cb.onCursorDefault) core->cb.onCursorDefault(core->ctx);
     return TRUE;
 }
