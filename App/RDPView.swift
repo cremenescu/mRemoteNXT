@@ -113,15 +113,30 @@ final class RDPNSView: NSView, RDPClientDelegate {
 
     private func applyCursor(_ cursor: NSCursor?) {
         remoteCursor = cursor
-        // Apply it straight away when the pointer is already over us; AppKit asks again
-        // through cursorUpdate(with:) on the next move. Deliberately no
-        // invalidateCursorRects here — it ran on every shape change and, during a drag,
-        // rebuilding the window's cursor rects interferes with the drag itself.
-        guard let w = window,
+        applyCursorIfInside()
+    }
+
+    /// Put the remote cursor on screen when the pointer is already over this view.
+    ///
+    /// AppKit only asks through cursorUpdate(with:) when the pointer crosses into the
+    /// tracking area. It never asks for a pointer that is already sitting inside one — and
+    /// this view rebuilds its tracking area on every layout, which is every frame. So a
+    /// session that connects under a motionless pointer, or a tab brought to the front
+    /// under it, kept the plain arrow until the mouse was nudged.
+    ///
+    /// Deliberately no invalidateCursorRects: it used to run on every shape change and,
+    /// mid-drag, rebuilding the window's cursor rects interferes with the drag itself.
+    private func applyCursorIfInside() {
+        guard let w = window, w.isKeyWindow,
               bounds.contains(convert(w.mouseLocationOutsideOfEventStream, from: nil))
         else { return }
-        (cursor ?? .arrow).set()
+        let wanted = remoteCursor ?? .arrow
+        // Called from every layout pass, so don't churn when it is already right.
+        guard NSCursor.current !== wanted else { return }
+        wanted.set()
     }
+
+    override func mouseEntered(with event: NSEvent) { applyCursorIfInside() }
     override func layout() {
         super.layout()
         if !didStart { startIfNeeded() } else { scheduleResize() }
@@ -327,9 +342,11 @@ final class RDPNSView: NSView, RDPClientDelegate {
         // immediately replaced by the arrow again.
         let ta = NSTrackingArea(rect: bounds,
                                 options: [.activeInKeyWindow, .mouseMoved, .cursorUpdate,
-                                          .inVisibleRect],
+                                          .mouseEnteredAndExited, .inVisibleRect],
                                 owner: self, userInfo: nil)
         addTrackingArea(ta)
+        // The new area gets no entered/cursorUpdate for a pointer that is already inside it.
+        applyCursorIfInside()
     }
 
     // MARK: - Keyboard
