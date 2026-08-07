@@ -41,6 +41,8 @@ cu tab-uri si paneluri.
   fiecare scriere (fisierul tau original nu se pierde niciodata).
 - **Teme terminal** (Implicit, Solarized, Dracula, etc.), font reglabil
   live, zoom Cmd+/Cmd-.
+- **Interfata in engleza, franceza, poloneza si romana**, comutabila din
+  Setari fara restart (sau dupa limba sistemului).
 
 ## Ce NU merge inca
 

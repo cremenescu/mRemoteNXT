@@ -33,7 +33,7 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDevelopmentRegion: en
-        CFBundleLocalizations: [en, ro, pl]
+        CFBundleLocalizations: [en, ro, pl, fr]
         # Version + build come from MARKETING_VERSION / CURRENT_PROJECT_VERSION
         # in `settings.base` below — single source of truth, bump there only.
         CFBundleShortVersionString: "$(MARKETING_VERSION)"

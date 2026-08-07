@@ -56,6 +56,8 @@ ranges, no real hosts.
   write (your original file is never lost).
 - **Terminal themes** (Default, Solarized, Dracula, etc.), live-adjustable
   font size, zoom Cmd+/Cmd-.
+- **Interface in English, French, Polish and Romanian**, switchable in
+  Settings without a restart (or following the system language).
 
 ## Known limitations
 

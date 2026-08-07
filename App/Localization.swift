@@ -21,6 +21,7 @@ final class LanguageManager: ObservableObject {
     enum Choice: String, CaseIterable, Identifiable {
         case auto = "auto"
         case en   = "en"
+        case fr   = "fr"
         case pl   = "pl"
         case ro   = "ro"
         var id: String { rawValue }
@@ -28,11 +29,15 @@ final class LanguageManager: ObservableObject {
             switch self {
             case .auto: return t("Language.Auto")
             case .en:   return "English"
+            case .fr:   return "Français"
             case .pl:   return "Polish"
             case .ro:   return "Romana"
             }
         }
     }
+
+    /// The languages that ship with a .lproj in the bundle.
+    static let bundled = ["en", "fr", "pl", "ro"]
 
     @Published var choice: Choice {
         didSet {
@@ -57,9 +62,13 @@ final class LanguageManager: ObservableObject {
         let lang: String
         switch choice {
         case .auto:
-            // Honor the system preference.
-            lang = (Locale.preferredLanguages.first ?? "en").prefix(2).lowercased() == "ro" ? "ro" : "en"
+            // Honor the system preference whenever we have that language. This used to test
+            // for Romanian and fall back to English, which meant a Polish system never got
+            // Polish even though the translation was right there in the bundle.
+            let system = String((Locale.preferredLanguages.first ?? "en").prefix(2)).lowercased()
+            lang = Self.bundled.contains(system) ? system : "en"
         case .en: lang = "en"
+        case .fr: lang = "fr"
         case .pl: lang = "pl"
         case .ro: lang = "ro"
         }

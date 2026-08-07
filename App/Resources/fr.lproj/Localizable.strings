@@ -1,0 +1,260 @@
+/* Language picker labels */
+"Language.Auto" = "Réglage du système";
+
+/* Toolbar / menus */
+"Toolbar.NewConnection" = "Nouvelle connexion";
+"Toolbar.NewFolder" = "Nouveau dossier";
+"Toolbar.Save" = "Enregistrer (Cmd+S)";
+"Toolbar.ExpandAll" = "Tout déplier";
+"Toolbar.CollapseAll" = "Tout replier";
+"Toolbar.SortAlphabetical" = "Trier par ordre alphabétique (connexions, puis dossiers)";
+"Toolbar.EditSelected" = "Modifier toutes les propriétés de la connexion sélectionnée dans la barre latérale";
+
+/* Menus */
+"Menu.About" = "À propos de mRemoteNXT";
+"Menu.CheckForUpdates" = "Rechercher les mises à jour…";
+"Menu.HelpWindow" = "Aide mRemoteNXT";
+"Menu.ViewOnGitHub" = "Voir le code source sur GitHub";
+"Menu.ReportIssue" = "Signaler un problème...";
+"Menu.EmailAuthor" = "Écrire à l'auteur";
+"Menu.NewFile" = "Nouvelle configuration...";
+"Menu.OpenFile" = "Ouvrir confCons.xml...";
+"Menu.CloseFile" = "Fermer la configuration";
+"Menu.NewWindow" = "Nouvelle fenêtre";
+"Menu.CloseTab" = "Fermer l'onglet";
+"Menu.CloseWindow" = "Fermer la fenêtre";
+"Menu.ImportRoyalTS" = "Importer un document Royal TS...";
+"Import.RoyalPrompt" = "Choisissez un document Royal TS (.rtsz)";
+"Import.DoneTitle" = "Importation terminée";
+"Import.DoneBody" = "%1$d connexion(s) importée(s) depuis « %3$@ », dont %2$d avec un mot de passe.";
+"Import.NoPasswordNote" = "Les connexions sans mot de passe proviennent d'un document Royal qui les conserve chiffrés, ou n'en avaient aucun d'enregistré.";
+"Import.SkippedNote" = "Ignorés, sans équivalent mRemoteNG : %@.";
+"Import.FailedTitle" = "Échec de l'importation";
+"Menu.Save" = "Enregistrer";
+"NewDoc.Prompt" = "Choisissez où enregistrer la nouvelle configuration.";
+"NewDoc.FailedTitle" = "Impossible de créer la configuration";
+"Error.SaveFailed" = "Échec de l'enregistrement : %@";
+"Menu.ZoomIn" = "Agrandir le texte du terminal";
+"Menu.ZoomOut" = "Réduire le texte du terminal";
+"Menu.Appearance" = "Apparence";
+"Menu.ExternalTools" = "Outils externes";
+
+/* Settings */
+"Settings.Title" = "Réglages";
+"Settings.Appearance" = "Apparence";
+"Settings.Tools" = "Outils externes";
+"Settings.Language" = "Langue";
+"Settings.UIFontSize" = "Taille du texte de l'interface : %d";
+"Settings.TerminalFontSize" = "Taille du texte du terminal : %d";
+"Settings.TerminalTheme" = "Thème du terminal";
+"Settings.Scrollback" = "Historique du terminal";
+"Settings.ScrollbackLines" = "%@ lignes";
+"Settings.ScrollbackNote" = "Quantité d'historique conservée par un terminal. S'applique aussi aux onglets ouverts ; plus de lignes, plus de mémoire.";
+"Settings.RowHeight" = "Hauteur des lignes : %d";
+"Settings.ShowProtocol" = "Afficher le type de protocole (RDP/SSH) dans la liste";
+"Settings.CloseTabOnDisconnect" = "Fermer l'onglet à la déconnexion (RDP)";
+"Settings.RestoreSessions" = "Rouvrir les connexions de la dernière session au démarrage";
+"Settings.Autosave" = "Enregistrer les modifications automatiquement";
+"Settings.AutosaveOff" = "Désactivé";
+"Settings.AutosaveMinutes" = "Toutes les %d min";
+"Settings.AutosaveNote" = "Écrit la configuration de lui-même tant qu'elle comporte des modifications non enregistrées, pour que fermer une fenêtre ou quitter ne puisse pas les perdre. La sauvegarde dans le dossier backups reste faite une fois par fichier ouvert, avant le premier enregistrement.";
+"Settings.BackupKeep" = "Copies de sauvegarde à conserver";
+"Settings.BackupKeepOff" = "Ne pas sauvegarder";
+"Settings.BackupKeepCount" = "%d copies";
+"Settings.BackupKeepNote" = "Chaque enregistrement copie d'abord le fichier dans le dossier backups voisin, puis supprime les copies les plus anciennes au-delà de ce nombre — comme mRemoteNG sous Windows, qui en garde 10. Avec l'enregistrement automatique actif, l'historique remonte à peu près à ce nombre multiplié par l'intervalle ; augmentez-le si vous en voulez davantage. Le désactiver arrête les nouvelles copies ; les copies existantes ne sont pas touchées.";
+"Settings.RestoreWindows" = "Rouvrir les mêmes fichiers de configuration au démarrage";
+"Settings.RestoreWindowsNote" = "Une fenêtre par fichier, telles qu'elles ont été laissées. Désactivé, une seule fenêtre s'ouvre au démarrage.";
+"Settings.DiagnosticLogging" = "Journalisation de diagnostic (RDP)";
+"Settings.DiagnosticLoggingNote" = "Écrit dans ~/Library/Logs/mRemoteNXT/mRemoteNXT.log";
+"Settings.RevealLog" = "Afficher dans le Finder";
+"Settings.ShowPasswordPlain" = "Afficher le mot de passe en clair dans la barre d'état";
+"Settings.MasterPassword" = "Mot de passe principal";
+"Settings.MasterPasswordDefault" = "par défaut (public)";
+"Settings.MasterPasswordCustom" = "le vôtre";
+"Settings.MasterPasswordChange" = "Modifier...";
+"Settings.MasterPasswordNote" = "Les mots de passe enregistrés sont chiffrés avec celui-ci. La phrase secrète par défaut de mRemoteNG est publique : avec elle, quiconque détient le fichier peut lire tous les mots de passe. S'applique au fichier ouvert ; enregistrez pour l'écrire sur le disque.";
+"Settings.MasterPasswordFor" = "S'applique à %@ — la fenêtre au premier plan.";
+"Unlock.Title" = "Ce fichier est protégé";
+"Unlock.Body" = "%@ est chiffré avec un mot de passe principal. Tant qu'il n'est pas saisi, les connexions n'ont aucun mot de passe utilisable.";
+"Unlock.Wrong" = "Mot de passe incorrect.";
+"Unlock.Remember" = "Mémoriser dans mon trousseau";
+"Unlock.Action" = "Déverrouiller";
+"Master.ChangeTitle" = "Modifier le mot de passe principal";
+"Master.ChangeBody" = "Chaque mot de passe enregistré est rechiffré avec la nouvelle phrase secrète, et mRemoteNG sous Windows la demandera également. Si vous la perdez, les mots de passe sont irrécupérables.";
+"Master.New" = "Nouveau mot de passe";
+"Master.Confirm" = "Confirmer";
+"Master.Mismatch" = "Les deux saisies diffèrent.";
+"Master.Apply" = "Modifier";
+"Master.Remove" = "Retirer la protection";
+"Settings.SharedFolder" = "Dossier partagé (RDP)";
+"Settings.SharedFolderNone" = "aucun";
+"Settings.SharedFolderChoose" = "Choisir...";
+"Settings.SharedFolderClear" = "Effacer";
+"Settings.SharedFolderNote" = "Apparaît dans la session comme un disque sous \\\\tsclient, lisible et modifiable des deux côtés. Rien n'est partagé tant que ce champ est vide. S'applique aux sessions ouvertes ensuite.";
+"Settings.LanguagePicker" = "Langue de l'interface";
+"Settings.LanguageNote" = "Certains libellés se mettront à jour au prochain rafraîchissement de la vue.";
+"Settings.ToolsMacros" = "Macros disponibles : %Host% %Username% %Port% %Password% %Domain% %Name%";
+"Settings.ToolNamePlaceholder" = "Nom";
+"Settings.ToolCommandPlaceholder" = "Commande (par ex. ping -c 5 %Host%)";
+"Settings.ToolDelete" = "Supprimer";
+"Settings.ToolAdd" = "Ajouter un outil";
+
+/* Context menu */
+"Context.Edit" = "Modifier...";
+"Context.Connect" = "Se connecter";
+"Context.SFTP" = "Transférer des fichiers (SFTP)";
+"Context.ExternalToolsSubmenu" = "Outils externes";
+"Context.NewConnectionHere" = "Nouvelle connexion ici";
+"Context.NewFolderHere" = "Nouveau dossier ici";
+"Context.Duplicate" = "Dupliquer";
+"Context.Delete" = "Supprimer";
+"Context.Reconnect" = "Se reconnecter";
+"Context.Disconnect" = "Se déconnecter";
+"Context.SendCtrlAltDel" = "Envoyer Ctrl+Alt+Suppr";
+"Context.RenameTab" = "Renommer l'onglet...";
+"Context.DuplicateTab" = "Dupliquer l'onglet";
+"Context.CopyPassword" = "Copier le mot de passe";
+"Context.EditConnection" = "Modifier la connexion...";
+"Context.RevealInSidebar" = "AFFICHER DANS LA BARRE LATÉRALE";
+
+/* Sidebar search */
+"Search.Placeholder" = "Rechercher des connexions";
+
+/* Placeholders */
+"Placeholder.NoFile" = "Aucun fichier chargé";
+"Placeholder.SelectConnection" = "Sélectionnez une connexion dans l'arborescence";
+"Placeholder.SelectToEdit" = "Sélectionnez une connexion pour la modifier";
+
+/* Status bar */
+"StatusBar.NoSelection" = "Aucune connexion sélectionnée";
+"StatusBar.Host" = "Hôte";
+"StatusBar.User" = "Utilisateur";
+"StatusBar.Domain" = "Domaine";
+"StatusBar.InheritedHint" = "Hérité du dossier — décochez Hériter dans l'éditeur pour le définir ici.";
+"StatusBar.Pass" = "Mot de passe";
+"StatusBar.Copied" = "%@ copié";
+"StatusBar.CopyHint" = "Copier %@";
+"StatusBar.Elements" = "%d éléments";
+
+/* Editor sheet */
+"Editor.Category.General" = "Général";
+"Editor.Category.Connection" = "Connexion";
+"Editor.Category.Credentials" = "Identifiants";
+"Editor.Category.Appearance" = "Apparence";
+"Editor.Category.Advanced" = "Avancé";
+"Editor.FolderSettings" = "Réglages du dossier";
+"Editor.ConnectionSettings" = "Réglages de la connexion";
+"Editor.Discard" = "Annuler les modifications";
+"Editor.ApplyClose" = "Appliquer et fermer";
+"Editor.Field.Name" = "Nom";
+"Editor.Field.Description" = "Description";
+"Editor.Field.Icon" = "Icône";
+"Editor.Field.Protocol" = "Protocole";
+"Editor.Field.Port" = "Port";
+"Editor.Field.Host" = "Hôte";
+"Editor.Field.Panel" = "Panneau";
+"Editor.Field.RedirectDiskDrives" = "Partager un dossier (redirection de disque)";
+"Editor.Field.SharedFolder" = "Dossier";
+"Editor.RedirectDiskDrivesFallback" = "Aucun dossier sur cette connexion — utilise %@ défini dans les Réglages.";
+"Editor.RedirectDiskDrivesFolder" = "Partage %@ avec cette connexion, comme un disque sous \\\\tsclient.";
+"Editor.RedirectDiskDrivesNoFolder" = "Aucun dossier partagé choisi pour l'instant — définissez-en un dans les Réglages, sinon rien n'est partagé.";
+"Editor.Field.Username" = "Nom d'utilisateur";
+"Editor.Field.Domain" = "Domaine";
+"Editor.Field.Password" = "Mot de passe";
+"Editor.ContainerNote" = "Les dossiers n'ont pas de connexion propre. Ces réglages sont hérités par leur contenu.";
+"Editor.ItemsCount" = "%d éléments";
+"Editor.AdvancedNote" = "Attributs bruts du nœud (en lecture seule pour l'instant).";
+"Editor.CopyPassword" = "Copier le mot de passe";
+"Editor.PastePassword" = "Coller le mot de passe";
+"Editor.ShowPassword" = "Afficher le mot de passe";
+"Editor.HidePassword" = "Masquer le mot de passe";
+"Editor.Inherit" = "Hériter";
+"Editor.InheritHelp" = "Utiliser la valeur du dossier parent";
+"Editor.InheritNoParent" = "Aucun dossier parent dont hériter";
+
+/* Connection / save */
+"Connection.NewConnectionName" = "Nouvelle connexion";
+"Connection.NewFolderName" = "Nouveau dossier";
+"Connection.CopyNameFormat" = "%@ copie";
+"Connection.CopyNameNumberedFormat" = "%@ copie %d";
+"Connection.SaveButton" = "Enregistrer les modifications";
+"Connection.Saved" = "Enregistré";
+"Connection.Connect" = "Se connecter";
+"Connection.Element" = "%d élément";
+"Connection.Elements" = "%d éléments";
+
+/* Delete dialog */
+"Delete.Title" = "Supprimer « %@ » ?";
+"Delete.Folder" = "Le dossier et tout son contenu seront supprimés (rien n'est écrit tant que vous n'enregistrez pas).";
+"Delete.Connection" = "La connexion sera supprimée.";
+"Delete.Confirm" = "Supprimer";
+"Delete.Cancel" = "Annuler";
+"Quit.Title" = "Quitter mRemoteNXT ?";
+"Quit.BodySessions" = "%d connexion(s) sont encore ouvertes et seront déconnectées.";
+"Quit.BodyUnsaved" = "La configuration comporte des modifications non enregistrées.";
+"Quit.BodyBoth" = "%d connexion(s) sont encore ouvertes, et la configuration comporte des modifications non enregistrées.";
+"Quit.Confirm" = "Quitter";
+"Quit.SaveAndQuit" = "Enregistrer et quitter";
+"Status.ReconnectingLegacyGraphics" = "Serveur plus ancien — reconnexion sans le pipeline graphique...";
+"CloseWindow.Title" = "Fermer cette fenêtre ?";
+"CloseWindow.BodySessions" = "%d connexion(s) sont ouvertes dans cette fenêtre et seront déconnectées.";
+"CloseWindow.BodyUnsaved" = "La configuration de cette fenêtre comporte des modifications non enregistrées.";
+"CloseWindow.BodyBoth" = "%d connexion(s) sont ouvertes dans cette fenêtre, et sa configuration comporte des modifications non enregistrées.";
+"CloseWindow.Confirm" = "Fermer";
+"CloseWindow.SaveAndClose" = "Enregistrer et fermer";
+
+/* Errors / load */
+"Error.ParseFailed" = "Analyse impossible : %@";
+"Error.CustomMaster" = "Ce fichier utilise un mot de passe principal personnalisé (pas encore pris en charge).";
+"Error.NotImplemented" = "Protocole non implémenté : %@";
+"Error.ExternalAppPending" = "Application externe (IntApp) bientôt disponible.";
+
+/* Rename tab dialog */
+"Rename.Title" = "Renommer l'onglet";
+
+/* Folder/conn type display */
+"Type.Folder" = "Dossier";
+"Type.Connection" = "Connexion";
+
+/* Help window */
+"Help.WindowTitle" = "Aide mRemoteNXT";
+"Help.Tagline" = "Client natif macOS de connexions distantes multi-protocoles";
+"Help.WhatIs.Title" = "Qu'est-ce que mRemoteNXT ?";
+"Help.WhatIs.Body" = "Un gestionnaire de connexions distantes à onglets pour macOS qui importe le fichier confCons.xml de mRemoteNG tel quel — y compris les mots de passe chiffrés, l'arborescence de dossiers, l'héritage des attributs et les panneaux. Il intègre les sessions SSH, Telnet, SFTP, RDP et HTTP/HTTPS directement dans des onglets, sans terminal ni client RDP séparé.";
+"Help.GettingStarted.Title" = "Premiers pas";
+"Help.GettingStarted.Body" = "Au premier lancement, l'application est vide. Utilisez Fichier > Nouvelle configuration... (Cmd+N) pour créer un confCons.xml, ou Fichier > Ouvrir confCons.xml... (Cmd+O) pour en charger un existant (le vôtre, ou un fichier exporté depuis mRemoteNG sous Windows). Au lancement suivant, l'application rouvre le même fichier automatiquement. Utilisez Fichier > Fermer la configuration (Cmd+Maj+W) pour vider l'espace de travail.";
+"Help.Connecting.Title" = "Se connecter à un hôte";
+"Help.Connecting.Body" = "Double-cliquez sur une connexion dans la barre latérale pour l'ouvrir dans un nouvel onglet. Les sessions restent actives quand vous changez d'onglet — le processus ssh/RDP sous-jacent n'est pas relancé. Faites un clic droit sur une connexion SSH pour d'autres actions : transfert de fichiers SFTP, outils externes, reconnexion, envoi de Ctrl+Alt+Suppr (pour RDP), copie du mot de passe.";
+"Help.Editing.Title" = "Modifier des connexions";
+"Help.Editing.Body" = "Clic droit sur une connexion > Modifier..., ou sélectionnez-la et cliquez sur l'icône de curseurs dans la barre d'outils. L'éditeur est une fenêtre modale à la Royal TSX, avec les catégories à gauche (Général / Connexion / Identifiants / Apparence / Avancé) et un formulaire à droite. Cliquez sur Appliquer pour enregistrer, Annuler pour revenir en arrière. Une barre d'état sous l'arborescence affiche l'hôte, l'utilisateur et le mot de passe du nœud courant, avec copie en un clic.";
+"Help.Shortcuts.Title" = "Raccourcis clavier";
+"Help.Shortcuts.Body" = "Cmd+N — Nouvelle configuration\nCmd+O — Ouvrir une configuration\nCmd+Maj+W — Fermer la configuration\nCmd+S — Enregistrer\nCmd+= / Cmd+- — Zoom du texte du terminal\nCmd+, — Réglages\nEntrée — Modifier la connexion sélectionnée\nDouble-clic — Ouvrir la connexion dans un nouvel onglet";
+"Help.Tips.Title" = "Astuces";
+"Help.Tips.Body" = "• Faites glisser connexions et dossiers pour les réordonner. Déposez un nœud sur un dossier pour l'y déplacer.\n• Utilisez le champ de recherche de la barre latérale pour filtrer par nom, hôte, protocole ou description.\n• Les panneaux (la barre d'onglets en haut de la fenêtre) regroupent les connexions — définissez l'attribut Panneau d'une connexion pour la placer dans un autre groupe d'onglets.\n• Installez sshpass via Homebrew (brew install hudochenkov/sshpass/sshpass) pour que mRemoteNXT renseigne les mots de passe SSH automatiquement. Sans lui, SSH utilise votre clé d'agent ou la saisie interactive.\n• Chaque enregistrement crée une sauvegarde horodatée dans backups/ à côté de votre confCons.xml — vous ne pouvez pas perdre de données par accident.";
+"Help.Limitations.Title" = "Limites connues";
+"Help.Limitations.Body" = "• FullFileEncryption=true (chiffrement du XML entier) n'est pas encore pris en charge.\n• Les versions de schéma postérieures à 2.6 ne sont pas testées.\n• Le presse-papiers d'images RDP, la redirection de disque et de son et la visibilité du curseur distant ne sont pas implémentés.\n• VNC et IntApp (lancement d'applications externes) sont prévus mais pas implémentés.";
+"Help.MoreInfo" = "Plus d'informations";
+"Help.OpenIssue" = "Signaler un bug ou demander une fonctionnalité";
+"Help.Email" = "Écrire à l'auteur : razvan@cremenescu.ro";
+
+/* Cursor blink + tab title (v0.3) */
+"Settings.CursorBlink" = "Clignotement du curseur";
+"Settings.UpdateTabTitleFromTerminal" = "Mettre à jour le titre de l'onglet depuis le terminal (OSC 0/1/2)";
+"Blink.Off" = "Désactivé";
+"Blink.Slow" = "Lent";
+"Blink.Medium" = "Moyen";
+"Blink.Fast" = "Rapide";
+
+/* Security: master password change failures, certificate trust */
+"Master.FailedTitle" = "Mot de passe principal inchangé";
+"Master.FailedUnreadable" = "%d mot(s) de passe enregistré(s) n'ont pas pu être déchiffrés avec la phrase secrète actuelle, ils ne peuvent donc pas être rechiffrés avec la nouvelle. Rien n'a été modifié — le faire quand même aurait rendu ces mots de passe irrécupérables.";
+"Master.FailedEncrypt" = "Un mot de passe n'a pas pu être chiffré, rien n'a donc été modifié.";
+"Error.EncryptionFailed" = "le contenu n'a pas pu être chiffré";
+"Cert.Title" = "Le certificat de %@ ne peut pas être vérifié";
+"Cert.Body" = "Le serveur a présenté un certificat auquel le système ne fait pas confiance — attendu sur un équipement à certificat auto-signé, mais c'est aussi à cela que ressemble une connexion interceptée.
+
+Empreinte SHA-256 :
+%@
+
+Lui faire confiance mémorise exactement ce certificat pour cet hôte. La question sera reposée s'il change un jour.";
+"Cert.Trust" = "Faire confiance";
