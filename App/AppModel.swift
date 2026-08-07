@@ -301,7 +301,7 @@ final class AppModel: ObservableObject {
 
         do {
             let result = try RoyalTSImporter.load(fileURL: url) { [weak self] plain in
-                self?.encrypt(plain) ?? ""
+                self?.encrypt(plain) ?? nil
             }
             guard var d = doc else { return }
             for root in result.roots {
@@ -348,10 +348,12 @@ final class AppModel: ObservableObject {
     /// Returns nil on success, or a message describing why it failed.
     static func writeEmptyDocument(to url: URL) -> String? {
         let iterations = 1000
-        let protectedEnc = MRNGCrypto.encrypt(
+        guard let protectedEnc = MRNGCrypto.encrypt(
             plaintext: "ThisIsNotProtected",
             password: MRNGCrypto.defaultPassword,
-            iterations: iterations)
+            iterations: iterations) else {
+            return String(format: t("Error.SaveFailed"), t("Error.EncryptionFailed"))
+        }
         let blank = ConfCons(
             encryptionEngine: "AES",
             blockCipherMode: "GCM",
@@ -458,21 +460,49 @@ final class AppModel: ObservableObject {
     /// saved, so a mistake can still be abandoned by closing without saving.
     ///
     /// Passing mRemoteNG's default passphrase removes the protection.
-    func changeMasterPassword(to newPassword: String) {
-        guard var doc else { return }
+    ///
+    /// All or nothing. It used to skip nodes that would not decrypt with the old passphrase
+    /// and carry on, which left those passwords sealed under a key the file no longer
+    /// admitted to using — unrecoverable after the next save, and silent about it. Now the
+    /// whole document is converted in memory first, and a single failure abandons the change
+    /// with the file untouched.
+    ///
+    /// Returns true when the passphrase was changed.
+    @discardableResult
+    func changeMasterPassword(to newPassword: String) -> Bool {
+        guard var doc else { return false }
         let old = masterPassword
-        guard old != newPassword else { return }
+        guard old != newPassword else { return false }
+
+        var converted: [(node: MRNGNode, sealed: String)] = []
+        var unreadable = 0
         for node in doc.allNodes() {
             let enc = node.attributes["Password"] ?? ""
             guard !enc.isEmpty else { continue }
             guard let plain = MRNGCrypto.decrypt(base64: enc, password: old,
-                                                 iterations: doc.kdfIterations) else { continue }
-            node.attributes["Password"] = MRNGCrypto.encrypt(plaintext: plain,
-                                                             password: newPassword,
-                                                             iterations: doc.kdfIterations)
+                                                 iterations: doc.kdfIterations) else {
+                unreadable += 1
+                continue
+            }
+            guard let sealed = MRNGCrypto.encrypt(plaintext: plain, password: newPassword,
+                                                  iterations: doc.kdfIterations) else {
+                reportMasterPasswordFailure(t("Master.FailedEncrypt"))
+                return false
+            }
+            converted.append((node, sealed))
         }
-        doc.protected = MRNGCrypto.makeProtected(password: newPassword,
-                                                 iterations: doc.kdfIterations)
+        guard unreadable == 0 else {
+            reportMasterPasswordFailure(String(format: t("Master.FailedUnreadable"), unreadable))
+            return false
+        }
+        guard let protectedBlob = MRNGCrypto.makeProtected(password: newPassword,
+                                                           iterations: doc.kdfIterations) else {
+            reportMasterPasswordFailure(t("Master.FailedEncrypt"))
+            return false
+        }
+
+        for item in converted { item.node.attributes["Password"] = item.sealed }
+        doc.protected = protectedBlob
         self.doc = doc
         masterPassword = newPassword
         if let url = fileURL {
@@ -483,10 +513,21 @@ final class AppModel: ObservableObject {
             }
         }
         markDirty()
+        return true
     }
 
-    func encrypt(_ plaintext: String) -> String {
-        guard let doc, !plaintext.isEmpty else { return "" }
+    private func reportMasterPasswordFailure(_ body: String) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = t("Master.FailedTitle")
+        alert.informativeText = body
+        alert.runModal()
+    }
+
+    /// Nil when there is nothing to encrypt or the encryption failed — never an empty
+    /// string, which a caller would happily write over a perfectly good password.
+    func encrypt(_ plaintext: String) -> String? {
+        guard let doc, !plaintext.isEmpty else { return nil }
         return MRNGCrypto.encrypt(plaintext: plaintext, password: masterPassword, iterations: doc.kdfIterations)
     }
 
@@ -862,6 +903,16 @@ final class AppModel: ObservableObject {
 
     // MARK: - External Tools
 
+    /// Wrap a value in single quotes so the shell reads it as one literal word, with the
+    /// only character that can end such a quote spliced out. Without this, a connection
+    /// named `x; rm -rf ~` ran as two commands — and names come from confCons.xml files
+    /// that are routinely handed around between people.
+    private static func shellQuoted(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    /// Values are substituted already quoted, so a template writes `ping %Host%`, not
+    /// `ping "%Host%"` — quoting a macro yourself now nests quotes instead of protecting it.
     func substituteMacros(_ template: String, node: MRNGNode) -> String {
         var s = template
         let map: [String: String] = [
@@ -869,9 +920,12 @@ final class AppModel: ObservableObject {
             "%Username%": node.username, "%User%": node.username,
             "%Port%": "\(node.port)", "%Domain%": node.domain,
             "%Name%": node.name, "%Description%": node.descr,
-            "%Password%": decryptedPassword(for: node),
         ]
-        for (k, v) in map { s = s.replacingOccurrences(of: k, with: v) }
+        for (k, v) in map { s = s.replacingOccurrences(of: k, with: Self.shellQuoted(v)) }
+        // The password is the one value that never becomes text: it is passed to the shell
+        // in the environment, and the macro expands to a reference to it. Command lines are
+        // world-readable to this user's processes; environments are not on public display.
+        s = s.replacingOccurrences(of: "%Password%", with: "\"$MRNG_PASSWORD\"")
         return s
     }
 
@@ -882,7 +936,7 @@ final class AppModel: ObservableObject {
             title: "\(tool.name): \(node.name)",
             kind: .externalTool,
             node: node,
-            password: "",
+            password: tool.commandLine.contains("%Password%") ? decryptedPassword(for: node) : "",
             panel: node.panel.isEmpty ? "General" : node.panel,
             command: cmd
         )

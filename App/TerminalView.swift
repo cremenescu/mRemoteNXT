@@ -348,8 +348,12 @@ struct TerminalContainer: NSViewRepresentable {
         // setupOptions runs on every layout and rebuilds TerminalOptions with the 500
         // default on top of it.
         term.terminal.changeScrollback(max(500, scrollbackLines))
-        let (exe, args) = Self.command(for: session)
-        term.startProcess(executable: exe, args: args, environment: nil, execName: nil)
+        let launch = Self.command(for: session)
+        term.startProcess(executable: launch.executable, args: launch.args,
+                          environment: launch.environment, execName: nil)
+        // The child has inherited the read end by now (SwiftTerm forks), so the parent's
+        // copy has done its job. Leaving it open would keep the pipe from ever reaching EOF.
+        launch.afterSpawn()
         // Apply blink after the child has had a moment to render the prompt.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             term.applyCursorBlinkSpeed(cursorBlinkSpeed)
@@ -381,7 +385,17 @@ struct TerminalContainer: NSViewRepresentable {
         }
     }
 
-    static func command(for session: Session) -> (String, [String]) {
+    /// What to spawn, plus the cleanup the parent owes once the child exists.
+    struct Launch {
+        let executable: String
+        let args: [String]
+        /// nil = inherit the terminal's usual environment (SwiftTerm's default).
+        var environment: [String]? = nil
+        /// Runs after the fork: closes the parent's end of anything handed to the child.
+        var afterSpawn: () -> Void = {}
+    }
+
+    static func command(for session: Session) -> Launch {
         let node = session.node
         let host = node.hostname
         let port = node.port
@@ -396,26 +410,62 @@ struct TerminalContainer: NSViewRepresentable {
                 "-o", "StrictHostKeyChecking=accept-new",
                 target,
             ]
-            // If we have a password AND sshpass is installed -> inject it.
+            // If we have a password AND sshpass is installed -> hand it over through a pipe.
             // Otherwise plain ssh (uses agent key or prompts interactively).
-            if !session.password.isEmpty, let sshpass = sshpassPath() {
-                return (sshpass, ["-p", session.password, "/usr/bin/ssh"] + sshArgs)
+            //
+            // Not `sshpass -p <password>`: process arguments are readable by every other
+            // process running as this user (`ps -ww`), so the password was on display for
+            // the lifetime of the connection. `-d` takes a file descriptor instead, and a
+            // descriptor is only inherited by the child.
+            if !session.password.isEmpty, let sshpass = sshpassPath(),
+               let fd = passwordDescriptor(session.password) {
+                return Launch(executable: sshpass,
+                              args: ["-d", "\(fd)", "/usr/bin/ssh"] + sshArgs,
+                              afterSpawn: { close(fd) })
             }
-            return ("/usr/bin/ssh", sshArgs)
+            return Launch(executable: "/usr/bin/ssh", args: sshArgs)
         case .telnet:
-            return ("/usr/bin/telnet", [host, "\(port)"])
+            return Launch(executable: "/usr/bin/telnet", args: [host, "\(port)"])
         case .sftp:
-            return ("/usr/bin/sftp", [
+            return Launch(executable: "/usr/bin/sftp", args: [
                 "-P", "\(port)", // SFTP uses uppercase -P for the port
                 "-o", "UserKnownHostsFile=\(appKnownHostsPath())",
                 "-o", "StrictHostKeyChecking=accept-new",
                 target,
             ])
         case .externalTool:
-            return ("/bin/sh", ["-lc", session.command ?? "echo 'no command'"])
+            // %Password% expanded to $MRNG_PASSWORD upstream in AppModel.substituteMacros;
+            // the value travels in the environment so it stays out of the command line.
+            var env: [String]? = nil
+            if !session.password.isEmpty {
+                env = Terminal.getEnvironmentVariables(termName: "xterm-256color")
+                    + ["MRNG_PASSWORD=\(session.password)"]
+            }
+            return Launch(executable: "/bin/sh",
+                          args: ["-lc", session.command ?? "echo 'no command'"],
+                          environment: env)
         default:
-            return ("/bin/echo", ["Protocol not implemented in the terminal."])
+            return Launch(executable: "/bin/echo", args: ["Protocol not implemented in the terminal."])
         }
+    }
+
+    /// A read-only file descriptor holding the password, ready to be inherited across the
+    /// fork. The write end is closed here, so the reader sees the password then EOF; the
+    /// caller closes the returned descriptor once the child has it.
+    private static func passwordDescriptor(_ password: String) -> Int32? {
+        var fds: [Int32] = [-1, -1]
+        guard pipe(&fds) == 0 else { return nil }
+        let (readEnd, writeEnd) = (fds[0], fds[1])
+        // The child must inherit the read end, so it explicitly does not close on exec.
+        _ = fcntl(readEnd, F_SETFD, 0)
+        let bytes = Array((password + "\n").utf8)
+        let written = bytes.withUnsafeBytes { write(writeEnd, $0.baseAddress, $0.count) }
+        close(writeEnd)
+        guard written == bytes.count else {
+            close(readEnd)
+            return nil
+        }
+        return readEnd
     }
 
     /// Look for an installed sshpass (brew). Returns the path, or nil.

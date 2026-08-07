@@ -244,3 +244,17 @@
 "Blink.Slow" = "Wolne";
 "Blink.Medium" = "Średnie";
 "Blink.Fast" = "Szybkie";
+
+/* Security: master password change failures, certificate trust */
+"Master.FailedTitle" = "Nie zmieniono hasla glownego";
+"Master.FailedUnreadable" = "Nie udalo sie odszyfrowac %d zapisanych hasel biezacym haslem glownym, wiec nie moga zostac zaszyfrowane nowym. Nic nie zmieniono — zmiana uczynilaby te hasla nie do odzyskania.";
+"Master.FailedEncrypt" = "Nie udalo sie zaszyfrowac hasla, wiec nic nie zmieniono.";
+"Error.EncryptionFailed" = "nie udalo sie zaszyfrowac zawartosci";
+"Cert.Title" = "Nie mozna zweryfikowac certyfikatu dla %@";
+"Cert.Body" = "Serwer przedstawil certyfikat, ktoremu system nie ufa — normalne dla urzadzenia z certyfikatem self-signed, ale tak samo wyglada przechwycone polaczenie.
+
+Odcisk SHA-256:
+%@
+
+Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie, jesli kiedykolwiek sie zmieni.";
+"Cert.Trust" = "Ufaj";

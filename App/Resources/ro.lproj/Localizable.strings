@@ -246,3 +246,17 @@
 "Blink.Slow" = "Lent";
 "Blink.Medium" = "Mediu";
 "Blink.Fast" = "Rapid";
+
+/* Security: master password change failures, certificate trust */
+"Master.FailedTitle" = "Parola master nu a fost schimbata";
+"Master.FailedUnreadable" = "%d parola/parole stocate nu au putut fi decriptate cu parola curenta, deci nu pot fi recriptate cu cea noua. Nu s-a schimbat nimic — o schimbare oricum ar fi facut acele parole nerecuperabile.";
+"Master.FailedEncrypt" = "O parola nu a putut fi criptata, deci nu s-a schimbat nimic.";
+"Error.EncryptionFailed" = "continutul nu a putut fi criptat";
+"Cert.Title" = "Certificatul pentru %@ nu poate fi verificat";
+"Cert.Body" = "Serverul a prezentat un certificat in care sistemul nu are incredere — normal pentru un echipament cu certificat self-signed, dar la fel arata si o conexiune interceptata.
+
+Amprenta SHA-256:
+%@
+
+Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi intrebat din nou daca se schimba vreodata.";
+"Cert.Trust" = "Am incredere";

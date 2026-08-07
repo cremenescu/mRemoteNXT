@@ -43,8 +43,10 @@ public enum RoyalTSImporter {
     private static let innerName = "Document.rtsz"
 
     /// `encrypt` turns a plaintext password into the document's encrypted form; the
-    /// importer never decides how passwords are stored.
-    public static func load(fileURL: URL, encrypt: (String) -> String) throws -> Result {
+    /// importer never decides how passwords are stored. It returns nil if the password
+    /// could not be encrypted, in which case the connection is imported without one
+    /// rather than with an empty attribute that would read as "no password set".
+    public static func load(fileURL: URL, encrypt: (String) -> String?) throws -> Result {
         let xml = try readXML(at: fileURL)
         guard let root = xml.rootElement(), root.name == "RTSZDocument" else {
             throw ImportError.notARoyalDocument
@@ -104,7 +106,7 @@ public enum RoyalTSImporter {
     // MARK: - One object
 
     private static func makeNode(tag: String, element: XMLElement,
-                                 encrypt: (String) -> String,
+                                 encrypt: (String) -> String?,
                                  countedPassword: inout Int) -> MRNGNode? {
         let name = text(element, "Name")
 
@@ -141,7 +143,7 @@ public enum RoyalTSImporter {
     }
 
     private static func applyCommon(_ node: MRNGNode, _ element: XMLElement,
-                                    encrypt: (String) -> String,
+                                    encrypt: (String) -> String?,
                                     countedPassword: inout Int) {
         let descr = text(element, "Description")
         if !descr.isEmpty { node.attributes["Descr"] = descr }
@@ -164,8 +166,8 @@ public enum RoyalTSImporter {
         if !user.isEmpty { node.attributes["Username"] = user }
 
         let password = text(element, "CredentialPassword")
-        if !password.isEmpty {
-            node.attributes["Password"] = encrypt(password)
+        if !password.isEmpty, let sealed = encrypt(password) {
+            node.attributes["Password"] = sealed
             countedPassword += 1
         }
     }

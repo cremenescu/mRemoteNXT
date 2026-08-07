@@ -5,29 +5,98 @@
 import SwiftUI
 import WebKit
 import AppKit
+import CryptoKit
 import MRNGCore
 
-/// WKWebView that accepts self-signed certificates (intended for LAN use)
-/// and auto-fills username/password from confCons.xml on page load.
+/// Certificates the user has chosen to trust for a host despite the system rejecting them.
+///
+/// Same bargain as the SSH side of the app (`StrictHostKeyChecking=accept-new`): the first
+/// sight of a certificate is a decision the user makes once, and every visit afterwards is
+/// checked against it. A LAN box with a self-signed certificate stays usable, while a
+/// certificate that changes underneath you stops being silent.
+enum TrustedCertificates {
+    private static let key = "trustedCertificates"
+
+    private static var all: [String: String] {
+        get { UserDefaults.standard.dictionary(forKey: key) as? [String: String] ?? [:] }
+        set { UserDefaults.standard.set(newValue, forKey: key) }
+    }
+
+    static func fingerprint(for host: String) -> String? { all[host.lowercased()] }
+
+    static func trust(host: String, fingerprint: String) {
+        var d = all
+        d[host.lowercased()] = fingerprint
+        all = d
+    }
+
+    /// SHA-256 of the leaf certificate in DER form — what every other tool shows as "the
+    /// fingerprint", so the value in the dialog can be compared against openssl or a browser.
+    static func fingerprint(of trust: SecTrust) -> String? {
+        guard let chain = SecTrustCopyCertificateChain(trust) as? [SecCertificate],
+              let leaf = chain.first else { return nil }
+        let der = SecCertificateCopyData(leaf) as Data
+        return SHA256.hash(data: der).map { String(format: "%02X", $0) }.joined(separator: ":")
+    }
+}
+
+/// WKWebView for one connection: it knows which host that connection is for, and treats
+/// everything else on the page as somebody else's business.
 final class HTTPSWebView: WKWebView, WKNavigationDelegate {
     var autofillUser: String = ""
     var autofillPass: String = ""
+    /// The hostname from confCons.xml. Credentials go to this host and nowhere else.
+    var expectedHost: String = ""
+
+    private func isExpected(_ host: String) -> Bool {
+        !expectedHost.isEmpty && host.caseInsensitiveCompare(expectedHost) == .orderedSame
+    }
 
     func webView(_ webView: WKWebView,
                  didReceive challenge: URLAuthenticationChallenge,
                  completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        // Self-signed certificate on LAN.
-        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
-           let trust = challenge.protectionSpace.serverTrust {
-            completionHandler(.useCredential, URLCredential(trust: trust))
+        let space = challenge.protectionSpace
+
+        if space.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+           let trust = space.serverTrust {
+            // Anything that is not the connection's own host (a CDN, an OAuth provider, an
+            // embedded frame) gets ordinary system validation. The self-signed exception is
+            // for the box you deliberately opened, not for the whole internet behind it.
+            guard isExpected(space.host) else {
+                completionHandler(.performDefaultHandling, nil)
+                return
+            }
+            if SecTrustEvaluateWithError(trust, nil) {
+                completionHandler(.performDefaultHandling, nil)
+                return
+            }
+            guard let fingerprint = TrustedCertificates.fingerprint(of: trust) else {
+                completionHandler(.cancelAuthenticationChallenge, nil)
+                return
+            }
+            if TrustedCertificates.fingerprint(for: space.host) == fingerprint {
+                completionHandler(.useCredential, URLCredential(trust: trust))
+                return
+            }
+            askAboutCertificate(host: space.host, fingerprint: fingerprint) { accepted in
+                if accepted {
+                    TrustedCertificates.trust(host: space.host, fingerprint: fingerprint)
+                    completionHandler(.useCredential, URLCredential(trust: trust))
+                } else {
+                    completionHandler(.cancelAuthenticationChallenge, nil)
+                }
+            }
             return
         }
-        // HTTP Basic / Digest -> send the node's credentials if we have any.
+
+        // HTTP Basic / Digest / NTLM -> the node's credentials, but only to the node's host.
+        // A redirect to somewhere else does not inherit them.
         if challenge.previousFailureCount == 0,
            !autofillUser.isEmpty,
-           (challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodHTTPBasic
-            || challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodHTTPDigest
-            || challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodNTLM) {
+           isExpected(space.host),
+           (space.authenticationMethod == NSURLAuthenticationMethodHTTPBasic
+            || space.authenticationMethod == NSURLAuthenticationMethodHTTPDigest
+            || space.authenticationMethod == NSURLAuthenticationMethodNTLM) {
             let cred = URLCredential(user: autofillUser, password: autofillPass, persistence: .forSession)
             completionHandler(.useCredential, cred)
             return
@@ -35,7 +104,28 @@ final class HTTPSWebView: WKWebView, WKNavigationDelegate {
         completionHandler(.performDefaultHandling, nil)
     }
 
+    /// Sheet if we have a window to hang it off, modal dialog otherwise. Either way the
+    /// answer arrives once, on the main thread, and the caller resumes the challenge with it.
+    private func askAboutCertificate(host: String, fingerprint: String,
+                                     decision: @escaping (Bool) -> Void) {
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = String(format: t("Cert.Title"), host)
+        alert.informativeText = String(format: t("Cert.Body"), fingerprint)
+        alert.addButton(withTitle: t("Delete.Cancel"))          // first = default = safe
+        alert.addButton(withTitle: t("Cert.Trust"))
+        if let window {
+            alert.beginSheetModal(for: window) { decision($0 == .alertSecondButtonReturn) }
+        } else {
+            decision(alert.runModal() == .alertSecondButtonReturn)
+        }
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Only fill in a form on the host this connection is for. Without this a redirect —
+        // or any later navigation — got the connection's username and password typed into
+        // whatever login form it happened to show.
+        guard let host = webView.url?.host, isExpected(host) else { return }
         injectAutofill()
     }
 
@@ -157,6 +247,7 @@ struct HTTPContainer: NSViewRepresentable {
         let webView = HTTPSWebView(frame: .zero, configuration: config)
         webView.autofillUser = session.node.username
         webView.autofillPass = session.password
+        webView.expectedHost = session.node.hostname
         webView.navigationDelegate = webView
         if let url = Self.url(for: session.node) {
             webView.load(URLRequest(url: url))
@@ -168,6 +259,7 @@ struct HTTPContainer: NSViewRepresentable {
         // Pick up credentials if they changed in the editor while the tab was open.
         nsView.autofillUser = session.node.username
         nsView.autofillPass = session.password
+        nsView.expectedHost = session.node.hostname
     }
 
     static func url(for node: MRNGNode) -> URL? {

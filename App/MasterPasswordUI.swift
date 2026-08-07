@@ -87,16 +87,18 @@ struct ChangeMasterPasswordSheet: View {
             HStack {
                 if model.hasCustomMasterPassword {
                     Button(t("Master.Remove")) {
-                        model.changeMasterPassword(to: MRNGCrypto.defaultPassword)
-                        isPresented = false
+                        // Keep the sheet up if the change was abandoned, so the failure
+                        // alert is not the last word on a dialog that already dismissed.
+                        if model.changeMasterPassword(to: MRNGCrypto.defaultPassword) {
+                            isPresented = false
+                        }
                     }
                 }
                 Spacer()
                 Button(t("Delete.Cancel")) { isPresented = false }
                     .keyboardShortcut(.cancelAction)
                 Button(t("Master.Apply")) {
-                    model.changeMasterPassword(to: newPassword)
-                    isPresented = false
+                    if model.changeMasterPassword(to: newPassword) { isPresented = false }
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)

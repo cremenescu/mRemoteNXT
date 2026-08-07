@@ -244,3 +244,17 @@
 "Blink.Slow" = "Slow";
 "Blink.Medium" = "Medium";
 "Blink.Fast" = "Fast";
+
+/* Security: master password change failures, certificate trust */
+"Master.FailedTitle" = "Master password not changed";
+"Master.FailedUnreadable" = "%d stored password(s) could not be decrypted with the current passphrase, so they cannot be re-encrypted with the new one. Nothing was changed — changing it anyway would have left those passwords unrecoverable.";
+"Master.FailedEncrypt" = "A password could not be encrypted, so nothing was changed.";
+"Error.EncryptionFailed" = "the content could not be encrypted";
+"Cert.Title" = "The certificate for %@ cannot be verified";
+"Cert.Body" = "The server presented a certificate the system does not trust — expected on a device with a self-signed certificate, but also what an intercepted connection looks like.
+
+SHA-256 fingerprint:
+%@
+
+Trusting it remembers this exact certificate for this host. You will be asked again if it ever changes.";
+"Cert.Trust" = "Trust";

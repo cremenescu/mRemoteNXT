@@ -60,8 +60,8 @@ public enum MRNGCrypto {
     public static let unprotectedMarker = "ThisIsNotProtected"
 
     /// Build the root `Protected` blob for a master password, picking the marker the same
-    /// way mRemoteNG does.
-    public static func makeProtected(password: String, iterations: Int) -> String {
+    /// way mRemoteNG does. Nil if the encryption itself failed; see `encrypt`.
+    public static func makeProtected(password: String, iterations: Int) -> String? {
         let marker = password == defaultPassword ? unprotectedMarker : protectedMarker
         return encrypt(plaintext: marker, password: password, iterations: iterations)
     }
@@ -73,7 +73,12 @@ public enum MRNGCrypto {
 
     /// Encrypt a string in the mRemoteNG format (read back by mRemoteNG itself):
     /// [salt 16B][nonce 16B][ciphertext][tag 16B] -> base64. AAD = salt.
-    public static func encrypt(plaintext: String, password: String, iterations: Int) -> String {
+    ///
+    /// Nil on failure. With fixed-size salt, nonce and key there is no input that makes
+    /// CryptoKit throw here, so this is a formality — but the alternative, returning "",
+    /// is indistinguishable from "no password" and callers would happily store that over
+    /// a real one. A password is not something to lose quietly.
+    public static func encrypt(plaintext: String, password: String, iterations: Int) -> String? {
         let salt = randomBytes(16)
         let nonce = randomBytes(16)
         let key = pbkdf2SHA1(password: password, salt: salt, iterations: iterations, keyLength: 32)
@@ -88,7 +93,7 @@ public enum MRNGCrypto {
             out.append(sealed.tag)
             return out.base64EncodedString()
         } catch {
-            return ""
+            return nil
         }
     }
 

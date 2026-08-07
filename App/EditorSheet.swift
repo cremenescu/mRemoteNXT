@@ -261,7 +261,10 @@ struct EditorSheet: View {
                 // While inherited, this fires only from the programmatic refresh below —
                 // writing here would immediately clear the inherit flag again.
                 guard node.attributes["InheritPassword"] != "true" else { return }
-                node.attributes["Password"] = newValue.isEmpty ? "" : model.encrypt(newValue)
+                // Encryption failing would leave `sealed` nil; keep whatever is stored
+                // rather than replacing a good password with an empty attribute.
+                guard let sealed = newValue.isEmpty ? "" : model.encrypt(newValue) else { return }
+                node.attributes["Password"] = sealed
                 node.attributes["InheritPassword"] = "false"
                 model.markDirty()
             }
@@ -620,7 +623,10 @@ struct ConnectionStatusBar: View {
             .foregroundStyle(inheriting ? .secondary : .primary)
             .onChange(of: passwordPlain) { _, newValue in
                 guard !loadingPassword, !inheriting else { return }
-                node.attributes["Password"] = newValue.isEmpty ? "" : model.encrypt(newValue)
+                // Encryption failing would leave `sealed` nil; keep whatever is stored
+                // rather than replacing a good password with an empty attribute.
+                guard let sealed = newValue.isEmpty ? "" : model.encrypt(newValue) else { return }
+                node.attributes["Password"] = sealed
                 node.attributes["InheritPassword"] = "false"
                 model.markDirty()
             }

@@ -43,7 +43,7 @@ do {
     // Encryption round-trip test.
     let secret = "Test!Password#123"
     let enc = MRNGCrypto.encrypt(plaintext: secret, password: pw, iterations: doc.kdfIterations)
-    let dec = MRNGCrypto.decrypt(base64: enc, password: pw, iterations: doc.kdfIterations)
+    let dec = enc.flatMap { MRNGCrypto.decrypt(base64: $0, password: pw, iterations: doc.kdfIterations) }
     print("Encrypt round-trip: \(dec == secret ? "OK" : "FAILED (\(dec ?? "nil"))")")
 
     // Serializer round-trip test: serialize -> re-parse -> compare.
