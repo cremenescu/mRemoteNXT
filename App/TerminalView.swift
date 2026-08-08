@@ -58,6 +58,16 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     /// `becomeFirstResponder`).
     private var focusObserver: Any?
     private var currentBlinkSpeed: CursorBlinkSpeed = .medium
+    /// Whether this view is the tab on screen right now.
+    ///
+    /// Every session in a window lives in one ZStack, all with the same frame, the inactive
+    /// ones merely at zero opacity (that is what keeps their ssh process alive across tab
+    /// switches). The event monitors below run for all of them and cannot tell which is
+    /// which by geometry — every view reports the pointer as being inside it. SwiftUI knows,
+    /// so it tells us.
+    var isActiveTab = false
+    /// Leftover fraction of a line from a precise (trackpad) scroll.
+    private var preciseScrollRemainder: CGFloat = 0
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -82,7 +92,7 @@ final class MRNGTerminalView: LocalProcessTerminalView {
         mouseUpMonitor = NSEvent.addLocalMonitorForEvents(
             matching: [.leftMouseUp, .leftMouseDragged]
         ) { [weak self] event in
-            guard let self, event.window === self.window else { return event }
+            guard let self, self.isActiveTab, event.window === self.window else { return event }
             switch event.type {
             case .leftMouseUp:
                 self.stopAutoScroll()
@@ -114,14 +124,14 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     /// consumes the event so SwiftTerm never sees it.
     private func installMouseFixes() {
         wheelMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self] event in
-            guard let self, event.window === self.window,
+            guard let self, self.isActiveTab, event.window === self.window,
                   self.hitTestIsMine(event) else { return event }
             return self.handleScroll(event) ? nil : event
         }
         shiftClickMonitor = NSEvent.addLocalMonitorForEvents(
             matching: [.leftMouseDown, .leftMouseUp]
         ) { [weak self] event in
-            guard let self, event.window === self.window else { return event }
+            guard let self, self.isActiveTab, event.window === self.window else { return event }
             if event.type == .leftMouseDown,
                event.modifierFlags.contains(.shift), self.allowMouseReporting,
                self.hitTestIsMine(event) {
@@ -149,14 +159,41 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     ///
     /// Returns true when the event was handled and should not reach SwiftTerm.
     private func handleScroll(_ event: NSEvent) -> Bool {
-        guard getTerminal().isCurrentBufferAlternate, event.deltaY != 0 else { return false }
+        guard getTerminal().isCurrentBufferAlternate else { return false }
+        let lines = wheelLines(event)
+        // A precise scroll that has not added up to a whole line yet is still ours: the
+        // alternate screen has no scrollback for SwiftTerm to move, so passing it on would
+        // do nothing except let the remainder go to waste.
+        guard lines != 0 else { return true }
         // Application cursor mode changes the arrow encoding (SS3 rather than CSI).
         let app = getTerminal().applicationCursor
         let up = app ? "\u{1b}OA" : "\u{1b}[A"
         let down = app ? "\u{1b}OB" : "\u{1b}[B"
-        let lines = max(1, min(5, Int(abs(event.deltaY).rounded())))
-        send(txt: String(repeating: event.deltaY > 0 ? up : down, count: lines))
+        send(txt: String(repeating: lines > 0 ? up : down, count: min(abs(lines), 5)))
         return true
+    }
+
+    /// How many lines a wheel event asks for. Positive = towards older content.
+    ///
+    /// A mouse reports whole notches in `deltaY`. A trackpad does not: it reports points in
+    /// `scrollingDeltaY`, dozens of events per gesture, and `deltaY` is frequently rounded
+    /// to zero for anything short of a hard flick. Reading `deltaY` therefore looked like a
+    /// trackpad that had stopped scrolling entirely. Precise deltas are summed here and
+    /// spent a line at a time, so a slow drag moves smoothly instead of not at all.
+    private func wheelLines(_ event: NSEvent) -> Int {
+        guard event.hasPreciseScrollingDeltas else {
+            let notches = event.deltaY != 0 ? event.deltaY : event.scrollingDeltaY
+            guard notches != 0 else { return 0 }
+            // A notch is worth at least one line, however small the device reports it.
+            return notches > 0 ? max(1, Int(notches.rounded())) : min(-1, Int(notches.rounded()))
+        }
+        if event.phase == .began { preciseScrollRemainder = 0 }
+        preciseScrollRemainder += event.scrollingDeltaY
+        let lineHeight = max(1, bounds.height / CGFloat(max(1, getTerminal().rows)))
+        let whole = (preciseScrollRemainder / lineHeight).rounded(.towardZero)
+        guard whole != 0 else { return 0 }
+        preciseScrollRemainder -= whole * lineHeight
+        return Int(whole)
     }
 
     @objc private func rightClickPaste() {
@@ -348,6 +385,7 @@ struct TerminalContainer: NSViewRepresentable {
         // setupOptions runs on every layout and rebuilds TerminalOptions with the 500
         // default on top of it.
         term.terminal.changeScrollback(max(500, scrollbackLines))
+        term.isActiveTab = isActive
         let launch = Self.command(for: session)
         term.startProcess(executable: launch.executable, args: launch.args,
                           environment: launch.environment, execName: nil)
@@ -375,6 +413,9 @@ struct TerminalContainer: NSViewRepresentable {
         context.coordinator.onTitleChange = onTitleChange
         if let term = nsView as? MRNGTerminalView {
             term.applyCursorBlinkSpeed(cursorBlinkSpeed)
+            // Must be kept current: the event monitors use it to stay out of the way of
+            // whichever tab is actually on screen.
+            term.isActiveTab = isActive
         }
         // Give the terminal first responder status when its tab becomes active.
         guard isActive else { return }
