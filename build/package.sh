@@ -54,7 +54,14 @@ fi
 cd "$PROJECT_ROOT"
 
 echo "==> Cleaning previous output"
-rm -rf "$BUILD_DIR" "$DIST_DIR"
+# Retry: if a Finder window is looking at one of these directories, Finder drops a fresh
+# .DS_Store into it while rm is still walking the tree, and the closing rmdir fails with
+# "Directory not empty". Under set -e that aborted the whole release at its first step.
+# A second pass finds the directory as good as empty and wins.
+for _ in 1 2 3; do
+    rm -rf "$BUILD_DIR" "$DIST_DIR" 2>/dev/null && break
+done
+rm -rf "$BUILD_DIR" "$DIST_DIR"   # a failure here is real; let set -e stop us
 mkdir -p "$DIST_DIR"
 
 echo "==> Generating Xcode project"
