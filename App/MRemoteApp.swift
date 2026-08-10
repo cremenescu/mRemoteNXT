@@ -240,6 +240,12 @@ struct AppearanceSettings: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Toggle(t("Settings.UpdateTabTitleFromTerminal"), isOn: $prefs.updateTabTitleFromTerminal)
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle(t("Settings.OptionAsMeta"), isOn: $prefs.optionAsMetaKey)
+                    Text(t("Settings.OptionAsMetaNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 VStack(alignment: .leading) {
                     Text(String(format: t("Settings.RowHeight"), Int(prefs.rowHeight)))
                     Slider(value: $prefs.rowHeight, in: 16...44, step: 1)

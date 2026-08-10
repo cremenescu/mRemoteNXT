@@ -42,6 +42,16 @@ final class Preferences: ObservableObject {
     @Published var cursorBlinkSpeed: CursorBlinkSpeed = .medium {
         didSet { UserDefaults.standard.set(cursorBlinkSpeed.rawValue, forKey: "cursorBlinkSpeed") }
     }
+    /// Send Option+key as Meta (ESC prefix) instead of letting the keyboard layout compose
+    /// a character. Off by default, which is what Terminal.app and iTerm2 do.
+    ///
+    /// SwiftTerm defaults it on, and that makes the app unusable on any layout that reaches
+    /// for Option to type everyday programming characters: on Turkish Q, Option+Q is `@` and
+    /// Option+8 is `[`, and both were arriving as ESC q and ESC 8 instead (issue #9). A US
+    /// layout rarely needs Option for anything a shell wants, which is why it went unnoticed.
+    @Published var optionAsMetaKey: Bool = false {
+        didSet { UserDefaults.standard.set(optionAsMetaKey, forKey: "optionAsMetaKey") }
+    }
     @Published var updateTabTitleFromTerminal: Bool = true {
         didSet { UserDefaults.standard.set(updateTabTitleFromTerminal, forKey: "updateTabTitleFromTerminal") }
     }
@@ -98,6 +108,7 @@ final class Preferences: ObservableObject {
         if let v = d.object(forKey: "showPasswordPlain") as? Bool { showPasswordPlain = v }
         if let v = d.string(forKey: "sharedFolderPath") { sharedFolderPath = v }
         if let v = d.string(forKey: "cursorBlinkSpeed"), let s = CursorBlinkSpeed(rawValue: v) { cursorBlinkSpeed = s }
+        if let v = d.object(forKey: "optionAsMetaKey") as? Bool { optionAsMetaKey = v }
         if let v = d.object(forKey: "updateTabTitleFromTerminal") as? Bool { updateTabTitleFromTerminal = v }
         if let v = d.object(forKey: "closeTabOnDisconnect") as? Bool { closeTabOnDisconnect = v }
         if let v = d.object(forKey: "restoreSessions") as? Bool { restoreSessions = v }

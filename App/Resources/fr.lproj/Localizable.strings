@@ -258,3 +258,7 @@ Empreinte SHA-256 :
 
 Lui faire confiance mémorise exactement ce certificat pour cet hôte. La question sera reposée s'il change un jour.";
 "Cert.Trust" = "Faire confiance";
+
+/* Terminal: Option as Meta (issue #9 — AltGr layouts) */
+"Settings.OptionAsMeta" = "Utiliser Option comme touche Meta";
+"Settings.OptionAsMetaNote" = "Désactivé, Option compose les caractères comme le prévoit votre disposition clavier — indispensable là où Option sert à taper @, [, { et compagnie. Activé, Option+touche envoie un préfixe ESC, ce que Emacs et readline appellent Meta. Option+flèche se déplace par mot dans les deux cas.";

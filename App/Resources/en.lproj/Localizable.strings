@@ -258,3 +258,7 @@ SHA-256 fingerprint:
 
 Trusting it remembers this exact certificate for this host. You will be asked again if it ever changes.";
 "Cert.Trust" = "Trust";
+
+/* Terminal: Option as Meta (issue #9 — AltGr layouts) */
+"Settings.OptionAsMeta" = "Use Option as Meta key";
+"Settings.OptionAsMetaNote" = "Off, Option composes characters the way your keyboard layout intends — needed on layouts where Option types @, [, { and friends. On, Option+key sends an ESC prefix instead, which is what Emacs and readline call Meta. Option+arrow moves by word either way.";

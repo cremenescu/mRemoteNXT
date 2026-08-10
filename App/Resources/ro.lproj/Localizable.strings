@@ -260,3 +260,7 @@ Amprenta SHA-256:
 
 Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi intrebat din nou daca se schimba vreodata.";
 "Cert.Trust" = "Am incredere";
+
+/* Terminal: Option as Meta (issue #9 — AltGr layouts) */
+"Settings.OptionAsMeta" = "Foloseste Option ca tasta Meta";
+"Settings.OptionAsMetaNote" = "Dezactivat, Option compune caractere asa cum intentioneaza aranjamentul tau de tastatura — necesar pe aranjamentele unde Option scrie @, [, { si companie. Activat, Option+tasta trimite un prefix ESC, adica ce numesc Emacs si readline Meta. Option+sageata sare peste cuvant in ambele cazuri.";

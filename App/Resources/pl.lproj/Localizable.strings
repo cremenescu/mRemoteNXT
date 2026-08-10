@@ -258,3 +258,7 @@ Odcisk SHA-256:
 
 Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie, jesli kiedykolwiek sie zmieni.";
 "Cert.Trust" = "Ufaj";
+
+/* Terminal: Option as Meta (issue #9 — AltGr layouts) */
+"Settings.OptionAsMeta" = "Uzywaj Option jako klawisza Meta";
+"Settings.OptionAsMetaNote" = "Wylaczone — Option skalda znaki zgodnie z ukladem klawiatury, co jest potrzebne tam, gdzie Option pisze @, [, { i podobne. Wlaczone — Option+klawisz wysyla prefiks ESC, czyli to, co Emacs i readline nazywaja Meta. Option+strzalka przeskakuje o slowo w obu przypadkach.";

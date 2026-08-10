@@ -178,6 +178,9 @@ final class AppModel: ObservableObject {
     var cursorBlinkSpeed: CursorBlinkSpeed {
         get { prefs.cursorBlinkSpeed } set { prefs.cursorBlinkSpeed = newValue }
     }
+    var optionAsMetaKey: Bool {
+        get { prefs.optionAsMetaKey } set { prefs.optionAsMetaKey = newValue }
+    }
     var updateTabTitleFromTerminal: Bool {
         get { prefs.updateTabTitleFromTerminal } set { prefs.updateTabTitleFromTerminal = newValue }
     }

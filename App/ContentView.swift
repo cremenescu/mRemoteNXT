@@ -823,6 +823,7 @@ struct SessionView: View {
                 fontSize: fontSize,
                 theme: model.terminalTheme,
                 cursorBlinkSpeed: model.cursorBlinkSpeed,
+                optionAsMetaKey: model.optionAsMetaKey,
                 scrollbackLines: model.scrollbackLines,
                 onTitleChange: { newTitle in
                     model.updateTitleFromTerminal(session.id, newTitle)

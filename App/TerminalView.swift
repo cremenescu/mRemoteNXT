@@ -49,6 +49,7 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     private var mouseUpMonitor: Any?
     private var wheelMonitor: Any?
     private var shiftClickMonitor: Any?
+    private var wordMotionMonitor: Any?
     private var autoScrollTimer: Timer?
     private var lastDragWindowLocation: NSPoint?
     /// > 0 = scroll DOWN (cursor below view, want newer content),
@@ -73,12 +74,14 @@ final class MRNGTerminalView: LocalProcessTerminalView {
         super.init(frame: frame)
         setupPuttyMouse()
         installMouseFixes()
+        installKeyFixes()
         installFocusObserver()
     }
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupPuttyMouse()
         installMouseFixes()
+        installKeyFixes()
         installFocusObserver()
     }
 
@@ -150,6 +153,29 @@ final class MRNGTerminalView: LocalProcessTerminalView {
 
     private func hitTestIsMine(_ event: NSEvent) -> Bool {
         bounds.contains(convert(event.locationInWindow, from: nil))
+    }
+
+    /// Option+Left / Option+Right as word motion, for when Option is not acting as Meta.
+    ///
+    /// With Meta off, Option belongs to the keyboard layout: that is the whole point, since
+    /// on a Turkish, German or Polish layout it is how you type `@`, `[` or `{`. But AppKit
+    /// then turns Option+arrow into `moveWordLeft:`, a selector SwiftTerm does not answer,
+    /// and word jumping — which no layout needs Option for — would be lost with it. These
+    /// two are sent by hand so both things can be true at once. SwiftTerm's keyDown is
+    /// `public`, not `open`, so a monitor is the only way in.
+    private func installKeyFixes() {
+        wordMotionMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
+            guard let self, self.isActiveTab, !self.optionAsMetaKey,
+                  event.window === self.window,
+                  self.window?.firstResponder === self,
+                  event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .option
+            else { return event }
+            switch event.keyCode {
+            case 123: self.send(txt: "\u{1b}b"); return nil   // Left
+            case 124: self.send(txt: "\u{1b}f"); return nil   // Right
+            default:  return event
+            }
+        }
     }
 
     /// Wheel on the alternate screen. SwiftTerm scrolls its own scrollback and never looks
@@ -334,6 +360,7 @@ final class MRNGTerminalView: LocalProcessTerminalView {
         if let m = mouseUpMonitor { NSEvent.removeMonitor(m) }
         if let m = wheelMonitor { NSEvent.removeMonitor(m) }
         if let m = shiftClickMonitor { NSEvent.removeMonitor(m) }
+        if let m = wordMotionMonitor { NSEvent.removeMonitor(m) }
         if let o = focusObserver { NotificationCenter.default.removeObserver(o) }
     }
 }
@@ -366,6 +393,7 @@ struct TerminalContainer: NSViewRepresentable {
     let fontSize: Double
     var theme: String = "Implicit"
     var cursorBlinkSpeed: CursorBlinkSpeed = .medium
+    var optionAsMetaKey: Bool = false
     var scrollbackLines: Int = 10000
     /// Called when the underlying terminal reports a new title via OSC 0/1/2.
     /// AppModel uses it to rename the SwiftUI tab live (e.g. `user@host:cwd`).
@@ -386,6 +414,7 @@ struct TerminalContainer: NSViewRepresentable {
         // default on top of it.
         term.terminal.changeScrollback(max(500, scrollbackLines))
         term.isActiveTab = isActive
+        term.optionAsMetaKey = optionAsMetaKey
         let launch = Self.command(for: session)
         term.startProcess(executable: launch.executable, args: launch.args,
                           environment: launch.environment, execName: nil)
@@ -416,6 +445,7 @@ struct TerminalContainer: NSViewRepresentable {
             // Must be kept current: the event monitors use it to stay out of the way of
             // whichever tab is actually on screen.
             term.isActiveTab = isActive
+            term.optionAsMetaKey = optionAsMetaKey
         }
         // Give the terminal first responder status when its tab becomes active.
         guard isActive else { return }
