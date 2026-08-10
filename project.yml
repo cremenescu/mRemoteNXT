@@ -33,7 +33,9 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDevelopmentRegion: en
-        CFBundleLocalizations: [en, ro, pl, fr]
+        # No CFBundleLocalizations: the .lproj folders in App/Resources are the only list.
+        # Verified that a folder alone is enough for Bundle.localizations to report it, so
+        # adding a translation stays a one-folder change with no file to remember here.
         # Version + build come from MARKETING_VERSION / CURRENT_PROJECT_VERSION
         # in `settings.base` below — single source of truth, bump there only.
         CFBundleShortVersionString: "$(MARKETING_VERSION)"

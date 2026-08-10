@@ -15,29 +15,46 @@ func t(_ key: String, _ comment: String = "") -> String {
 /// at app launch — we re-implement bundle lookup at runtime so the language
 /// switch in Settings takes effect immediately (no restart required for
 /// 99% of UI; views holding stale strings will refresh on next redraw).
+///
+/// Nothing here names a language. The list comes from the `.lproj` folders that
+/// are actually in the bundle, so adding a translation is adding one folder —
+/// no enum to extend, no array to remember, no Swift to touch at all.
 final class LanguageManager: ObservableObject {
     static let shared = LanguageManager()
 
-    enum Choice: String, CaseIterable, Identifiable {
-        case auto = "auto"
-        case en   = "en"
-        case fr   = "fr"
-        case pl   = "pl"
-        case ro   = "ro"
+    /// Language codes shipped in this build, discovered from the bundle.
+    ///
+    /// Deduplicated on purpose: Bundle.localizations answers from the .lproj folders *and*
+    /// from CFBundleLocalizations, so a language named in both comes back twice — and twice
+    /// in a Picker means two identical rows and two views claiming one id.
+    static let bundledLanguages: [String] = Array(Set(Bundle.main.localizations))
+        .filter { $0 != "Base" }
+        .sorted()
+
+    /// What the user picked: a language code, or `auto` to follow the system.
+    struct Choice: Identifiable, Hashable {
+        let rawValue: String
+        init(_ rawValue: String) { self.rawValue = rawValue }
+
+        static let auto = Choice("auto")
         var id: String { rawValue }
+
+        /// The language's own name for itself — "Français", "Türkçe" — so a reader can
+        /// find their language without knowing the one the app is currently in.
         var displayName: String {
-            switch self {
-            case .auto: return t("Language.Auto")
-            case .en:   return "English"
-            case .fr:   return "Français"
-            case .pl:   return "Polish"
-            case .ro:   return "Romana"
+            guard rawValue != Choice.auto.rawValue else { return t("Language.Auto") }
+            let locale = Locale(identifier: rawValue)
+            guard let name = locale.localizedString(forLanguageCode: rawValue) else {
+                return rawValue.uppercased()
             }
+            return name.capitalized(with: locale)
+        }
+
+        /// `auto` first, then every bundled language.
+        static var allCases: [Choice] {
+            [.auto] + LanguageManager.bundledLanguages.map(Choice.init)
         }
     }
-
-    /// The languages that ship with a .lproj in the bundle.
-    static let bundled = ["en", "fr", "pl", "ro"]
 
     @Published var choice: Choice {
         didSet {
@@ -47,30 +64,40 @@ final class LanguageManager: ObservableObject {
     }
 
     private var bundle: Bundle = .main
+    /// English, kept aside to answer for keys a translation has not reached yet.
+    private let fallbackBundle: Bundle? = Bundle.main.path(forResource: "en", ofType: "lproj")
+        .flatMap(Bundle.init(path:))
 
     private init() {
         let raw = UserDefaults.standard.string(forKey: "languageChoice") ?? Choice.auto.rawValue
-        self.choice = Choice(rawValue: raw) ?? .auto
+        // A language that was removed from the build (or a stale preference) must not leave
+        // the app pointing at a bundle that isn't there.
+        let known = [Choice.auto.rawValue] + Self.bundledLanguages
+        self.choice = known.contains(raw) ? Choice(raw) : .auto
         applyChoice()
     }
 
+    /// Sentinel that cannot occur as a translated value, so "missing" is distinguishable
+    /// from "translated to something short".
+    private static let missing = "\u{0}mrng.missing"
+
+    /// A key the active language does not carry falls back to English rather than to the
+    /// key itself. Without this a translation had to be complete on its first day or the
+    /// interface showed raw identifiers like `Settings.MasterPasswordNote` — which is a
+    /// hard thing to ask of someone contributing an evening of their time.
     func localized(_ key: String, comment: String) -> String {
-        bundle.localizedString(forKey: key, value: nil, table: nil)
+        let value = bundle.localizedString(forKey: key, value: Self.missing, table: nil)
+        if value != Self.missing { return value }
+        return fallbackBundle?.localizedString(forKey: key, value: key, table: nil) ?? key
     }
 
     private func applyChoice() {
         let lang: String
-        switch choice {
-        case .auto:
-            // Honor the system preference whenever we have that language. This used to test
-            // for Romanian and fall back to English, which meant a Polish system never got
-            // Polish even though the translation was right there in the bundle.
+        if choice == .auto {
             let system = String((Locale.preferredLanguages.first ?? "en").prefix(2)).lowercased()
-            lang = Self.bundled.contains(system) ? system : "en"
-        case .en: lang = "en"
-        case .fr: lang = "fr"
-        case .pl: lang = "pl"
-        case .ro: lang = "ro"
+            lang = Self.bundledLanguages.contains(system) ? system : "en"
+        } else {
+            lang = choice.rawValue
         }
         // Sync AppleLanguages too, so newly-spawned strings (alerts via OS) pick it up.
         UserDefaults.standard.set([lang], forKey: "AppleLanguages")

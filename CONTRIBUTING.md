@@ -43,8 +43,9 @@ you're trying to solve — that's more useful than just a wish-list item.
      `// SPDX-License-Identifier: GPL-2.0-or-later`
    - 4-space indent, no tabs.
    - User-visible strings must go through `t("Key")` and be added to
-     both `App/Resources/en.lproj/Localizable.strings` and the `ro.lproj`
-     equivalent.
+     `App/Resources/en.lproj/Localizable.strings`. English is the source of
+     truth; the other languages fall back to it for any key they are missing,
+     so adding a key does not break them.
 5. Run the app locally and make sure your change actually works in the
    bundle (not just in unit tests).
 6. Open the PR against `main` with a short description of what changed
@@ -53,6 +54,34 @@ you're trying to solve — that's more useful than just a wish-list item.
 I review PRs personally and won't always be fast. If a PR sits for more
 than a couple of weeks, ping me on the PR or by email
 (`razvan@cremenescu.ro`).
+
+## Translating
+
+Adding a language is one folder and no code.
+
+1. Copy `App/Resources/en.lproj/Localizable.strings` to
+   `App/Resources/<code>.lproj/Localizable.strings`, where `<code>` is the
+   two-letter language code (`tr`, `de`, `es`).
+2. Translate the values on the right of each `=`. Leave the keys alone.
+3. Open a pull request.
+
+That is the whole procedure. The app discovers the languages in its bundle at
+runtime, so the new one appears in Settings by itself, listed under its own
+name — no enum to extend, no list to update, no `Info.plist` entry.
+
+Two things to be careful with:
+
+- **Format specifiers must survive.** `%@`, `%d` and the numbered forms
+  (`%1$d`, `%3$@`) have to appear in the translation exactly as they do in
+  English, in the same order where the number matters. A missing or reordered
+  specifier is a crash at runtime, not a wrong label.
+- **Macro names are not words.** In `Settings.ToolsMacros` and
+  `Settings.ToolCommandPlaceholder`, `%Host%`, `%Username%`, `%Port%`,
+  `%Password%`, `%Domain%` and `%Name%` are literal tokens the app substitutes.
+  Translate the sentence around them, never them.
+
+A partial translation is welcome. Every key you have not reached shows the
+English text, so there is no need to finish all of it before opening a PR.
 
 ## License
 
