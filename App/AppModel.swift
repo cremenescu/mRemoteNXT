@@ -589,6 +589,54 @@ final class AppModel: ObservableObject {
         markDirty()
     }
 
+    // MARK: - Move to / Copy to a folder
+
+    /// Folders a node may be sent to: every container in the tree except the node itself
+    /// and anything beneath it, since a folder cannot become its own ancestor.
+    func destinationFolders(excluding node: MRNGNode) -> [MRNGNode] {
+        (doc?.roots ?? []).filter { $0.isContainer && $0 !== node && !$0.isDescendant(of: node) }
+    }
+
+    /// Child folders of a folder, filtered the same way.
+    func destinationFolders(under parent: MRNGNode, excluding node: MRNGNode) -> [MRNGNode] {
+        parent.children.filter { $0.isContainer && $0 !== node && !$0.isDescendant(of: node) }
+    }
+
+    /// Move a node to the end of a folder, or to the end of the root when folder is nil.
+    func move(_ node: MRNGNode, toFolder folder: MRNGNode?) {
+        guard folder !== node.parent else { return }
+        _ = moveNode(node, into: folder, at: nil)
+        selectedNodeID = node.id
+    }
+
+    /// Copy a node into a folder. The copy keeps its name — a different folder has no
+    /// clash to resolve — and only takes a suffix when the destination already holds one
+    /// by that name, which is what copying into the node's own folder amounts to.
+    func copy(_ node: MRNGNode, toFolder folder: MRNGNode?) {
+        let siblings = folder.map { $0.children } ?? (doc?.roots ?? [])
+        let taken = Set(siblings.map(\.name))
+        var name = node.name
+        if taken.contains(name) {
+            name = String(format: t("Connection.CopyNameFormat"), node.name)
+            var n = 2
+            while taken.contains(name) {
+                name = String(format: t("Connection.CopyNameNumberedFormat"), node.name, n)
+                n += 1
+            }
+        }
+        let copied = node.deepCopy(name: name)
+        if let folder {
+            folder.addChild(copied)
+            expandedIDs.insert(folder.id)
+        } else {
+            copied.parent = nil
+            doc?.roots.append(copied)
+        }
+        if copied.isContainer { expandedIDs.insert(copied.id) }
+        selectedNodeID = copied.id
+        markDirty()
+    }
+
     private func duplicateName(for node: MRNGNode) -> String {
         let base = String(format: t("Connection.CopyNameFormat"), node.name)
         let siblingNames: Set<String>
@@ -643,6 +691,10 @@ final class AppModel: ObservableObject {
     func moveNode(_ node: MRNGNode, into newParent: MRNGNode?, at index: Int?) -> Bool {
         if let newParent {
             guard newParent !== node, !newParent.isDescendant(of: node), newParent.isContainer else { return false }
+            // A node sitting at the top level is in doc.roots and has no parent, so
+            // addChild's own detach step finds nothing to detach and the node ends up in
+            // both places at once — listed at the root and inside the folder.
+            if node.parent == nil { doc?.roots.removeAll { $0 === node } }
             newParent.addChild(node, at: index)
             expandedIDs.insert(newParent.id)
         } else {

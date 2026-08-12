@@ -262,3 +262,11 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 /* Terminal: Option as Meta (issue #9 — AltGr layouts) */
 "Settings.OptionAsMeta" = "Use Option as Meta key";
 "Settings.OptionAsMetaNote" = "Off, Option composes characters the way your keyboard layout intends — needed on layouts where Option types @, [, { and friends. On, Option+key sends an ESC prefix instead, which is what Emacs and readline call Meta. Option+arrow moves by word either way.";
+
+/* Context menu: move / copy to a folder */
+"Context.MoveTo" = "Move to";
+"Context.CopyTo" = "Copy to";
+"Context.MoveHere" = "Move here";
+"Context.CopyHere" = "Copy here";
+"Context.MoveToRoot" = "Move to top level";
+"Context.CopyToRoot" = "Copy to top level";

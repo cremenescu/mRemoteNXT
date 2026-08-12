@@ -194,6 +194,55 @@ struct TreeColumnView: View {
     }
 }
 
+
+/// One level of the Move to / Copy to cascade: the destination itself, then a submenu per
+/// child folder. Recursive, so the menu has the shape of the tree and each level stays
+/// short however deep the tree gets.
+///
+/// The recursion goes through AnyView on purpose. A view whose body mentions its own type
+/// has no finite type for the compiler to infer; erasing the child breaks that cycle, and
+/// a context menu is nowhere near hot enough for the box to matter.
+struct FolderDestinationMenu: View {
+    @EnvironmentObject var model: AppModel
+    /// The node being sent somewhere.
+    let node: MRNGNode
+    /// Where this level of the menu points; nil is the root of the tree.
+    let folder: MRNGNode?
+    let isCopy: Bool
+
+    private var children: [MRNGNode] {
+        guard let folder else { return model.destinationFolders(excluding: node) }
+        return model.destinationFolders(under: folder, excluding: node)
+    }
+
+    /// Moving a node into the folder it already sits in is not a move. Copying into it is
+    /// perfectly meaningful, though — that is what duplicating is.
+    private var alreadyHere: Bool { !isCopy && folder === node.parent }
+
+    var body: some View {
+        Button(label) { apply() }
+            .disabled(alreadyHere)
+        if !children.isEmpty {
+            Divider()
+            ForEach(children, id: \.id) { child in
+                Menu(child.name) {
+                    AnyView(FolderDestinationMenu(node: node, folder: child, isCopy: isCopy))
+                }
+            }
+        }
+    }
+
+    private var label: String {
+        if folder == nil { return t(isCopy ? "Context.CopyToRoot" : "Context.MoveToRoot") }
+        return t(isCopy ? "Context.CopyHere" : "Context.MoveHere")
+    }
+
+    private func apply() {
+        if isCopy { model.copy(node, toFolder: folder) }
+        else { model.move(node, toFolder: folder) }
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var lang: LanguageManager
@@ -485,6 +534,13 @@ struct TreeRow: View {
                 }
                 Divider()
             }
+            Menu(t("Context.MoveTo")) {
+                FolderDestinationMenu(node: node, folder: nil, isCopy: false)
+            }
+            Menu(t("Context.CopyTo")) {
+                FolderDestinationMenu(node: node, folder: nil, isCopy: true)
+            }
+            Divider()
             Button(t("Context.NewConnectionHere")) { model.selectedNodeID = node.id; model.addConnection() }
             Button(t("Context.NewFolderHere")) { model.selectedNodeID = node.id; model.addFolder() }
             Button(t("Context.Duplicate")) { model.duplicateNode(node) }
