@@ -391,9 +391,26 @@ final class RDPNSView: NSView, RDPClientDelegate {
             client?.keyScancode(code, extended: false, down: down)
             return
         }
-        if let scalar = e.charactersIgnoringModifiers?.unicodeScalars.first {
-            client?.keyChar(UInt16(scalar.value & 0xFFFF), down: down)
+        // The character the layout actually produces, Option included. This used to read
+        // charactersIgnoringModifiers — the key *without* Option applied — so on any layout
+        // that reaches for Option to type @ [ ] { }, the remote received the bare letter
+        // instead (issue #9, the RDP half of it). Turkish, German, Polish, Spanish and
+        // Romanian all do; a US layout almost never does, which is why it went unseen.
+        guard let scalar = e.characters?.unicodeScalars.first else {
+            // Empty means a dead key: the layout has swallowed this press and will hand
+            // over the composed character on the next one. Nothing to send yet.
+            return
         }
+        // Option is a modifier to macOS and a composition key to the layout, and we cannot
+        // have it both ways: flagsChanged has already pressed Alt on the server, so sending
+        // `@` now would arrive as Alt+@ and be read as an accelerator rather than text.
+        // Release it for the duration. Whichever way the user lets go of Option afterwards,
+        // flagsChanged sends its own release — a duplicate release is harmless, a stuck Alt
+        // is not.
+        if down, e.modifierFlags.contains(.option), e.characters != e.charactersIgnoringModifiers {
+            client?.keySpecial(RDPSpecialKey.keyAlt.rawValue, down: false)
+        }
+        client?.keyChar(UInt16(scalar.value & 0xFFFF), down: down)
     }
 
     /// macOS virtual keycode -> PC set-1 scancode for the main typing block, by physical
