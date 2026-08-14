@@ -2,6 +2,11 @@
 
 > Romanian: see [README.ro.md](README.ro.md)
 
+[![Downloads](https://img.shields.io/github/downloads/cremenescu/mRemoteNXT/total?label=downloads&color=44cc11)](https://github.com/cremenescu/mRemoteNXT/releases)
+[![Latest release](https://img.shields.io/github/v/release/cremenescu/mRemoteNXT?label=latest&color=blue)](https://github.com/cremenescu/mRemoteNXT/releases/latest)
+[![Downloads of latest](https://img.shields.io/github/downloads/cremenescu/mRemoteNXT/latest/total?label=downloads%40latest&color=44cc11)](https://github.com/cremenescu/mRemoteNXT/releases/latest)
+[![License](https://img.shields.io/badge/license-GPL--2.0--or--later-orange)](LICENSE)
+
 Native macOS multi-protocol remote connection client (SSH, RDP, Telnet,
 SFTP, HTTP/HTTPS) with direct import of `confCons.xml` files from
 **mRemoteNG**.
