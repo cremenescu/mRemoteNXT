@@ -5,6 +5,8 @@
 [![Downloads](https://img.shields.io/github/downloads/cremenescu/mRemoteNXT/total?label=downloads&color=44cc11)](https://github.com/cremenescu/mRemoteNXT/releases)
 [![Latest release](https://img.shields.io/github/v/release/cremenescu/mRemoteNXT?label=latest&color=blue)](https://github.com/cremenescu/mRemoteNXT/releases/latest)
 [![Downloads of latest](https://img.shields.io/github/downloads/cremenescu/mRemoteNXT/latest/total?label=downloads%40latest&color=44cc11)](https://github.com/cremenescu/mRemoteNXT/releases/latest)
+[![Stars](https://img.shields.io/github/stars/cremenescu/mRemoteNXT?label=stars&color=yellow)](https://github.com/cremenescu/mRemoteNXT/stargazers)
+[![Forks](https://img.shields.io/github/forks/cremenescu/mRemoteNXT?label=forks&color=lightgrey)](https://github.com/cremenescu/mRemoteNXT/forks)
 [![License](https://img.shields.io/badge/license-GPL--2.0--or--later-orange)](LICENSE)
 
 Client multi-protocol pentru macOS (SSH, RDP, Telnet, SFTP, HTTP/HTTPS), cu
