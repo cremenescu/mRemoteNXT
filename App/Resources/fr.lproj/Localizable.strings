@@ -270,3 +270,16 @@ Lui faire confiance mémorise exactement ce certificat pour cet hôte. La questi
 "Context.CopyHere" = "Copier ici";
 "Context.MoveToRoot" = "Déplacer à la racine";
 "Context.CopyToRoot" = "Copier à la racine";
+
+/* What's new */
+"Menu.WhatsNew" = "Nouveautés";
+"WhatsNew.Title" = "Nouveautés";
+"WhatsNew.Running" = "Installé : %@ (build %@)";
+"WhatsNew.Installed" = "installée";
+"WhatsNew.Loading" = "Récupération des notes de version...";
+"WhatsNew.Unavailable" = "Les notes de version n'ont pas pu être récupérées. Elles sont hébergées sur GitHub et une connexion est nécessaire pour les atteindre : il s'agit donc le plus souvent d'un réseau absent, et non d'un problème de l'application.";
+"WhatsNew.OpenReleases" = "Ouvrir les versions sur GitHub";
+"WhatsNew.Retry" = "Réessayer";
+"WhatsNew.OpenOnGitHub" = "Lire sur GitHub";
+"Settings.ShowWhatsNew" = "Afficher les nouveautés après une mise à jour";
+"Settings.ShowWhatsNewNote" = "Ouvre les notes de version une seule fois, au premier lancement d'une version fraîchement installée. Jamais lors d'une première installation, puisqu'il n'y a rien de nouveau par rapport à quoi que ce soit, ni deux fois pour la même build.";

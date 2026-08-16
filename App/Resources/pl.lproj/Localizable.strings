@@ -270,3 +270,16 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 "Context.CopyHere" = "Kopiuj tutaj";
 "Context.MoveToRoot" = "Przenies na najwyzszy poziom";
 "Context.CopyToRoot" = "Kopiuj na najwyzszy poziom";
+
+/* What's new */
+"Menu.WhatsNew" = "Co nowego";
+"WhatsNew.Title" = "Co nowego";
+"WhatsNew.Running" = "Zainstalowano: %@ (kompilacja %@)";
+"WhatsNew.Installed" = "zainstalowana";
+"WhatsNew.Loading" = "Pobieranie informacji o wydaniu...";
+"WhatsNew.Unavailable" = "Nie udalo sie pobrac informacji o wydaniu. Znajduja sie one na GitHubie i wymagaja polaczenia, wiec zwykle chodzi o brak sieci, a nie o blad aplikacji.";
+"WhatsNew.OpenReleases" = "Otworz wydania na GitHubie";
+"WhatsNew.Retry" = "Sprobuj ponownie";
+"WhatsNew.OpenOnGitHub" = "Przeczytaj na GitHubie";
+"Settings.ShowWhatsNew" = "Pokaz co nowego po aktualizacji";
+"Settings.ShowWhatsNewNote" = "Otwiera informacje o wydaniu raz, przy pierwszym uruchomieniu swiezo zainstalowanej wersji. Nigdy przy nowej instalacji ani dwa razy dla tej samej kompilacji.";

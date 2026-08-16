@@ -43,6 +43,11 @@ final class QuitGuardDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             MainMenuFixup.apply()
         }
+        // After the windows have had their moment: a panel that lands on top of a tree
+        // still drawing itself reads as something gone wrong rather than as news.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            WhatsNewWindow.showAfterUpdateIfNeeded()
+        }
     }
 
     /// Keep the app alive with no windows open, like Finder or Mail: the menu bar stays,

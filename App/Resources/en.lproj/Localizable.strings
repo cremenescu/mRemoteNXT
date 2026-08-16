@@ -270,3 +270,16 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 "Context.CopyHere" = "Copy here";
 "Context.MoveToRoot" = "Move to top level";
 "Context.CopyToRoot" = "Copy to top level";
+
+/* What's new */
+"Menu.WhatsNew" = "What's new";
+"WhatsNew.Title" = "What's new";
+"WhatsNew.Running" = "Installed: %@ (build %@)";
+"WhatsNew.Installed" = "installed";
+"WhatsNew.Loading" = "Fetching the release notes...";
+"WhatsNew.Unavailable" = "The release notes could not be fetched. They live on GitHub and this needs a connection to reach them, so this is usually a network that is not there rather than anything wrong with the app.";
+"WhatsNew.OpenReleases" = "Open releases on GitHub";
+"WhatsNew.Retry" = "Try again";
+"WhatsNew.OpenOnGitHub" = "Read on GitHub";
+"Settings.ShowWhatsNew" = "Show what's new after an update";
+"Settings.ShowWhatsNewNote" = "Opens the release notes once, the first time a newly installed version runs. Never on a fresh install, since there is nothing to be new against, and never twice for the same build.";

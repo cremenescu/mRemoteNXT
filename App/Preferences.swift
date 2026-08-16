@@ -52,6 +52,16 @@ final class Preferences: ObservableObject {
     @Published var optionAsMetaKey: Bool = false {
         didSet { UserDefaults.standard.set(optionAsMetaKey, forKey: "optionAsMetaKey") }
     }
+    /// Open the release notes once, the first time a new build runs.
+    @Published var showWhatsNewAfterUpdate: Bool = true {
+        didSet { UserDefaults.standard.set(showWhatsNewAfterUpdate, forKey: "showWhatsNewAfterUpdate") }
+    }
+    /// The build whose notes have already been shown. Empty on a fresh install, which is
+    /// why the first run records it without opening anything — there is nothing to be new
+    /// against yet.
+    @Published var lastWhatsNewBuild: String = "" {
+        didSet { UserDefaults.standard.set(lastWhatsNewBuild, forKey: "lastWhatsNewBuild") }
+    }
     @Published var updateTabTitleFromTerminal: Bool = true {
         didSet { UserDefaults.standard.set(updateTabTitleFromTerminal, forKey: "updateTabTitleFromTerminal") }
     }
@@ -109,6 +119,8 @@ final class Preferences: ObservableObject {
         if let v = d.string(forKey: "sharedFolderPath") { sharedFolderPath = v }
         if let v = d.string(forKey: "cursorBlinkSpeed"), let s = CursorBlinkSpeed(rawValue: v) { cursorBlinkSpeed = s }
         if let v = d.object(forKey: "optionAsMetaKey") as? Bool { optionAsMetaKey = v }
+        if let v = d.object(forKey: "showWhatsNewAfterUpdate") as? Bool { showWhatsNewAfterUpdate = v }
+        if let v = d.string(forKey: "lastWhatsNewBuild") { lastWhatsNewBuild = v }
         if let v = d.object(forKey: "updateTabTitleFromTerminal") as? Bool { updateTabTitleFromTerminal = v }
         if let v = d.object(forKey: "closeTabOnDisconnect") as? Bool { closeTabOnDisconnect = v }
         if let v = d.object(forKey: "restoreSessions") as? Bool { restoreSessions = v }

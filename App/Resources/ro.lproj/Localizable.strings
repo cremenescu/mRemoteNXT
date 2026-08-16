@@ -272,3 +272,16 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 "Context.CopyHere" = "Copiaza aici";
 "Context.MoveToRoot" = "Muta in radacina";
 "Context.CopyToRoot" = "Copiaza in radacina";
+
+/* What's new */
+"Menu.WhatsNew" = "Ce e nou";
+"WhatsNew.Title" = "Ce e nou";
+"WhatsNew.Running" = "Instalat: %@ (build %@)";
+"WhatsNew.Installed" = "instalata";
+"WhatsNew.Loading" = "Se aduc notele de lansare...";
+"WhatsNew.Unavailable" = "Notele de lansare nu au putut fi aduse. Ele stau pe GitHub si e nevoie de conexiune ca sa ajungi la ele, deci de obicei e o retea care lipseste, nu ceva stricat in aplicatie.";
+"WhatsNew.OpenReleases" = "Deschide versiunile pe GitHub";
+"WhatsNew.Retry" = "Incearca din nou";
+"WhatsNew.OpenOnGitHub" = "Citeste pe GitHub";
+"Settings.ShowWhatsNew" = "Arata ce e nou dupa un update";
+"Settings.ShowWhatsNewNote" = "Deschide notele de lansare o singura data, la prima pornire a unei versiuni proaspat instalate. Niciodata la o instalare noua, fiindca nu are fata de ce sa fie nou, si niciodata de doua ori pentru acelasi build.";

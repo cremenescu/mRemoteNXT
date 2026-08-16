@@ -114,6 +114,7 @@ struct MRNGCommands: Commands {
         }
         CommandGroup(replacing: .help) {
             Button(t("Menu.HelpWindow")) { HelpWindow.show() }
+            Button(t("Menu.WhatsNew")) { WhatsNewWindow.show() }
             Divider()
             Button(t("Menu.ViewOnGitHub")) {
                 open("https://github.com/cremenescu/mRemoteNXT")
@@ -278,6 +279,12 @@ struct AppearanceSettings: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Toggle(t("Settings.RestoreWindows"), isOn: $prefs.restoreWindows)
                     Text(t("Settings.RestoreWindowsNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle(t("Settings.ShowWhatsNew"), isOn: $prefs.showWhatsNewAfterUpdate)
+                    Text(t("Settings.ShowWhatsNewNote"))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
