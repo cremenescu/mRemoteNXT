@@ -161,6 +161,9 @@ Razvan Cremenescu — <https://github.com/cremenescu>
 
 Thanks to everyone who has contributed to mRemoteNXT:
 
+- [@emircankavas](https://github.com/emircankavas) — Turkish localization, and
+  the two keyboard reports behind 0.8.6 and 0.8.9 that fixed Option/AltGr
+  input for every layout, not only Turkish.
 - [@vurmil](https://github.com/vurmil) — Polish localization, duplicate
   connection/folder action, the empty-sidebar context-menu fix, and the
   classic tree guide lines + active-connection badge.

@@ -1,0 +1,272 @@
+/* Language picker labels */
+"Language.Auto" = "Sistem saptanmışı";
+
+/* Toolbar / menus */
+"Toolbar.NewConnection" = "Yeni bağlantı";
+"Toolbar.NewFolder" = "Yeni klasör";
+"Toolbar.Save" = "Kaydet (Cmd+S)";
+"Toolbar.ExpandAll" = "Tümünü genişlet";
+"Toolbar.CollapseAll" = "Tümünü daralt";
+"Toolbar.SortAlphabetical" = "Alfabetik sırala (önce bağlantılar, sonra klasörler)";
+"Toolbar.EditSelected" = "Kenar çubuğunda seçili bağlantının tüm özelliklerini düzenle";
+
+/* Menus */
+"Menu.About" = "mRemoteNXT Hakkında";
+"Menu.CheckForUpdates" = "Güncellemeleri Denetle…";
+"Menu.HelpWindow" = "mRemoteNXT Yardım";
+"Menu.ViewOnGitHub" = "GitHub'da Kaynak Kodunu Görüntüle";
+"Menu.ReportIssue" = "Sorun Bildir...";
+"Menu.EmailAuthor" = "Geliştiriciye E-posta Gönder";
+"Menu.NewFile" = "Yeni yapılandırma...";
+"Menu.OpenFile" = "confCons.xml Aç...";
+"Menu.CloseFile" = "Yapılandırmayı kapat";
+"Menu.NewWindow" = "Yeni pencere";
+"Menu.CloseTab" = "Sekmeyi kapat";
+"Menu.CloseWindow" = "Pencereyi kapat";
+"Menu.ImportRoyalTS" = "Royal TS belgesini içe aktar...";
+"Import.RoyalPrompt" = "Bir Royal TS belgesi seçin (.rtsz)";
+"Import.DoneTitle" = "İçe aktarma tamamlandı";
+"Import.DoneBody" = "\"%3$@\" konumundan %1$d bağlantı içe aktarıldı, bunlardan %2$d tanesi parolalı.";
+"Import.NoPasswordNote" = "Parolasız bağlantılar, parolaları şifrelenmiş olarak saklayan bir Royal belgesinden geldi veya kayıtlı parolası yoktu.";
+"Import.SkippedNote" = "Atlandı, mRemoteNG karşılığı yok: %@.";
+"Import.FailedTitle" = "İçe aktarma başarısız";
+"Menu.Save" = "Kaydet";
+"NewDoc.Prompt" = "Yeni yapılandırmanın nereye kaydedileceğini seçin.";
+"NewDoc.FailedTitle" = "Yapılandırma oluşturulamadı";
+"Error.SaveFailed" = "Kaydetme başarısız: %@";
+"Menu.ZoomIn" = "Terminal metnini büyüt";
+"Menu.ZoomOut" = "Terminal metnini küçült";
+"Menu.Appearance" = "Görünüş";
+"Menu.ExternalTools" = "Harici araçlar";
+
+/* Settings */
+"Settings.Title" = "Ayarlar";
+"Settings.Appearance" = "Görünüş";
+"Settings.Tools" = "Harici araçlar";
+"Settings.Language" = "Dil";
+"Settings.UIFontSize" = "Arayüz font boyutu: %d";
+"Settings.TerminalFontSize" = "Terminal font boyutu: %d";
+"Settings.TerminalTheme" = "Terminal teması";
+"Settings.Scrollback" = "Terminal geçmişi";
+"Settings.ScrollbackLines" = "%@ satır";
+"Settings.ScrollbackNote" = "Terminalin tutacağı geçmiş satır sayısı. Açık sekmeler için de geçerlidir; daha fazla satır daha fazla bellek demektir.";
+"Settings.RowHeight" = "Satır yüksekliği: %d";
+"Settings.ShowProtocol" = "Listede protokol türünü (RDP/SSH) göster";
+"Settings.CloseTabOnDisconnect" = "Bağlantı kesildiğinde sekmeyi kapat (RDP)";
+"Settings.RestoreSessions" = "Açılışta son oturumun bağlantılarını yeniden aç";
+"Settings.Autosave" = "Değişiklikleri otomatik kaydet";
+"Settings.AutosaveOff" = "Kapalı";
+"Settings.AutosaveMinutes" = "Her %d dk";
+"Settings.AutosaveNote" = "Kaydedilmemiş değişiklikler varken yapılandırmayı kendiliğinden yazar, böylece pencereyi kapatmak veya uygulamadan çıkmak veri kaybına yol açmaz. backups klasöründeki yedek, açılan dosya başına ilk kaydetmeden önce bir kez oluşturulur.";
+"Settings.BackupKeep" = "Saklanacak yedek kopyalar";
+"Settings.BackupKeepOff" = "Yedekleme";
+"Settings.BackupKeepCount" = "%d kopya";
+"Settings.BackupKeepNote" = "Her kaydetme işlemi, önce dosyayı yanındaki backups klasörüne kopyalar ve ardından bu sayının üzerindeki en eski kopyaları siler — Windows'taki mRemoteNG ile aynıdır (10 adet tutar). Otomatik kaydetme açıkken geçmiş yaklaşık bu aralık kadar geriye gider. Kapatıldığında yeni kopyalar oluşturulmaz; mevcut olanlara dokunulmaz.";
+"Settings.RestoreWindows" = "Açılışta aynı yapılandırma dosyalarını yeniden aç";
+"Settings.RestoreWindowsNote" = "Bırakıldıkları şekilde dosya başına bir pencere. Kapalı olması, başlangıçta tek bir pencere anlamına gelir.";
+"Settings.DiagnosticLogging" = "Tanılama günlük kaydı (RDP)";
+"Settings.DiagnosticLoggingNote" = "~/Library/Logs/mRemoteNXT/mRemoteNXT.log dosyasına yazar";
+"Settings.RevealLog" = "Finder'da Göster";
+"Settings.ShowPasswordPlain" = "Durum çubuğunda parolayı açık metin olarak göster";
+"Settings.MasterPassword" = "Ana parola";
+"Settings.MasterPasswordDefault" = "varsayılan (genel)";
+"Settings.MasterPasswordCustom" = "özel";
+"Settings.MasterPasswordChange" = "Değiştir...";
+"Settings.MasterPasswordNote" = "Kayıtlı parolalar bununla şifrelenir. mRemoteNG'nin varsayılan parolası herkes tarafından bilinir; bu nedenle dosyaya sahip olan herkes tüm parolaları okuyabilir. Açık dosya için geçerlidir; yazmak için kaydedin.";
+"Settings.MasterPasswordFor" = "%@ için geçerlidir — en öndeki pencere.";
+"Unlock.Title" = "Bu dosya korumalı";
+"Unlock.Body" = "%@ bir ana parola ile şifrelenmiştir. Parola girilene kadar bağlantıların kullanılabilir bir parolası olmaz.";
+"Unlock.Wrong" = "Hatalı parola.";
+"Unlock.Remember" = "Anahtar zincirimde hatırla";
+"Unlock.Action" = "Kilidi Aç";
+"Master.ChangeTitle" = "Ana parolayı değiştir";
+"Master.ChangeBody" = "Kayıtlı tüm parolalar yeni anahtar ifadeyle yeniden şifrelenir ve Windows'taki mRemoteNG de bunu sorar. Kaybederseniz parolalar kurtarılamaz.";
+"Master.New" = "Yeni parola";
+"Master.Confirm" = "Doğrula";
+"Master.Mismatch" = "Girilen iki parola birbiriyle eşleşmiyor.";
+"Master.Apply" = "Değiştir";
+"Master.Remove" = "Korumayı kaldır";
+"Settings.SharedFolder" = "Paylaşılan klasör (RDP)";
+"Settings.SharedFolderNone" = "yok";
+"Settings.SharedFolderChoose" = "Seç...";
+"Settings.SharedFolderClear" = "Temizle";
+"Settings.SharedFolderNote" = "Oturum içinde \\\\tsclient altında hem okunabilir hem de yazılabilir bir sürücü olarak görünür. Burası boşken hiçbir şey paylaşılmaz. Daha sonra açılan oturumlar için geçerlidir.";
+"Settings.LanguagePicker" = "Arayüz dili";
+"Settings.LanguageNote" = "Bazı etiketler görünüm yeniden çizildiğinde güncellenebilir.";
+"Settings.ToolsMacros" = "Kullanılabilir makrolar: %Host% %Username% %Port% %Password% %Domain% %Name%";
+"Settings.ToolNamePlaceholder" = "Ad";
+"Settings.ToolCommandPlaceholder" = "Komut (örn. ping -c 5 %Host%)";
+"Settings.ToolDelete" = "Sil";
+"Settings.ToolAdd" = "Araç ekle";
+
+/* Context menu */
+"Context.Edit" = "Düzenle...";
+"Context.Connect" = "Bağlan";
+"Context.SFTP" = "Dosya aktar (SFTP)";
+"Context.ExternalToolsSubmenu" = "Harici araçlar";
+"Context.NewConnectionHere" = "Buraya yeni bağlantı";
+"Context.NewFolderHere" = "Buraya yeni klasör";
+"Context.Duplicate" = "Çoğalt";
+"Context.Delete" = "Sil";
+"Context.Reconnect" = "Yeniden bağlan";
+"Context.Disconnect" = "Bağlantıyı kes";
+"Context.SendCtrlAltDel" = "Ctrl+Alt+Del Gönder";
+"Context.RenameTab" = "Sekmeyi yeniden adlandır...";
+"Context.DuplicateTab" = "Sekmeyi çoğalt";
+"Context.CopyPassword" = "Parolayı kopyala";
+"Context.EditConnection" = "Bağlantıyı düzenle...";
+"Context.RevealInSidebar" = "KENAR ÇUBUĞUNDA GÖSTER";
+
+/* Sidebar search */
+"Search.Placeholder" = "Bağlantılarda ara";
+
+/* Placeholders */
+"Placeholder.NoFile" = "Yüklü dosya yok";
+"Placeholder.SelectConnection" = "Ağaçtan bir bağlantı seçin";
+"Placeholder.SelectToEdit" = "Düzenlemek için bir bağlantı seçin";
+
+/* Status bar */
+"StatusBar.NoSelection" = "Seçili bağlantı yok";
+"StatusBar.Host" = "Sunucu";
+"StatusBar.User" = "Kullanıcı";
+"StatusBar.Domain" = "Etki Alanı";
+"StatusBar.InheritedHint" = "Klasörden devralındı — burada belirlemek için düzenleyicide Devral onay kutusunun işaretini kaldırın.";
+"StatusBar.Pass" = "Parola";
+"StatusBar.Copied" = "%@ kopyalandı";
+"StatusBar.CopyHint" = "%@ kopyala";
+"StatusBar.Elements" = "%d öge";
+
+/* Editor sheet */
+"Editor.Category.General" = "Genel";
+"Editor.Category.Connection" = "Bağlantı";
+"Editor.Category.Credentials" = "Kimlik Bilgileri";
+"Editor.Category.Appearance" = "Görünüş";
+"Editor.Category.Advanced" = "Gelişmiş";
+"Editor.FolderSettings" = "Klasör ayarları";
+"Editor.ConnectionSettings" = "Bağlantı ayarları";
+"Editor.Discard" = "Vazgeç";
+"Editor.ApplyClose" = "Uygula ve kapat";
+"Editor.Field.Name" = "Ad";
+"Editor.Field.Description" = "Açıklama";
+"Editor.Field.Icon" = "Simge";
+"Editor.Field.Protocol" = "Protokol";
+"Editor.Field.Port" = "Port";
+"Editor.Field.Host" = "Sunucu";
+"Editor.Field.Panel" = "Panel";
+"Editor.Field.RedirectDiskDrives" = "Klasör paylaş (disk yönlendirme)";
+"Editor.Field.SharedFolder" = "Klasör";
+"Editor.RedirectDiskDrivesFallback" = "Bu bağlantıda tanımlı klasör yok — Ayarlar'daki %@ değerine geri dönülür.";
+"Editor.RedirectDiskDrivesFolder" = "Bu bağlantıyla %@ klasörünü \\\\tsclient altında bir sürücü olarak paylaşır.";
+"Editor.RedirectDiskDrivesNoFolder" = "Henüz paylaşılan klasör seçilmedi — Ayarlar'dan bir tane belirleyin, aksi takdirde hiçbir şey paylaşılmaz.";
+"Editor.Field.Username" = "Kullanıcı adı";
+"Editor.Field.Domain" = "Etki alanı";
+"Editor.Field.Password" = "Parola";
+"Editor.ContainerNote" = "Klasörlerin kendilerine ait bir bağlantısı yoktur. Bu ayarlar alt ögeler tarafından devralınır.";
+"Editor.ItemsCount" = "%d öge";
+"Editor.AdvancedNote" = "Ham düğüm öznitelikleri (şimdilik salt okunur).";
+"Editor.CopyPassword" = "Parolayı kopyala";
+"Editor.PastePassword" = "Parolayı yapıştır";
+"Editor.ShowPassword" = "Parolayı göster";
+"Editor.HidePassword" = "Parolayı gizle";
+"Editor.Inherit" = "Devral";
+"Editor.InheritHelp" = "Üst klasördeki değeri kullan";
+"Editor.InheritNoParent" = "Devralınacak üst klasör yok";
+
+/* Connection / save */
+"Connection.NewConnectionName" = "Yeni bağlantı";
+"Connection.NewFolderName" = "Yeni klasör";
+"Connection.CopyNameFormat" = "%@ kopyası";
+"Connection.CopyNameNumberedFormat" = "%@ kopyası %d";
+"Connection.SaveButton" = "Değişiklikleri kaydet";
+"Connection.Saved" = "Kaydedildi";
+"Connection.Connect" = "Bağlan";
+"Connection.Element" = "%d öge";
+"Connection.Elements" = "%d öge";
+
+/* Delete dialog */
+"Delete.Title" = "\"%@\" silinsin mi?";
+"Delete.Folder" = "Klasör ve tüm içeriği silinecek (Kaydet'e basana kadar kaydedilmez).";
+"Delete.Connection" = "Bağlantı silinecek.";
+"Delete.Confirm" = "Sil";
+"Delete.Cancel" = "Vazgeç";
+"Quit.Title" = "mRemoteNXT uygulamasından çıkılsın mı?";
+"Quit.BodySessions" = "%d bağlantı hala açık ve bağlantıları kesilecek.";
+"Quit.BodyUnsaved" = "Yapılandırmada kaydedilmemiş değişiklikler var.";
+"Quit.BodyBoth" = "%d bağlantı hala açık ve yapılandırmada kaydedilmemiş değişiklikler var.";
+"Quit.Confirm" = "Çık";
+"Quit.SaveAndQuit" = "Kaydet ve çık";
+"Status.ReconnectingLegacyGraphics" = "Eski sunucu — grafik işlem hattı olmadan yeniden bağlanılıyor...";
+"CloseWindow.Title" = "Bu pencere kapatılsın mı?";
+"CloseWindow.BodySessions" = "Bu pencerede %d bağlantı açık ve bağlantıları kesilecek.";
+"CloseWindow.BodyUnsaved" = "Bu pencerenin yapılandırmasında kaydedilmemiş değişiklikler var.";
+"CloseWindow.BodyBoth" = "Bu pencerede %d bağlantı açık ve yapılandırmasında kaydedilmemiş değişiklikler var.";
+"CloseWindow.Confirm" = "Kapat";
+"CloseWindow.SaveAndClose" = "Kaydet ve kapat";
+
+/* Errors / load */
+"Error.ParseFailed" = "Ayrıştırılamadı: %@";
+"Error.CustomMaster" = "Bu dosya özel bir ana parola kullanıyor (henüz desteklenmiyor).";
+"Error.NotImplemented" = "Protokol uygulanmadı: %@";
+"Error.ExternalAppPending" = "Harici uygulama (IntApp) desteği çok yakında.";
+
+/* Rename tab dialog */
+"Rename.Title" = "Sekmeyi yeniden adlandır";
+
+/* Folder/conn type display */
+"Type.Folder" = "Klasör";
+"Type.Connection" = "Bağlantı";
+
+/* Help window */
+"Help.WindowTitle" = "mRemoteNXT Yardım";
+"Help.Tagline" = "macOS için yerel çok protokollü uzak bağlantı istemcisi";
+"Help.WhatIs.Title" = "mRemoteNXT nedir?";
+"Help.WhatIs.Body" = "mRemoteNG'nin confCons.xml dosyasını; şifrelenmiş parolalar, klasör ağacı, öznitelik devralma ve paneller dahil olmak üzere olduğu gibi içe aktaran sekmeli bir macOS uzak bağlantı yöneticisidir. SSH, Telnet, SFTP, RDP ve HTTP/HTTPS oturumlarını doğrudan sekmelere yerleştirir; böylece ayrı bir terminal veya RDP istemcisi açmanıza gerek kalmaz.";
+"Help.GettingStarted.Title" = "Başlarken";
+"Help.GettingStarted.Body" = "İlk açılışta uygulama boştur. Sıfırdan bir confCons.xml oluşturmak için Dosya > Yeni yapılandırma... (Cmd+N) veya mevcut bir tanesini (kendinize ait veya Windows'taki mRemoteNG'den dışa aktarılmış) yüklemek için Dosya > confCons.xml Aç... (Cmd+O) seçeneğini kullanın. Uygulamayı bir sonraki başlatışınızda aynı dosyayı otomatik olarak yeniden açar. Çalışma alanını temizlemek için Dosya > Yapılandırmayı kapat (Cmd+Shift+W) seçeneğini kullanın.";
+"Help.Connecting.Title" = "Bir sunucuya bağlanma";
+"Help.Connecting.Body" = "Yeni bir sekmede açmak için kenar çubuğundaki bir bağlantıya çift tıklayın. Sekmeler arasında geçiş yaptığınızda oturumlar canlı kalır — alttaki ssh/RDP işlemi yeniden başlatılmaz. Ek eylemler için bir SSH bağlantısına sağ tıklayın: SFTP dosya aktarımı, harici araçlar, yeniden bağlanma, Ctrl+Alt+Del gönderme (RDP için), parolayı kopyalama.";
+"Help.Editing.Title" = "Bağlantıları düzenleme";
+"Help.Editing.Body" = "Bir bağlantıya sağ tıklayıp Düzenle... deyin veya bağlantıyı seçip araç çubuğundaki kaydırıcı simgesine basın. Düzenleyici, solda kategoriler (Genel / Bağlantı / Kimlik Bilgileri / Görünüş / Gelişmiş) ve sağda bir form bulunan Royal TSX tarzı kalıcı bir penceredir. Değişiklikleri kaydetmek için Uygula'ya, geri almak için Vazgeç'e tıklayın. Ağacın altındaki durum çubuğu, mevcut düğümün sunucu / kullanıcı / parola bilgilerini tıklayarak kopyalama özelliğiyle gösterir.";
+"Help.Shortcuts.Title" = "Klavye kestirmeleri";
+"Help.Shortcuts.Body" = "Cmd+N — Yeni yapılandırma\nCmd+O — Yapılandırma aç\nCmd+Shift+W — Yapılandırmayı kapat\nCmd+S — Kaydet\nCmd+= / Cmd+- — Terminal metnini yakınlaştır/uzaklaştır\nCmd+, — Ayarlar\nReturn — Seçili bağlantıyı düzenle\nÇift tıklama — Bağlantıyı yeni sekmede aç";
+"Help.Tips.Title" = "İpuçları";
+"Help.Tips.Body" = "• Bağlantıları ve klasörleri yeniden sıralamak için sürükleyin. Bir düğümü içine taşımak için klasörün üzerine bırakın.\n• Ada, sunucuya, protokole veya açıklamaya göre filtrelemek için kenar çubuğundaki arama alanını kullanın.\n• Paneller (pencerenin üstündeki sekme çubuğu) bağlantıları gruplandırır — farklı bir sekme grubuna koymak için bağlantıdaki Panel özniteliğini ayarlayın.\n• mRemoteNXT'nin SSH parolalarını otomatik doldurmasını sağlamak için Homebrew üzerinden sshpass yükleyin (brew install hudochenkov/sshpass/sshpass). Bu olmadan SSH, anahtar aracınıza (agent key) veya etkileşimli isteme geri döner.\n• Her kaydetme işlemi, confCons.xml dosyanızın yanındaki backups/ klasöründe zaman damgalı bir yedek oluşturur — asla yanlışlıkla veri kaybetmezsiniz.";
+"Help.Limitations.Title" = "Bilinen kısıtlamalar";
+"Help.Limitations.Body" = "• FullFileEncryption=true (tüm XML'in şifrelenmesi) henüz desteklenmemektedir.\n• 2.6'dan daha yeni şema sürümleri test edilmemiştir.\n• RDP görüntü panosu, sürücü / ses yönlendirme ve uzak imleç görünürlüğü henüz uygulanmamıştır.\n• VNC ve IntApp (harici uygulama başlatma) planlanmaktadır ancak henüz uygulanmamıştır.";
+"Help.MoreInfo" = "Daha fazla bilgi";
+"Help.OpenIssue" = "Hata bildirin veya özellik talep edin";
+"Help.Email" = "Geliştiriciye e-posta gönderin: razvan@cremenescu.ro";
+
+/* Cursor blink + tab title (v0.3) */
+"Settings.CursorBlink" = "İmleç yanıp sönmesi";
+"Settings.UpdateTabTitleFromTerminal" = "Sekme başlığını terminalden güncelle (OSC 0/1/2)";
+"Blink.Off" = "Kapalı";
+"Blink.Slow" = "Yavaş";
+"Blink.Medium" = "Orta";
+"Blink.Fast" = "Hızlı";
+
+/* Security: master password change failures, certificate trust */
+"Master.FailedTitle" = "Ana parola değiştirilmedi";
+"Master.FailedUnreadable" = "%d kayıtlı parola mevcut anahtar ifadeyle çözülemedi, bu nedenle yenisiyle tekrar şifrelenemez. Hiçbir şey değiştirilmedi — yine de değiştirmek bu parolaları kurtarılamaz hale getirirdi.";
+"Master.FailedEncrypt" = "Bir parola şifrelenemedi, bu nedenle hiçbir şey değiştirilmedi.";
+"Error.EncryptionFailed" = "içerik şifrelenemedi";
+"Cert.Title" = "%@ için sertifika doğrulanamıyor";
+"Cert.Body" = "Sunucu, sistemin güvenmediği bir sertifika sundu — kendinden imzalı sertifikaya sahip bir aygıtta beklenen bir durumdur, ancak aynı zamanda araya girilmiş bir bağlantı gibi görünür.
+
+SHA-256 parmak izi:
+%@
+
+Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirse size tekrar sorulacaktır.";
+"Cert.Trust" = "Güven";
+
+/* Terminal: Option as Meta (issue #9 — AltGr layouts) */
+"Settings.OptionAsMeta" = "Option tuşunu Meta tuşu olarak kullan";
+"Settings.OptionAsMetaNote" = "Kapalıyken Option, klavye düzeninizin amaçladığı karakterleri oluşturur — Option ile @, [, { vb. karakterlerin yazıldığı düzenlerde gereklidir. Açıkken Option+tuş, Emacs ve readline'ın Meta olarak adlandırdığı bir ESC önekini gönderir. Option+ok tuşları her iki modda da sözcük bazında hareket eder.";
+
+/* Context menu: move / copy to a folder */
+"Context.MoveTo" = "Şuraya taşı";
+"Context.CopyTo" = "Şuraya kopyala";
+"Context.MoveHere" = "Buraya taşı";
+"Context.CopyHere" = "Buraya kopyala";
+"Context.MoveToRoot" = "En üst düzeye taşı";
+"Context.CopyToRoot" = "En üst düzeye kopyala";

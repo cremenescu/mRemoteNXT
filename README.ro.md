@@ -139,6 +139,9 @@ Razvan Cremenescu — <https://github.com/cremenescu>
 
 Multumiri tuturor celor care au contribuit la mRemoteNXT:
 
+- [@emircankavas](https://github.com/emircankavas) — localizare turceasca, si
+  cele doua raportari de tastatura din spatele lui 0.8.6 si 0.8.9, care au
+  reparat Option/AltGr pentru orice aranjament, nu doar pentru turca.
 - [@vurmil](https://github.com/vurmil) — localizare poloneza, actiunea de
   duplicare conexiune/folder, fix-ul pentru context menu pe zona goala
   din sidebar, si guide lines clasice in arbore + badge pe conexiunile active.
