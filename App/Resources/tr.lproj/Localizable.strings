@@ -270,3 +270,16 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 "Context.CopyHere" = "Buraya kopyala";
 "Context.MoveToRoot" = "En üst düzeye taşı";
 "Context.CopyToRoot" = "En üst düzeye kopyala";
+
+/* What's new */
+"Menu.WhatsNew" = "Yenilikler";
+"WhatsNew.Title" = "Yenilikler";
+"WhatsNew.Running" = "Yüklü sürüm: %@ (yapı %@)";
+"WhatsNew.Installed" = "yüklendi";
+"WhatsNew.Loading" = "Sürüm notları alınıyor...";
+"WhatsNew.Unavailable" = "Sürüm notları alınamadı. Notlar GitHub üzerinde bulunur ve bunlara erişmek için bir bağlantı gerekir; bu nedenle sorun genellikle uygulama kaynaklı değil, ağ bağlantısının olmamasından kaynaklanır.";
+"WhatsNew.OpenReleases" = "Sürümleri GitHub'da aç";
+"WhatsNew.Retry" = "Yeniden dene";
+"WhatsNew.OpenOnGitHub" = "GitHub'da oku";
+"Settings.ShowWhatsNew" = "Güncellemeden sonra yenilikleri göster";
+"Settings.ShowWhatsNewNote" = "Yeni yüklenen bir sürüm ilk kez çalıştığında sürüm notlarını bir kez açar. Sıfır kurulumlarda kıyaslanacak yeni bir şey olmadığı için ve aynı yapı için asla ikinci kez açılmaz.";
