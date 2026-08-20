@@ -52,6 +52,17 @@ final class Preferences: ObservableObject {
     @Published var optionAsMetaKey: Bool = false {
         didSet { UserDefaults.standard.set(optionAsMetaKey, forKey: "optionAsMetaKey") }
     }
+    /// Send ordinary typing to an RDP session as key positions rather than as characters,
+    /// announcing the Mac's keyboard layout so the server reads those positions correctly.
+    ///
+    /// On by default because without it console applications that read raw input records
+    /// get nothing at all — powershell.exe drops every letter while cmd.exe is fine. Off
+    /// falls back to sending characters, which needs no agreement about layouts and is what
+    /// every version up to 0.8.9 did; worth reaching for if a session types the wrong
+    /// characters, which means the layout could not be matched on the server.
+    @Published var rdpScancodeTyping: Bool = true {
+        didSet { UserDefaults.standard.set(rdpScancodeTyping, forKey: "rdpScancodeTyping") }
+    }
     /// Open the release notes once, the first time a new build runs.
     @Published var showWhatsNewAfterUpdate: Bool = true {
         didSet { UserDefaults.standard.set(showWhatsNewAfterUpdate, forKey: "showWhatsNewAfterUpdate") }
@@ -119,6 +130,7 @@ final class Preferences: ObservableObject {
         if let v = d.string(forKey: "sharedFolderPath") { sharedFolderPath = v }
         if let v = d.string(forKey: "cursorBlinkSpeed"), let s = CursorBlinkSpeed(rawValue: v) { cursorBlinkSpeed = s }
         if let v = d.object(forKey: "optionAsMetaKey") as? Bool { optionAsMetaKey = v }
+        if let v = d.object(forKey: "rdpScancodeTyping") as? Bool { rdpScancodeTyping = v }
         if let v = d.object(forKey: "showWhatsNewAfterUpdate") as? Bool { showWhatsNewAfterUpdate = v }
         if let v = d.string(forKey: "lastWhatsNewBuild") { lastWhatsNewBuild = v }
         if let v = d.object(forKey: "updateTabTitleFromTerminal") as? Bool { updateTabTitleFromTerminal = v }

@@ -283,3 +283,7 @@ Lui faire confiance mémorise exactement ce certificat pour cet hôte. La questi
 "WhatsNew.OpenOnGitHub" = "Lire sur GitHub";
 "Settings.ShowWhatsNew" = "Afficher les nouveautés après une mise à jour";
 "Settings.ShowWhatsNewNote" = "Ouvre les notes de version une seule fois, au premier lancement d'une version fraîchement installée. Jamais lors d'une première installation, puisqu'il n'y a rien de nouveau par rapport à quoi que ce soit, ni deux fois pour la même build.";
+
+/* RDP: scancode typing */
+"Settings.ScancodeTyping" = "Envoyer les touches comme positions (RDP)";
+"Settings.ScancodeTypingNote" = "Les programmes en console qui lisent les touches brutes — dont powershell.exe — ne reçoivent rien lorsque les touches arrivent sous forme de caractères : la saisie n’y produisait donc rien alors que cmd.exe fonctionnait. Envoyer les positions corrige cela, et la disposition clavier du Mac est annoncée au serveur pour qu’il les interprète correctement. Désactivez-le si une session se met à taper de mauvais caractères, signe que le serveur n’a pas pu retrouver la disposition.";

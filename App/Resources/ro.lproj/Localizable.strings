@@ -285,3 +285,7 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 "WhatsNew.OpenOnGitHub" = "Citeste pe GitHub";
 "Settings.ShowWhatsNew" = "Arata ce e nou dupa un update";
 "Settings.ShowWhatsNewNote" = "Deschide notele de lansare o singura data, la prima pornire a unei versiuni proaspat instalate. Niciodata la o instalare noua, fiindca nu are fata de ce sa fie nou, si niciodata de doua ori pentru acelasi build.";
+
+/* RDP: scancode typing */
+"Settings.ScancodeTyping" = "Trimite tastele ca pozitii (RDP)";
+"Settings.ScancodeTypingNote" = "Programele de consola care citesc tastele brut — printre ele powershell.exe — nu primesc nimic cand tastele ajung ca si caractere, de-aia acolo nu se scria nimic desi in cmd.exe mergea. Trimiterea pozitiilor rezolva asta, iar aranjamentul de tastatura al Mac-ului e anuntat serverului ca sa fie citite corect. Opreste-o daca o sesiune incepe sa scrie alte caractere, adica serverul nu a putut potrivi aranjamentul.";

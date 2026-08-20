@@ -4,6 +4,7 @@
 
 import SwiftUI
 import AppKit
+import Carbon.HIToolbox
 import MRNGCore
 
 /// NSView that displays the RDP framebuffer (CGImage in a layer) and sends input.
@@ -49,6 +50,9 @@ final class RDPNSView: NSView, RDPClientDelegate {
 
     private let session: Session
     private var didStart = false
+    /// True when the session was told which keyboard layout we use, which is the only
+    /// condition under which sending key positions instead of characters is safe.
+    private var layoutAnnounced = false
 
     init(session: Session) {
         self.session = session
@@ -142,6 +146,12 @@ final class RDPNSView: NSView, RDPClientDelegate {
         if !didStart { startIfNeeded() } else { scheduleResize() }
     }
 
+    /// Read straight from the defaults rather than threaded down through the view tree:
+    /// the value is consulted once per connection, and Preferences writes to the same key.
+    static var scancodeTypingEnabled: Bool {
+        UserDefaults.standard.object(forKey: "rdpScancodeTyping") as? Bool ?? true
+    }
+
     /// Desired RDP desktop size in pixels (Retina-aware), based on current bounds.
     private func targetPixels() -> (w: Int, h: Int, scalePct: Int) {
         let scale = window?.backingScaleFactor ?? 2.0
@@ -187,6 +197,13 @@ final class RDPNSView: NSView, RDPClientDelegate {
                           }(),
                           useLegacyGraphics: LegacyGraphicsHosts.contains(node.hostname))
         c.delegate = self
+        // Announce the layout before connecting: it travels in the client info PDU, and
+        // without it the server resolves key positions through whatever layout the session
+        // happens to be configured with.
+        if RDPNSView.scancodeTypingEnabled, let klid = KeyboardLayoutID.current() {
+            c.setKeyboardLayout(klid)
+            layoutAnnounced = true
+        }
         client = c
         c.start()
 
@@ -391,6 +408,21 @@ final class RDPNSView: NSView, RDPClientDelegate {
             client?.keyScancode(code, extended: false, down: down)
             return
         }
+        // Ordinary typing as key positions rather than characters, when the server has
+        // been told which layout to read them through. Console applications that read raw
+        // input records — powershell.exe is the one that surfaced this — discard key events
+        // that carry no virtual key code, which is exactly what a character-only event is;
+        // cmd.exe reads in line mode and takes the character, which is why the two disagree.
+        //
+        // Option is left out on purpose. macOS composes with Option where Windows composes
+        // with AltGr, and sending Alt plus a position would arrive as a menu accelerator —
+        // the characters that Option produces keep the path that was fixed for them in 0.8.9.
+        let optionComposes = e.modifierFlags.contains(.option)
+            && e.characters != e.charactersIgnoringModifiers
+        if layoutAnnounced, !optionComposes, let code = Self.scancode(for: e.keyCode) {
+            client?.keyScancode(code, extended: false, down: down)
+            return
+        }
         // The character the layout actually produces, Option included. This used to read
         // charactersIgnoringModifiers — the key *without* Option applied — so on any layout
         // that reaches for Option to type @ [ ] { }, the remote received the bare letter
@@ -515,5 +547,63 @@ struct RDPContainer: NSViewRepresentable {
 
     static func dismantleNSView(_ nsView: RDPNSView, coordinator: ()) {
         nsView.stop()
+    }
+}
+
+// MARK: - Keyboard layout
+
+/// The macOS input source, translated to the Windows keyboard layout id the server needs.
+///
+/// Only consulted when typing is sent as scancodes. A scancode says "the key in this
+/// position went down"; the server resolves the position through the layout it believes the
+/// session uses, so unless it is told, a Romanian Mac talking to a US-configured Windows
+/// produces the US character for that position. Announcing the layout is what makes the
+/// scancode path safe.
+///
+/// Deliberately a short list of known-good mappings with no guessing: an unrecognised input
+/// source returns nil, and the caller falls back to sending characters, which needs no
+/// agreement about layouts at all.
+enum KeyboardLayoutID {
+    /// Windows KLIDs (the low word is the LANGID).
+    private static let map: [String: UInt32] = [
+        "com.apple.keylayout.US": 0x0409,
+        "com.apple.keylayout.USExtended": 0x0409,
+        "com.apple.keylayout.ABC": 0x0409,
+        "com.apple.keylayout.British": 0x0809,
+        "com.apple.keylayout.German": 0x0407,
+        "com.apple.keylayout.Austrian": 0x0C07,
+        "com.apple.keylayout.SwissGerman": 0x0807,
+        "com.apple.keylayout.French": 0x040C,
+        "com.apple.keylayout.Belgian": 0x080C,
+        "com.apple.keylayout.Italian": 0x0410,
+        "com.apple.keylayout.Italian-Pro": 0x0410,
+        "com.apple.keylayout.Spanish": 0x040A,
+        "com.apple.keylayout.Spanish-ISO": 0x040A,
+        "com.apple.keylayout.Portuguese": 0x0816,
+        "com.apple.keylayout.Brazilian": 0x0416,
+        "com.apple.keylayout.Dutch": 0x0413,
+        "com.apple.keylayout.Polish": 0x0415,
+        "com.apple.keylayout.PolishPro": 0x0415,
+        "com.apple.keylayout.Czech": 0x0405,
+        "com.apple.keylayout.Hungarian": 0x040E,
+        "com.apple.keylayout.Romanian": 0x0418,
+        "com.apple.keylayout.RomanianStandard": 0x0418,
+        "com.apple.keylayout.Turkish": 0x041F,          // Turkish F
+        "com.apple.keylayout.Turkish-QWERTY": 0x041F,
+        "com.apple.keylayout.Turkish-Standard": 0x041F,
+        "com.apple.keylayout.Swedish": 0x041D,
+        "com.apple.keylayout.Swedish-Pro": 0x041D,
+        "com.apple.keylayout.Norwegian": 0x0414,
+        "com.apple.keylayout.Danish": 0x0406,
+        "com.apple.keylayout.Finnish": 0x040B,
+    ]
+
+    /// nil when the current input source is not one we can name to Windows.
+    static func current() -> UInt32? {
+        guard let source = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
+              let raw = TISGetInputSourceProperty(source, kTISPropertyInputSourceID)
+        else { return nil }
+        let id = Unmanaged<CFString>.fromOpaque(raw).takeUnretainedValue() as String
+        return map[id]
     }
 }

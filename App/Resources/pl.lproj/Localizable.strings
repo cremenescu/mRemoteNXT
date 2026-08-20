@@ -283,3 +283,7 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 "WhatsNew.OpenOnGitHub" = "Przeczytaj na GitHubie";
 "Settings.ShowWhatsNew" = "Pokaz co nowego po aktualizacji";
 "Settings.ShowWhatsNewNote" = "Otwiera informacje o wydaniu raz, przy pierwszym uruchomieniu swiezo zainstalowanej wersji. Nigdy przy nowej instalacji ani dwa razy dla tej samej kompilacji.";
+
+/* RDP: scancode typing */
+"Settings.ScancodeTyping" = "Wysylaj klawisze jako pozycje (RDP)";
+"Settings.ScancodeTypingNote" = "Programy konsolowe czytajace surowe zdarzenia klawiatury — w tym powershell.exe — nie dostaja nic, gdy klawisze docieraja jako znaki; dlatego pisanie tam nie dzialalo, choc cmd.exe byl w porzadku. Wysylanie pozycji to naprawia, a uklad klawiatury Maca jest zglaszany serwerowi, by odczytal je poprawnie. Wylacz, jesli sesja zaczyna pisac zle znaki, co oznacza, ze serwer nie dopasowal ukladu.";

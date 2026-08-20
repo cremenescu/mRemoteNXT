@@ -283,3 +283,7 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 "WhatsNew.OpenOnGitHub" = "GitHub'da oku";
 "Settings.ShowWhatsNew" = "Güncellemeden sonra yenilikleri göster";
 "Settings.ShowWhatsNewNote" = "Yeni yüklenen bir sürüm ilk kez çalıştığında sürüm notlarını bir kez açar. Sıfır kurulumlarda kıyaslanacak yeni bir şey olmadığı için ve aynı yapı için asla ikinci kez açılmaz.";
+
+/* RDP: scancode typing */
+"Settings.ScancodeTyping" = "Tuslari konum olarak gonder (RDP)";
+"Settings.ScancodeTypingNote" = "Ham klavye girdisi okuyan konsol programlari — powershell.exe dahil — tuslar karakter olarak geldiginde hicbir sey almaz; cmd.exe calisirken orada yazmanin islememesinin nedeni budur. Konum gondermek bunu duzeltir ve Mac klavye duzeni sunucuya bildirilir ki konumlar dogru okunsun. Bir oturum yanlis karakterler yazmaya baslarsa kapatin; bu, sunucunun duzeni eslestiremedigi anlamina gelir.";

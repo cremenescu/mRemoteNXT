@@ -242,6 +242,12 @@ struct AppearanceSettings: View {
                 }
                 Toggle(t("Settings.UpdateTabTitleFromTerminal"), isOn: $prefs.updateTabTitleFromTerminal)
                 VStack(alignment: .leading, spacing: 4) {
+                    Toggle(t("Settings.ScancodeTyping"), isOn: $prefs.rdpScancodeTyping)
+                    Text(t("Settings.ScancodeTypingNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 4) {
                     Toggle(t("Settings.OptionAsMeta"), isOn: $prefs.optionAsMetaKey)
                     Text(t("Settings.OptionAsMetaNote"))
                         .font(.caption).foregroundStyle(.secondary)

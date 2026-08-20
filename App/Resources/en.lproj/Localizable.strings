@@ -283,3 +283,7 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 "WhatsNew.OpenOnGitHub" = "Read on GitHub";
 "Settings.ShowWhatsNew" = "Show what's new after an update";
 "Settings.ShowWhatsNewNote" = "Opens the release notes once, the first time a newly installed version runs. Never on a fresh install, since there is nothing to be new against, and never twice for the same build.";
+
+/* RDP: scancode typing */
+"Settings.ScancodeTyping" = "Send keystrokes as key positions (RDP)";
+"Settings.ScancodeTypingNote" = "Console programs that read raw keyboard input — powershell.exe among them — receive nothing when keys arrive as characters, which is why typing there did nothing at all while cmd.exe was fine. Sending positions instead fixes that, and the Mac keyboard layout is announced to the server so the positions are read correctly. Turn it off if a session starts typing the wrong characters, which means the server could not match the layout.";

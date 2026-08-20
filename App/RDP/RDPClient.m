@@ -311,6 +311,7 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
 - (void)mouseMoveToX:(int)x y:(int)y { rdpcore_mouse_move(_core, x, y); }
 - (void)mouseButton:(int)button down:(BOOL)down x:(int)x y:(int)y { rdpcore_mouse_button(_core, button, down, x, y); }
 - (void)scrollSteps:(int)steps x:(int)x y:(int)y { rdpcore_scroll(_core, steps, x, y); }
+- (void)setKeyboardLayout:(uint32_t)klid { rdpcore_set_keyboard_layout(_core, klid); }
 - (void)keyChar:(uint16_t)unicode down:(BOOL)down { rdpcore_key_unicode(_core, unicode, down); }
 - (void)keyScancode:(uint8_t)code extended:(BOOL)extended down:(BOOL)down {
     rdpcore_key_scancode(_core, code, extended, down);

@@ -97,6 +97,10 @@ struct RDPCore {
 
     char *host, *user, *domain, *pass;
     int port, width, height, scalePercent;
+    // Windows keyboard layout id (KLID) announced to the server, 0 = say nothing.
+    // Only meaningful when the client sends scancodes: the server resolves a physical
+    // key position through *its* layout, so it has to be told which one we mean.
+    uint32_t keyboardLayout;
 
     // disp/cliprdr are assigned on the RDP thread (channel connect) but read from
     // the main thread (rdpcore_resize, clipboard senders); chanLock guards them so
@@ -581,6 +585,9 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     rdpSettings *s = context->settings;
     freerdp_settings_set_string(s, FreeRDP_ServerHostname, core->host);
     freerdp_settings_set_uint32(s, FreeRDP_ServerPort, (UINT32)core->port);
+    if (core->keyboardLayout) {
+        freerdp_settings_set_uint32(s, FreeRDP_KeyboardLayout, core->keyboardLayout);
+    }
     if (core->user && core->user[0])     freerdp_settings_set_string(s, FreeRDP_Username, core->user);
     if (core->domain && core->domain[0]) freerdp_settings_set_string(s, FreeRDP_Domain, core->domain);
     if (core->pass && core->pass[0])     freerdp_settings_set_string(s, FreeRDP_Password, core->pass);
@@ -801,6 +808,10 @@ void rdpcore_scroll(RDPCore *core, int steps, int x, int y) {
     if (delta > 0xFF) delta = 0xFF;
     flags |= (UINT16)(delta & 0xFF);
     freerdp_input_send_mouse_event(in, flags, (UINT16)x, (UINT16)y);
+}
+
+void rdpcore_set_keyboard_layout(RDPCore *core, uint32_t klid) {
+    if (core) core->keyboardLayout = klid;
 }
 
 void rdpcore_key_unicode(RDPCore *core, uint16_t unicode, bool down) {

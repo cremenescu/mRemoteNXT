@@ -49,6 +49,9 @@ NS_ASSUME_NONNULL_BEGIN
                    sharedFolder:(nullable NSString *)sharedFolder
              useLegacyGraphics:(BOOL)useLegacyGraphics;
 
+/// Windows keyboard layout id announced to the server. Set before -start.
+- (void)setKeyboardLayout:(uint32_t)klid;
+
 - (void)start;
 - (void)stop;
 - (void)resizeToWidth:(int)width height:(int)height scale:(int)scalePercent;

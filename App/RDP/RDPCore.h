@@ -57,6 +57,9 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
                         int width, int height, int scalePercent,
                         const char *sharePath, int useLegacyGraphics,
                         RDPCoreCallbacks cb, void *ctx);
+// Announce a Windows keyboard layout id for the session. Must be called before
+// rdpcore_start; 0 leaves it unset and the server uses its own.
+void rdpcore_set_keyboard_layout(RDPCore *core, uint32_t klid);
 void rdpcore_start(RDPCore *core);
 void rdpcore_stop(RDPCore *core);
 void rdpcore_free(RDPCore *core);
