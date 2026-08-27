@@ -70,6 +70,69 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     /// Leftover fraction of a line from a precise (trackpad) scroll.
     private var preciseScrollRemainder: CGFloat = 0
 
+    // MARK: - Answering the password prompt
+    //
+    // ssh reads its password from the terminal on purpose, so that no script can supply
+    // one. sshpass exists to get around that: it builds a pseudo-terminal, watches what ssh
+    // writes to it, and types the password when it sees the prompt. Its own matcher is the
+    // string "assword:", which catches both spellings — the whole trick is that plain.
+    //
+    // This app already owns the pseudo-terminal, so it is in the position sshpass has to
+    // fabricate. Doing it here removes the external dependency, and keeps the password out
+    // of another process entirely.
+
+    /// The password to offer once, or nil when there is nothing to offer.
+    private var pendingPassword: String?
+    /// After this, stop watching. Authentication is the first thing that happens; anything
+    /// asking for a password later in the session is somebody else's business.
+    private var promptDeadline: Date?
+    /// Tail of what the remote has written, kept short — only the end of it can be a prompt.
+    private var recentOutput = ""
+
+    /// Arm the one-shot answer. Called at spawn for sessions that carry a password.
+    func armPasswordPrompt(_ password: String) {
+        guard !password.isEmpty else { return }
+        pendingPassword = password
+        promptDeadline = Date().addingTimeInterval(15)
+        recentOutput = ""
+    }
+
+    /// Stop watching, for good. Called after answering, and on the first key the user types.
+    ///
+    /// The keystroke is the guard sshpass cannot have: once you have touched the keyboard,
+    /// either you are at a shell or you are answering the prompt yourself, and in both cases
+    /// nothing later in this session should be answered for you. It is what keeps a `sudo`
+    /// run seconds after connecting from being handed the connection's password.
+    func disarmPasswordPrompt() {
+        pendingPassword = nil
+        promptDeadline = nil
+        recentOutput = ""
+    }
+
+    override func dataReceived(slice: ArraySlice<UInt8>) {
+        super.dataReceived(slice: slice)
+        answerPromptIfPresent(slice)
+    }
+
+    private func answerPromptIfPresent(_ slice: ArraySlice<UInt8>) {
+        guard let password = pendingPassword, let deadline = promptDeadline else { return }
+        guard Date() < deadline else { disarmPasswordPrompt(); return }
+
+        recentOutput += String(decoding: slice, as: UTF8.self)
+        if recentOutput.count > 300 { recentOutput = String(recentOutput.suffix(300)) }
+
+        let tail = recentOutput.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A passphrase unlocks a private key and is not this password; answering it with the
+        // account's password would hand it to the wrong prompt entirely.
+        guard !tail.lowercased().contains("passphrase") else { return }
+        // Both "Password:" and "password:" end in the colon, which is what makes it a prompt
+        // rather than a sentence mentioning one.
+        guard tail.contains("assword"), tail.hasSuffix(":") else { return }
+
+        disarmPasswordPrompt()
+        send(txt: password + "\r")
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupPuttyMouse()
@@ -165,8 +228,11 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     /// `public`, not `open`, so a monitor is the only way in.
     private func installKeyFixes() {
         wordMotionMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
-            guard let self, self.isActiveTab, !self.optionAsMetaKey,
-                  event.window === self.window,
+            guard let self, self.isActiveTab, event.window === self.window else { return event }
+            // Any key at all ends the one-shot password answer, whatever else this monitor
+            // decides to do with the event afterwards.
+            if self.window?.firstResponder === self { self.disarmPasswordPrompt() }
+            guard !self.optionAsMetaKey,
                   self.window?.firstResponder === self,
                   event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .option
             else { return event }
@@ -415,6 +481,10 @@ struct TerminalContainer: NSViewRepresentable {
         term.terminal.changeScrollback(max(500, scrollbackLines))
         term.isActiveTab = isActive
         term.optionAsMetaKey = optionAsMetaKey
+        // Arm before the process starts: ssh can ask for the password within milliseconds.
+        if session.kind == .ssh || session.kind == .sftp {
+            term.armPasswordPrompt(session.password)
+        }
         let launch = Self.command(for: session)
         term.startProcess(executable: launch.executable, args: launch.args,
                           environment: launch.environment, execName: nil)
@@ -475,26 +545,16 @@ struct TerminalContainer: NSViewRepresentable {
 
         switch session.kind {
         case .ssh:
-            let sshArgs = [
+            // Always plain ssh. The password, when there is one, is answered by the terminal
+            // itself once ssh asks for it — see armPasswordPrompt. sshpass used to do that
+            // job from the outside and had to be installed separately; there is no reason to
+            // shell out to a second process for a prompt this app can already see.
+            return Launch(executable: "/usr/bin/ssh", args: [
                 "-p", "\(port)",
                 "-o", "UserKnownHostsFile=\(appKnownHostsPath())",
                 "-o", "StrictHostKeyChecking=accept-new",
                 target,
-            ]
-            // If we have a password AND sshpass is installed -> hand it over through a pipe.
-            // Otherwise plain ssh (uses agent key or prompts interactively).
-            //
-            // Not `sshpass -p <password>`: process arguments are readable by every other
-            // process running as this user (`ps -ww`), so the password was on display for
-            // the lifetime of the connection. `-d` takes a file descriptor instead, and a
-            // descriptor is only inherited by the child.
-            if !session.password.isEmpty, let sshpass = sshpassPath(),
-               let fd = passwordDescriptor(session.password) {
-                return Launch(executable: sshpass,
-                              args: ["-d", "\(fd)", "/usr/bin/ssh"] + sshArgs,
-                              afterSpawn: { close(fd) })
-            }
-            return Launch(executable: "/usr/bin/ssh", args: sshArgs)
+            ])
         case .telnet:
             return Launch(executable: "/usr/bin/telnet", args: [host, "\(port)"])
         case .sftp:
@@ -520,30 +580,7 @@ struct TerminalContainer: NSViewRepresentable {
         }
     }
 
-    /// A read-only file descriptor holding the password, ready to be inherited across the
-    /// fork. The write end is closed here, so the reader sees the password then EOF; the
-    /// caller closes the returned descriptor once the child has it.
-    private static func passwordDescriptor(_ password: String) -> Int32? {
-        var fds: [Int32] = [-1, -1]
-        guard pipe(&fds) == 0 else { return nil }
-        let (readEnd, writeEnd) = (fds[0], fds[1])
-        // The child must inherit the read end, so it explicitly does not close on exec.
-        _ = fcntl(readEnd, F_SETFD, 0)
-        let bytes = Array((password + "\n").utf8)
-        let written = bytes.withUnsafeBytes { write(writeEnd, $0.baseAddress, $0.count) }
-        close(writeEnd)
-        guard written == bytes.count else {
-            close(readEnd)
-            return nil
-        }
-        return readEnd
-    }
 
-    /// Look for an installed sshpass (brew). Returns the path, or nil.
-    static func sshpassPath() -> String? {
-        let candidates = ["/opt/homebrew/bin/sshpass", "/usr/local/bin/sshpass"]
-        return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
-    }
 
     /// App-specific known_hosts (separate from ~/.ssh/known_hosts), so we don't
     /// collide with old system entries and we can auto-accept on first connect.
