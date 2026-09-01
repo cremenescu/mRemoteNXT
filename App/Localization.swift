@@ -41,10 +41,16 @@ final class LanguageManager: ObservableObject {
 
         /// The language's own name for itself — "Français", "Türkçe" — so a reader can
         /// find their language without knowing the one the app is currently in.
+        ///
+        /// Asked as an identifier rather than as a language code, because a regional one
+        /// loses its region otherwise: pt-BR comes back as "português" from the language
+        /// form and "português (Brasil)" from this one, which is the distinction a Brazilian
+        /// reader is looking for. For plain codes the two agree.
         var displayName: String {
             guard rawValue != Choice.auto.rawValue else { return t("Language.Auto") }
             let locale = Locale(identifier: rawValue)
-            guard let name = locale.localizedString(forLanguageCode: rawValue) else {
+            guard let name = locale.localizedString(forIdentifier: rawValue)
+                    ?? locale.localizedString(forLanguageCode: rawValue) else {
                 return rawValue.uppercased()
             }
             return name.capitalized(with: locale)
@@ -94,8 +100,21 @@ final class LanguageManager: ObservableObject {
     private func applyChoice() {
         let lang: String
         if choice == .auto {
-            let system = String((Locale.preferredLanguages.first ?? "en").prefix(2)).lowercased()
-            lang = Self.bundledLanguages.contains(system) ? system : "en"
+            // The system reports something like "pt-BR" or "en-RO". Take an exact match
+            // first, then fall back to any bundled language sharing its base: chopping to
+            // two letters and looking for "pt" would miss a translation filed as pt-BR and
+            // hand a Brazilian Mac English instead.
+            let preferred = Locale.preferredLanguages.first ?? "en"
+            let base = String(preferred.prefix(2)).lowercased()
+            if Self.bundledLanguages.contains(preferred) {
+                lang = preferred
+            } else if let regional = Self.bundledLanguages.first(where: {
+                $0.lowercased() == base || $0.lowercased().hasPrefix(base + "-")
+            }) {
+                lang = regional
+            } else {
+                lang = "en"
+            }
         } else {
             lang = choice.rawValue
         }
