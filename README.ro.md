@@ -139,6 +139,7 @@ Razvan Cremenescu — <https://github.com/cremenescu>
 
 Multumiri tuturor celor care au contribuit la mRemoteNXT:
 
+- [@LeMarchini](https://github.com/LeMarchini) — localizare portugheza braziliana.
 - [@emircankavas](https://github.com/emircankavas) — localizare turceasca, si
   cele doua raportari de tastatura din spatele lui 0.8.6 si 0.8.9, care au
   reparat Option/AltGr pentru orice aranjament, nu doar pentru turca.

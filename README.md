@@ -161,6 +161,7 @@ Razvan Cremenescu — <https://github.com/cremenescu>
 
 Thanks to everyone who has contributed to mRemoteNXT:
 
+- [@LeMarchini](https://github.com/LeMarchini) — Brazilian Portuguese localization.
 - [@emircankavas](https://github.com/emircankavas) — Turkish localization, and
   the two keyboard reports behind 0.8.6 and 0.8.9 that fixed Option/AltGr
   input for every layout, not only Turkish.
