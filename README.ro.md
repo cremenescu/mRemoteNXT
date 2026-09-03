@@ -26,7 +26,7 @@ cu tab-uri si paneluri.
 
 | Versiune | Publicata | Descarcari |
 |---|---|---|
-| **v0.8.11-alpha** (ultima) | 2026-09-03 | ![](https://img.shields.io/github/downloads/cremenescu/mRemoteNXT/latest/total?label=downloads&color=44cc11) |
+| **v0.8.11-alpha** (ultima) | 2026-09-03 | ![](https://img.shields.io/github/downloads/cremenescu/mRemoteNXT/v0.8.11-alpha/total?label=v0.8.11&color=44cc11) |
 | v0.8.10-alpha | 2026-08-20 | ![](https://img.shields.io/github/downloads/cremenescu/mRemoteNXT/v0.8.10-alpha/total?label=v0.8.10&color=44cc11) |
 | v0.8.9-alpha | 2026-08-14 | ![](https://img.shields.io/github/downloads/cremenescu/mRemoteNXT/v0.8.9-alpha/total?label=v0.8.9&color=44cc11) |
 | v0.8.8-alpha | 2026-08-12 | ![](https://img.shields.io/github/downloads/cremenescu/mRemoteNXT/v0.8.8-alpha/total?label=v0.8.8&color=44cc11) |

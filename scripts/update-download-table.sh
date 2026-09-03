@@ -5,8 +5,11 @@
 #
 #   ./scripts/update-download-table.sh
 #
-# The top row points at `latest` rather than a fixed tag, so it stays correct
-# even when this has not been run — only the rows below it go stale.
+# Every row, the top one included, points at a fixed tag. The `latest` endpoint
+# was tempting — it would survive this script not being run — but its URL is the
+# same string after every release, so GitHub's image proxy keeps serving the
+# cached badge of the PREVIOUS version and the newest row shows someone else's
+# count. A per-tag URL has never been fetched before and is rendered fresh.
 set -euo pipefail
 
 REPO="cremenescu/mRemoteNXT"
@@ -29,8 +32,8 @@ build_table() { # $1 = en | ro
 
     echo "| $h1 | $h2 | $h3 |"
     echo "|---|---|---|"
-    printf '| **%s** (%s) | %s | ![](https://img.shields.io/github/downloads/%s/latest/total?label=downloads&color=44cc11) |\n' \
-        "$head_ver" "$latest" "$head_date" "$REPO"
+    printf '| **%s** (%s) | %s | ![](%s) |\n' \
+        "$head_ver" "$latest" "$head_date" "$(badge "$head_ver")"
 
     gh api "repos/$REPO/releases?per_page=$((ROWS + 1))" \
         --jq '.[] | "\(.tag_name)\t\(.published_at | split("T")[0])"' \
