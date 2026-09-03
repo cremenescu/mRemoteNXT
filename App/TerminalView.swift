@@ -105,13 +105,13 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     /// authenticates by key never prompts at all, and a queue holding its empty slot would
     /// answer the next machine's prompt with nothing and burn one of its three attempts.
     func armPasswordPrompts(_ answers: [(host: String, password: String)]) {
+        recentOutput = ""
+        answeredHosts = []
         pendingAnswers = answers
             .filter { !$0.password.isEmpty }
             .map { PendingAnswer(host: $0.host, password: $0.password) }
         guard !pendingAnswers.isEmpty else { return }
         promptDeadline = Date().addingTimeInterval(15)
-        recentOutput = ""
-        answeredHosts = []
     }
 
     /// Stop watching, for good. Called once the queue empties, on the first key the user

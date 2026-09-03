@@ -32,7 +32,10 @@ struct Session: Identifiable {
         /// `ssh -J` reads hops as `[user@]host[:port]`. The port is left off when it is
         /// the default, because a chain reads better without `:22` on every link.
         var spec: String {
-            let hostPort = port == 22 ? host : "\(host):\(port)"
+            // ssh takes a bare colon as the port separator, so a literal IPv6 address has
+            // to be bracketed or its own colons are read as one.
+            let literal = host.contains(":") ? "[\(host)]" : host
+            let hostPort = port == 22 ? literal : "\(literal):\(port)"
             return user.isEmpty ? hostPort : "\(user)@\(hostPort)"
         }
     }
@@ -461,7 +464,11 @@ final class AppModel: ObservableObject {
     /// does not have: the document, to look an id up, and the master password, to read
     /// each hop's own saved password.
     func hops(for node: MRNGNode) -> [Session.Hop] {
-        node.jumpChain(resolve: { self.node(byID: $0) })
+        // Jump hosts are an ssh idea, and `-J` is the only place they are spent. Gating it
+        // here rather than at each call site keeps a connection of another protocol that
+        // somehow carries the attribute from resolving and decrypting hops it cannot use.
+        guard node.protocolType == "SSH1" || node.protocolType == "SSH2" else { return [] }
+        return node.jumpChain(resolve: { self.node(byID: $0) })
             .map { Session.Hop(user: $0.username, host: $0.hostname, port: $0.port,
                                password: decryptedPassword(for: $0)) }
     }
