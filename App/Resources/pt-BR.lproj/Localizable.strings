@@ -152,6 +152,11 @@
 "Editor.Field.Protocol" = "Protocolo";
 "Editor.Field.Port" = "Porta";
 "Editor.Field.Host" = "Host";
+"Editor.Field.JumpHost" = "Host intermediário";
+"Editor.JumpHost.Direct" = "Conexão direta";
+"Editor.JumpHostNone" = "Conecta diretamente ao host acima.";
+"Editor.JumpHostMissing" = "O host intermediário escolhido não está mais neste arquivo, então a conexão é feita diretamente.";
+"Editor.JumpHostChain" = "Rota: %@";
 "Editor.Field.Panel" = "Painel";
 "Editor.Field.RedirectDiskDrives" = "Compartilhar pasta (redirecionamento de disco)";
 "Editor.Field.SharedFolder" = "Pasta";

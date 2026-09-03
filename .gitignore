@@ -28,3 +28,4 @@ backups/
 .build-release/
 .dist/
 .build-dev/
+.build-check/

@@ -152,6 +152,11 @@
 "Editor.Field.Protocol" = "Protokol";
 "Editor.Field.Port" = "Port";
 "Editor.Field.Host" = "Sunucu";
+"Editor.Field.JumpHost" = "Atlama sunucusu";
+"Editor.JumpHost.Direct" = "Doğrudan bağlantı";
+"Editor.JumpHostNone" = "Yukarıdaki sunucuya doğrudan bağlanır.";
+"Editor.JumpHostMissing" = "Seçilen atlama sunucusu artık bu dosyada yok, bağlantı doğrudan kuruluyor.";
+"Editor.JumpHostChain" = "Rota: %@";
 "Editor.Field.Panel" = "Panel";
 "Editor.Field.RedirectDiskDrives" = "Klasör paylaş (disk yönlendirme)";
 "Editor.Field.SharedFolder" = "Klasör";

@@ -152,6 +152,11 @@
 "Editor.Field.Protocol" = "Protocole";
 "Editor.Field.Port" = "Port";
 "Editor.Field.Host" = "Hôte";
+"Editor.Field.JumpHost" = "Hôte de rebond";
+"Editor.JumpHost.Direct" = "Connexion directe";
+"Editor.JumpHostNone" = "Se connecte directement à l'hôte ci-dessus.";
+"Editor.JumpHostMissing" = "L'hôte de rebond choisi ne figure plus dans ce fichier, la connexion est donc directe.";
+"Editor.JumpHostChain" = "Trajet : %@";
 "Editor.Field.Panel" = "Panneau";
 "Editor.Field.RedirectDiskDrives" = "Partager un dossier (redirection de disque)";
 "Editor.Field.SharedFolder" = "Dossier";

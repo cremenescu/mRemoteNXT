@@ -177,6 +177,40 @@ public final class MRNGNode: Identifiable, Hashable {
     public var redirectDiskDrivesCustom: String {
         resolved("RedirectDiskDrivesCustom", inheritKey: "InheritRedirectDiskDrivesCustom") ?? ""
     }
+    /// Attribute holding the id of another connection to reach this one through
+    /// (`ssh -J`). mRemoteNG has no field for a jump host at all, so this name is ours and
+    /// carries a prefix: the serializer writes attributes it does not recognise back out
+    /// untouched, and mRemoteNG ignores them — the cost being that saving the file from
+    /// mRemoteNG on Windows drops the setting.
+    public static let jumpConnectionAttribute = "NXTJumpConnectionId"
+
+    /// Id of the connection used as a jump host, or "" for a direct connection.
+    ///
+    /// Deliberately not inheritable: a folder of servers rarely shares one bastion for
+    /// all of them, and an inherited jump host that quietly applies to a machine already
+    /// inside the network would route it the long way round for no reason.
+    public var jumpConnectionID: String { attributes[MRNGNode.jumpConnectionAttribute] ?? "" }
+
+    /// The hops to pass to `ssh -J`, outermost first — the order ssh dials them in.
+    ///
+    /// `resolve` looks an id up in the document. The walk stops at an id that names nothing
+    /// (a deleted bastion leaves the connection direct rather than unusable), at a folder,
+    /// and at anything already visited: two connections naming each other is a cycle a
+    /// person can create in the editor in two clicks, and it must not become a hang.
+    public func jumpChain(resolve: (String) -> MRNGNode?) -> [MRNGNode] {
+        var chain: [MRNGNode] = []
+        var seen: Set<String> = [id]
+        var next = jumpConnectionID
+        while !next.isEmpty, !seen.contains(next), let hop = resolve(next), !hop.isContainer {
+            chain.append(hop)
+            seen.insert(next)
+            next = hop.jumpConnectionID
+        }
+        // Collected nearest-first (this connection's own jump host, then its jump host);
+        // ssh wants the far end of the chain first, since that is the one it dials.
+        return chain.reversed()
+    }
+
     public var descr: String { resolved("Descr", inheritKey: "InheritDescription") ?? "" }
     public var icon: String { resolved("Icon", inheritKey: "InheritIcon") ?? "mRemoteNG" }
     public var panel: String { resolved("Panel", inheritKey: "InheritPanel") ?? "" }

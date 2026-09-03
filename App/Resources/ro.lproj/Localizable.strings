@@ -146,6 +146,11 @@
 "Editor.Field.Protocol" = "Protocol";
 "Editor.Field.Port" = "Port";
 "Editor.Field.Host" = "Host";
+"Editor.Field.JumpHost" = "Salt prin";
+"Editor.JumpHost.Direct" = "Conectare directa";
+"Editor.JumpHostNone" = "Se conecteaza direct la hostul de mai sus.";
+"Editor.JumpHostMissing" = "Saltul ales nu mai exista in fisier, asa ca se conecteaza direct.";
+"Editor.JumpHostChain" = "Traseu: %@";
 "Editor.Field.Panel" = "Panel";
 "Editor.Field.RedirectDiskDrives" = "Partajeaza folder (disk redirect)";
 "Editor.Field.SharedFolder" = "Folder";

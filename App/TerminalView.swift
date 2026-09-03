@@ -81,32 +81,51 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     // fabricate. Doing it here removes the external dependency, and keeps the password out
     // of another process entirely.
 
-    /// The password to offer once, or nil when there is nothing to offer.
-    private var pendingPassword: String?
+    /// One password still owed, and the machine it belongs to.
+    private struct PendingAnswer {
+        /// Host as ssh will name it in the prompt; "" when there is nothing to match on.
+        let host: String
+        let password: String
+    }
+
+    /// Passwords still owed, in the order ssh will ask for them: the jump hosts as it dials
+    /// them, then the target.
+    private var pendingAnswers: [PendingAnswer] = []
     /// After this, stop watching. Authentication is the first thing that happens; anything
     /// asking for a password later in the session is somebody else's business.
     private var promptDeadline: Date?
     /// Tail of what the remote has written, kept short — only the end of it can be a prompt.
     private var recentOutput = ""
+    /// Hosts already answered, so a re-prompt is recognised as one.
+    private var answeredHosts: [String] = []
 
-    /// Arm the one-shot answer. Called at spawn for sessions that carry a password.
-    func armPasswordPrompt(_ password: String) {
-        guard !password.isEmpty else { return }
-        pendingPassword = password
+    /// Arm the answers for one connection attempt. Called at spawn.
+    ///
+    /// Entries without a password are dropped rather than kept as placeholders: a hop that
+    /// authenticates by key never prompts at all, and a queue holding its empty slot would
+    /// answer the next machine's prompt with nothing and burn one of its three attempts.
+    func armPasswordPrompts(_ answers: [(host: String, password: String)]) {
+        pendingAnswers = answers
+            .filter { !$0.password.isEmpty }
+            .map { PendingAnswer(host: $0.host, password: $0.password) }
+        guard !pendingAnswers.isEmpty else { return }
         promptDeadline = Date().addingTimeInterval(15)
         recentOutput = ""
+        answeredHosts = []
     }
 
-    /// Stop watching, for good. Called after answering, and on the first key the user types.
+    /// Stop watching, for good. Called once the queue empties, on the first key the user
+    /// types, and whenever a prompt cannot be attributed to a machine with confidence.
     ///
     /// The keystroke is the guard sshpass cannot have: once you have touched the keyboard,
     /// either you are at a shell or you are answering the prompt yourself, and in both cases
     /// nothing later in this session should be answered for you. It is what keeps a `sudo`
     /// run seconds after connecting from being handed the connection's password.
     func disarmPasswordPrompt() {
-        pendingPassword = nil
+        pendingAnswers = []
         promptDeadline = nil
         recentOutput = ""
+        answeredHosts = []
     }
 
     override func dataReceived(slice: ArraySlice<UInt8>) {
@@ -115,7 +134,7 @@ final class MRNGTerminalView: LocalProcessTerminalView {
     }
 
     private func answerPromptIfPresent(_ slice: ArraySlice<UInt8>) {
-        guard let password = pendingPassword, let deadline = promptDeadline else { return }
+        guard !pendingAnswers.isEmpty, let deadline = promptDeadline else { return }
         guard Date() < deadline else { disarmPasswordPrompt(); return }
 
         recentOutput += String(decoding: slice, as: UTF8.self)
@@ -129,8 +148,36 @@ final class MRNGTerminalView: LocalProcessTerminalView {
         // rather than a sentence mentioning one.
         guard tail.contains("assword"), tail.hasSuffix(":") else { return }
 
-        disarmPasswordPrompt()
-        send(txt: password + "\r")
+        // A wrong password makes ssh ask the same machine again. Answering that from the
+        // queue would hand one server's password to a server it does not belong to, so a
+        // prompt naming a machine already answered ends the watching instead.
+        if answeredHosts.contains(where: { tail.contains($0) }) { disarmPasswordPrompt(); return }
+
+        // OpenSSH writes "user@host's password:", so the prompt normally names the machine
+        // it is for. Going by that beats going in order: a hop that turned out to have a key
+        // never prompts, and strict order would then give its password to the next machine
+        // down the chain. A server printing a bare "Password:" leaves nothing to match on,
+        // and is answered only when the whole attempt owes exactly one password and has not
+        // spent it — a direct connection, where there is no other machine it could be.
+        let index: Int
+        if let matched = pendingAnswers.firstIndex(where: { !$0.host.isEmpty && tail.contains($0.host) }) {
+            index = matched
+        } else if answeredHosts.isEmpty && pendingAnswers.count == 1 {
+            index = 0
+        } else {
+            disarmPasswordPrompt()
+            return
+        }
+
+        let answer = pendingAnswers[index]
+        // Everything before the match is a hop ssh got past without asking.
+        pendingAnswers.removeFirst(index + 1)
+        if !answer.host.isEmpty { answeredHosts.append(answer.host) }
+        recentOutput = ""
+        // Each machine in the chain gets its own fifteen seconds; a slow bastion must not
+        // eat the budget the target still needs.
+        promptDeadline = pendingAnswers.isEmpty ? nil : Date().addingTimeInterval(15)
+        send(txt: answer.password + "\r")
     }
 
     override init(frame: CGRect) {
@@ -483,7 +530,9 @@ struct TerminalContainer: NSViewRepresentable {
         term.optionAsMetaKey = optionAsMetaKey
         // Arm before the process starts: ssh can ask for the password within milliseconds.
         if session.kind == .ssh || session.kind == .sftp {
-            term.armPasswordPrompt(session.password)
+            term.armPasswordPrompts(
+                session.hops.map { (host: $0.host, password: $0.password) }
+                    + [(host: session.node.hostname, password: session.password)])
         }
         let launch = Self.command(for: session)
         term.startProcess(executable: launch.executable, args: launch.args,
@@ -549,8 +598,8 @@ struct TerminalContainer: NSViewRepresentable {
             // itself once ssh asks for it — see armPasswordPrompt. sshpass used to do that
             // job from the outside and had to be installed separately; there is no reason to
             // shell out to a second process for a prompt this app can already see.
-            return Launch(executable: "/usr/bin/ssh", args: [
-                "-p", "\(port)",
+            return Launch(executable: "/usr/bin/ssh",
+                           args: ["-p", "\(port)"] + jumpArgs(session) + [
                 "-o", "UserKnownHostsFile=\(appKnownHostsPath())",
                 "-o", "StrictHostKeyChecking=accept-new",
                 target,
@@ -558,8 +607,9 @@ struct TerminalContainer: NSViewRepresentable {
         case .telnet:
             return Launch(executable: "/usr/bin/telnet", args: [host, "\(port)"])
         case .sftp:
-            return Launch(executable: "/usr/bin/sftp", args: [
-                "-P", "\(port)", // SFTP uses uppercase -P for the port
+            return Launch(executable: "/usr/bin/sftp",
+                           args: ["-P", "\(port)"] + jumpArgs(session) + [
+                // SFTP spells the port with an uppercase -P, but reads -J the same way.
                 "-o", "UserKnownHostsFile=\(appKnownHostsPath())",
                 "-o", "StrictHostKeyChecking=accept-new",
                 target,
@@ -581,6 +631,16 @@ struct TerminalContainer: NSViewRepresentable {
     }
 
 
+
+    /// `-J hop,hop` for a session that goes through jump hosts, or nothing for a direct one.
+    ///
+    /// ssh dials the list left to right and tunnels each link through the one before it, so
+    /// the order the model resolved them in is the order they go on the command line. No
+    /// password appears here: those are answered on the terminal, one machine at a time.
+    static func jumpArgs(_ session: Session) -> [String] {
+        guard !session.hops.isEmpty else { return [] }
+        return ["-J", session.hops.map(\.spec).joined(separator: ",")]
+    }
 
     /// App-specific known_hosts (separate from ~/.ssh/known_hosts), so we don't
     /// collide with old system entries and we can auto-accept on first connect.

@@ -152,6 +152,11 @@
 "Editor.Field.Protocol" = "Protokół";
 "Editor.Field.Port" = "Port";
 "Editor.Field.Host" = "Host";
+"Editor.Field.JumpHost" = "Host pośredniczący";
+"Editor.JumpHost.Direct" = "Połączenie bezpośrednie";
+"Editor.JumpHostNone" = "Łączy się bezpośrednio z hostem powyżej.";
+"Editor.JumpHostMissing" = "Wybranego hosta pośredniczącego nie ma już w tym pliku, więc połączenie jest bezpośrednie.";
+"Editor.JumpHostChain" = "Trasa: %@";
 "Editor.Field.Panel" = "Panel";
 "Editor.Field.RedirectDiskDrives" = "Udostępnij folder (przekierowanie dysku)";
 "Editor.Field.SharedFolder" = "Folder";

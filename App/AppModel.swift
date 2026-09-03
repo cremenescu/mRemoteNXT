@@ -17,6 +17,25 @@ struct Session: Identifiable {
     let password: String
     let panel: String
     var command: String? = nil // for .externalTool: the resolved command line
+    /// Jump hosts to reach this one through, outermost first. Empty for a direct
+    /// connection and for every protocol that does not go out over ssh.
+    var hops: [Hop] = []
+
+    /// One machine on the way to the target: what `ssh -J` needs in order to dial it,
+    /// and the password to answer with should it ask for one.
+    struct Hop {
+        let user: String
+        let host: String
+        let port: Int
+        let password: String
+
+        /// `ssh -J` reads hops as `[user@]host[:port]`. The port is left off when it is
+        /// the default, because a chain reads better without `:22` on every link.
+        var spec: String {
+            let hostPort = port == 22 ? host : "\(host):\(port)"
+            return user.isEmpty ? hostPort : "\(user)@\(hostPort)"
+        }
+    }
 }
 
 /// External tool: a command line with macros (%Host%, %Username%, %Port%, %Password%, %Domain%, %Name%).
@@ -436,6 +455,17 @@ final class AppModel: ObservableObject {
         return doc.allNodes().first { $0.id == id }
     }
 
+    /// The jump hosts standing between this Mac and `node`, resolved to what ssh needs.
+    ///
+    /// Lives here rather than in the terminal view because it takes both halves the view
+    /// does not have: the document, to look an id up, and the master password, to read
+    /// each hop's own saved password.
+    func hops(for node: MRNGNode) -> [Session.Hop] {
+        node.jumpChain(resolve: { self.node(byID: $0) })
+            .map { Session.Hop(user: $0.username, host: $0.hostname, port: $0.port,
+                               password: decryptedPassword(for: $0)) }
+    }
+
     func decryptedPassword(for node: MRNGNode) -> String {
         let enc = node.encryptedPassword
         guard !enc.isEmpty, let doc else { return "" }
@@ -837,7 +867,8 @@ final class AppModel: ObservableObject {
             kind: kind(for: node),
             node: node,
             password: decryptedPassword(for: node),
-            panel: node.panel.isEmpty ? "General" : node.panel
+            panel: node.panel.isEmpty ? "General" : node.panel,
+            hops: hops(for: node)
         )
         sessions.append(session)
         selectedSessionID = session.id
@@ -883,7 +914,8 @@ final class AppModel: ObservableObject {
         // change was closing the tab and opening it again from the sidebar. Everything else
         // (host, user, domain) is already read live from the node at connect time.
         let fresh = Session(title: session.title, kind: session.kind, node: session.node,
-                            password: decryptedPassword(for: session.node), panel: session.panel)
+                            password: decryptedPassword(for: session.node), panel: session.panel,
+                            hops: hops(for: session.node))
         sessions[idx] = fresh
         selectedSessionID = fresh.id
         selectedPanel = fresh.panel
@@ -1008,7 +1040,8 @@ final class AppModel: ObservableObject {
             kind: .sftp,
             node: node,
             password: decryptedPassword(for: node),
-            panel: node.panel.isEmpty ? "General" : node.panel
+            panel: node.panel.isEmpty ? "General" : node.panel,
+            hops: hops(for: node)
         )
         sessions.append(session)
         selectedSessionID = session.id

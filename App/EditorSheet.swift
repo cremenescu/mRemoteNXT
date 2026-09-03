@@ -172,6 +172,21 @@ struct EditorSheet: View {
             Spacer()
         }
         field(t("Editor.Field.Host"), attr(node, "Hostname"))
+        if isSSH(node) {
+            HStack(spacing: 8) {
+                label(t("Editor.Field.JumpHost"))
+                Picker("", selection: jumpBinding(node)) {
+                    Text(t("Editor.JumpHost.Direct")).tag("")
+                    ForEach(jumpCandidates(for: node), id: \.id) { candidate in
+                        Text(jumpCandidateLabel(candidate)).tag(candidate.id)
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: 420)
+                Spacer()
+            }
+            Text(jumpHint(node)).font(.caption).foregroundStyle(.secondary)
+        }
         field(t("Editor.Field.Panel"), attr(node, "Panel", inherit: "InheritPanel"))
         // mRemoteNG's own RedirectDiskDrives: on Windows it exposes every local drive,
         // here it shares only the folder picked in Settings. Same attribute either way,
@@ -216,6 +231,53 @@ struct EditorSheet: View {
             }
         }
         Text(sharedFolderHint(node)).font(.caption).foregroundStyle(.secondary)
+    }
+
+    private func isSSH(_ node: MRNGNode) -> Bool {
+        node.protocolType == "SSH1" || node.protocolType == "SSH2"
+    }
+
+    /// Connections offered as this one's jump host: every ssh connection in the file except
+    /// itself, and except any that would already have to be reached through it — choosing
+    /// one of those closes a loop, and a loop has no first machine to dial.
+    private func jumpCandidates(for node: MRNGNode) -> [MRNGNode] {
+        guard let doc = model.doc else { return [] }
+        return doc.allNodes()
+            .filter { !$0.isContainer && isSSH($0) && $0 !== node }
+            .filter { candidate in
+                !candidate.jumpChain(resolve: { model.node(byID: $0) }).contains { $0 === node }
+            }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    /// Name plus host: two bastions are often named alike, and the address is what tells
+    /// them apart.
+    private func jumpCandidateLabel(_ node: MRNGNode) -> String {
+        node.hostname.isEmpty ? node.name : "\(node.name) — \(node.hostname)"
+    }
+
+    private func jumpBinding(_ node: MRNGNode) -> Binding<String> {
+        Binding(
+            get: { node.jumpConnectionID },
+            set: { value in
+                // Cleared means the attribute goes away rather than being written empty, so
+                // a file that never used a jump host still saves exactly as it loaded.
+                if value.isEmpty { node.attributes.removeValue(forKey: MRNGNode.jumpConnectionAttribute) }
+                else { node.attributes[MRNGNode.jumpConnectionAttribute] = value }
+                model.markDirty()
+            })
+    }
+
+    /// Spell the whole route out. A chain of two is easy to build and hard to picture, and
+    /// a jump host whose connection was deleted silently leaves this one direct — which the
+    /// caption is the only place to notice.
+    private func jumpHint(_ node: MRNGNode) -> String {
+        let chain = node.jumpChain(resolve: { model.node(byID: $0) })
+        guard !chain.isEmpty else {
+            return node.jumpConnectionID.isEmpty ? t("Editor.JumpHostNone") : t("Editor.JumpHostMissing")
+        }
+        let route = (chain.map(\.name) + [node.name]).joined(separator: " → ")
+        return String(format: t("Editor.JumpHostChain"), route)
     }
 
     /// The folder actually in effect for this node: its own (or inherited) value first,

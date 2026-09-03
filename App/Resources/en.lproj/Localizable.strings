@@ -152,6 +152,11 @@
 "Editor.Field.Protocol" = "Protocol";
 "Editor.Field.Port" = "Port";
 "Editor.Field.Host" = "Host";
+"Editor.Field.JumpHost" = "Jump host";
+"Editor.JumpHost.Direct" = "Direct connection";
+"Editor.JumpHostNone" = "Connects straight to the host above.";
+"Editor.JumpHostMissing" = "The chosen jump host is no longer in this file, so the connection is made directly.";
+"Editor.JumpHostChain" = "Route: %@";
 "Editor.Field.Panel" = "Panel";
 "Editor.Field.RedirectDiskDrives" = "Share folder (disk redirect)";
 "Editor.Field.SharedFolder" = "Folder";
