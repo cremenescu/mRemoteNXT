@@ -527,26 +527,31 @@ struct RDPContainer: NSViewRepresentable {
     var onDisconnect: () -> Void = {}
     var onNeedsReconnect: () -> Void = {}
 
-    func makeNSView(context: Context) -> RDPNSView {
+    func makeNSView(context: Context) -> SessionHostView<RDPNSView> {
         let view = RDPNSView(session: session)
         view.onDisconnect = onDisconnect
         view.onNeedsReconnect = onNeedsReconnect
-        return view
+        let host = SessionHostView(content: view)
+        host.isActive = isActive
+        return host
     }
 
-    func updateNSView(_ nsView: RDPNSView, context: Context) {
-        nsView.ensureStarted()
+    func updateNSView(_ host: SessionHostView<RDPNSView>, context: Context) {
+        let view = host.content
+        view.ensureStarted()
+        // The host sizes the desktop view only while it is on screen; tell it which that is.
+        host.isActive = isActive
         guard isActive else { return }
         DispatchQueue.main.async {
-            guard let w = nsView.window else { return }
+            guard let w = view.window else { return }
             // Don't steal focus while the user is typing in a text field (e.g. search).
             if w.firstResponder is NSText { return }
-            if w.firstResponder !== nsView { w.makeFirstResponder(nsView) }
+            if w.firstResponder !== view { w.makeFirstResponder(view) }
         }
     }
 
-    static func dismantleNSView(_ nsView: RDPNSView, coordinator: ()) {
-        nsView.stop()
+    static func dismantleNSView(_ host: SessionHostView<RDPNSView>, coordinator: ()) {
+        host.content.stop()
     }
 }
 

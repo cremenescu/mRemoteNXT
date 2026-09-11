@@ -514,7 +514,7 @@ struct TerminalContainer: NSViewRepresentable {
 
     func makeCoordinator() -> TerminalCoordinator { TerminalCoordinator() }
 
-    func makeNSView(context: Context) -> LocalProcessTerminalView {
+    func makeNSView(context: Context) -> SessionHostView<MRNGTerminalView> {
         let term = MRNGTerminalView(frame: NSRect(x: 0, y: 0, width: 800, height: 480))
         term.font = NSFont.monospacedSystemFont(ofSize: CGFloat(fontSize), weight: .regular)
         TerminalThemes.apply(theme, to: term)
@@ -544,34 +544,37 @@ struct TerminalContainer: NSViewRepresentable {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             term.applyCursorBlinkSpeed(cursorBlinkSpeed)
         }
-        return term
+        let host = SessionHostView(content: term)
+        host.isActive = isActive
+        return host
     }
 
-    func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {
+    func updateNSView(_ host: SessionHostView<MRNGTerminalView>, context: Context) {
+        let term = host.content
         let desired = NSFont.monospacedSystemFont(ofSize: CGFloat(fontSize), weight: .regular)
-        if nsView.font.pointSize != desired.pointSize {
-            nsView.font = desired
+        if term.font.pointSize != desired.pointSize {
+            term.font = desired
         }
-        TerminalThemes.apply(theme, to: nsView)
+        TerminalThemes.apply(theme, to: term)
         // Re-apply on change so tabs that are already open pick up the new size too.
         let wantScrollback = max(500, scrollbackLines)
-        if nsView.terminal.options.scrollback != wantScrollback {
-            nsView.terminal.changeScrollback(wantScrollback)
+        if term.terminal.options.scrollback != wantScrollback {
+            term.terminal.changeScrollback(wantScrollback)
         }
         context.coordinator.onTitleChange = onTitleChange
-        if let term = nsView as? MRNGTerminalView {
-            term.applyCursorBlinkSpeed(cursorBlinkSpeed)
-            // Must be kept current: the event monitors use it to stay out of the way of
-            // whichever tab is actually on screen.
-            term.isActiveTab = isActive
-            term.optionAsMetaKey = optionAsMetaKey
-        }
+        term.applyCursorBlinkSpeed(cursorBlinkSpeed)
+        // Must be kept current: the event monitors use it to stay out of the way of
+        // whichever tab is actually on screen.
+        term.isActiveTab = isActive
+        term.optionAsMetaKey = optionAsMetaKey
+        // The host sizes the terminal only while it is on screen; tell it which that is.
+        host.isActive = isActive
         // Give the terminal first responder status when its tab becomes active.
         guard isActive else { return }
         DispatchQueue.main.async {
-            guard let window = nsView.window else { return }
+            guard let window = term.window else { return }
             if window.firstResponder is NSText { return } // user is typing in search etc.
-            if window.firstResponder !== nsView { window.makeFirstResponder(nsView) }
+            if window.firstResponder !== term { window.makeFirstResponder(term) }
         }
     }
 
