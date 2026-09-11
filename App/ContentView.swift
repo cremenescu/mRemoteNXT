@@ -303,13 +303,6 @@ struct ContentView: View {
                 .help(t("Toolbar.EditSelected"))
                 .disabled(model.selectedNodeID == nil)
             }
-            // The panel switcher is where you are, not a tool — it stays put and can't be
-            // dragged out, or a window with several panels would lose its only way between
-            // them with no hint that it had one.
-            ToolbarItem(id: "panels", placement: .principal) {
-                if !model.sessions.isEmpty { PanelTabBar() }
-            }
-            .customizationBehavior(.disabled)
         }
         // The window title is SwiftUI's to own. It used to be poked straight onto the
         // NSWindow from WindowChrome, which raced with this modifier — an empty title set
@@ -412,6 +405,14 @@ struct ContentView: View {
     @ViewBuilder private var detail: some View {
         VStack(spacing: 0) {
             if !model.sessions.isEmpty {
+                // The panel switcher is where you are, not a tool, so it lives in the
+                // content and not in the toolbar. It used to sit in the toolbar's principal
+                // slot, and macOS folded it into the overflow chevron as soon as the other
+                // items needed the room — with a dozen panels that was always — where it
+                // rendered as one greyed-out name. A window with 54 tabs across 12 panels
+                // then showed the two of the current panel and no way to the rest.
+                PanelTabBar()
+                Divider()
                 SessionTabBar()
                 Divider()
             }
@@ -709,19 +710,27 @@ struct PanelTabBar: View {
             HStack(spacing: 4) {
                 ForEach(model.panels(), id: \.self) { panel in
                     Button { model.selectPanel(panel) } label: {
-                        Text(panel)
-                            .font(.callout)
-                            .fontWeight(panel == model.selectedPanel ? .semibold : .regular)
-                            .padding(.horizontal, 12).padding(.vertical, 5)
-                            .background(panel == model.selectedPanel ? Color.accentColor.opacity(0.22) : Color.clear)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                            .contentShape(Rectangle())
+                        HStack(spacing: 6) {
+                            Text(panel)
+                                .font(.callout)
+                                .fontWeight(panel == model.selectedPanel ? .semibold : .regular)
+                            // How many tabs wait behind each name: a dozen panels are a lot
+                            // of doors, and the number says which are worth opening.
+                            Text("\(model.sessions(inPanel: panel).count)")
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .background(panel == model.selectedPanel ? Color.accentColor.opacity(0.22) : Color.clear)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.borderless)
                 }
             }
-            .padding(.horizontal, 8).padding(.vertical, 4)
+            .padding(.horizontal, 8).padding(.vertical, 3)
         }
+        .background(.bar)
     }
 }
 

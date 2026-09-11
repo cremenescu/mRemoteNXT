@@ -84,8 +84,16 @@ final class AppModel: ObservableObject {
         didSet { persistSessionState() }
     }
     @Published var selectedSessionID: UUID? {
-        didSet { persistSessionState() }
+        didSet {
+            // Each panel remembers the tab it was left on, so coming back to it lands
+            // there and not on whichever tab happens to be first.
+            if let id = selectedSessionID, let s = sessions.first(where: { $0.id == id }) {
+                lastSelectedByPanel[s.panel] = id
+            }
+            persistSessionState()
+        }
     }
+    private var lastSelectedByPanel: [String: UUID] = [:]
     @Published var selectedPanel: String? {
         didSet { persistSessionState() }
     }
@@ -899,7 +907,11 @@ final class AppModel: ObservableObject {
 
     func selectPanel(_ panel: String) {
         selectedPanel = panel
-        if let first = sessions.first(where: { $0.panel == panel }) {
+        let inPanel = sessions.filter { $0.panel == panel }
+        // The tab this panel was left on, if it is still open there; the first one otherwise.
+        if let remembered = lastSelectedByPanel[panel], inPanel.contains(where: { $0.id == remembered }) {
+            selectedSessionID = remembered
+        } else if let first = inPanel.first {
             selectedSessionID = first.id
         }
     }
