@@ -26,6 +26,8 @@ typedef struct {
     void (*onClipboardRemoteFormats)(void *ctx, bool hasText, bool hasImage); // remote copied something
     void (*onClipboardRemoteData)(void *ctx, uint32_t formatId, const uint8_t *data, uint32_t size);
     void (*onClipboardDataRequested)(void *ctx, uint32_t formatId); // remote wants our clipboard
+    // Remote wants the files we announced: answer with rdpcore_clipboard_provide_files().
+    void (*onClipboardFilesRequested)(void *ctx);
     /// The server turned out to be too old for the graphics pipeline, and this session
     /// negotiated it anyway. Fired once, right after connecting: the caller should
     /// remember the host and reconnect with useLegacyGraphics.
@@ -84,8 +86,12 @@ void rdpcore_resize(RDPCore *core, int width, int height, int scalePercent);
 //   Returns true only if the clipboard channel was up and the offer was sent, so
 //   the caller can retry until it connects (and offer a pre-session clipboard).
 // provide  = answer a prior onClipboardDataRequested(formatId); NULL/0 => decline.
-bool rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage);
+bool rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage, bool hasFiles);
 void rdpcore_clipboard_provide(RDPCore *core, const uint8_t *data, uint32_t size);
+// Answer a prior onClipboardFilesRequested with a text/uri-list: one "file://<absolute
+// path>" per line, CRLF-separated, paths unencoded. The descriptors go out now; the
+// contents are streamed later, on demand, as the remote reads each file.
+void rdpcore_clipboard_provide_files(RDPCore *core, const char *uriList, uint32_t size);
 
 void rdpcore_mouse_move(RDPCore *core, int x, int y);
 void rdpcore_mouse_button(RDPCore *core, int button, bool down, int x, int y);

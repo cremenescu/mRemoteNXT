@@ -4,6 +4,10 @@
  */
 
 #include "RDPCore.h"
+// CoreFoundation first: it defines TRUE/FALSE as 1/0 and winpr's wtypes.h only defines
+// its own (true/false) when nothing did — the other order leaves both in play and clang
+// flags every TRUE in the file as an ambiguous expansion.
+#include <CoreFoundation/CoreFoundation.h>
 
 #include <freerdp/freerdp.h>
 #include <freerdp/client.h>
@@ -11,6 +15,9 @@
 #include <freerdp/channels/disp.h>
 #include <freerdp/client/cliprdr.h>
 #include <freerdp/channels/cliprdr.h>
+#include <freerdp/client/client_cliprdr_file.h>
+#include <freerdp/utils/cliprdr_utils.h>
+#include <winpr/clipboard.h>
 #include <freerdp/client/cmdline.h>   // freerdp_client_add_device_channel
 #include <freerdp/gdi/gdi.h>
 #include <freerdp/gdi/gfx.h>
@@ -24,7 +31,6 @@
 #include <winpr/error.h>
 #include <winpr/wlog.h>
 
-#include <CoreFoundation/CoreFoundation.h>
 
 #include <openssl/provider.h>
 
@@ -112,6 +118,16 @@ struct RDPCore {
     UINT32 clipboardWantedFormat;  // latest format the remote offered
     int clipboardRequestInFlight;  // a ClientFormatDataRequest is outstanding
     int clipboardReady;            // Monitor Ready seen: safe to announce formats
+    // File clipboard, Mac -> remote. `clip` is winpr's clipboard, used purely as a
+    // converter: given a text/uri-list it walks the files and folders and produces the
+    // FILEDESCRIPTORW array the remote expects. `fileCtx` is FreeRDP's own file-clipboard
+    // helper (the one xfreerdp uses); once handed the same list it answers the remote's
+    // FileContentsRequests itself, reading the local files on demand. fileFormatId is the
+    // id under which "FileGroupDescriptorW" is registered — sent in our format list, and
+    // what the remote asks for when it pastes.
+    wClipboard *clip;
+    CliprdrFileContext *fileCtx;
+    UINT32 fileFormatId;
     int gfxNegotiated;             // this session advertised the graphics pipeline
     const void *lastPointer;       // last shape handed up, to skip repeats
 
@@ -121,6 +137,12 @@ struct RDPCore {
 
 static RDPCore *coreFromContext(rdpContext *context) {
     return ((mrngContext *)context)->core;
+}
+
+// cliprdr_file_context_init parks its own context in cliprdr->custom; ours is the one
+// it was created with, one hop behind.
+static RDPCore *coreFromCliprdr(CliprdrClientContext *cliprdr) {
+    return (RDPCore *)cliprdr_file_context_get_context((CliprdrFileContext *)cliprdr->custom);
 }
 
 static void notifyDisconnected(RDPCore *core, const char *err) {
@@ -162,14 +184,17 @@ static BOOL mrng_desktop_resize(rdpContext *context) {
 // clipboardReady on for rdpcore_clipboard_announce().
 static UINT mrng_cliprdr_monitor_ready(CliprdrClientContext *cliprdr, const CLIPRDR_MONITOR_READY *e) {
     (void)e;
-    RDPCore *core = (RDPCore *)cliprdr->custom;
+    RDPCore *core = coreFromCliprdr(cliprdr);
 
     CLIPRDR_GENERAL_CAPABILITY_SET general = {0};
     general.capabilitySetType = CB_CAPSTYPE_GENERAL;
     general.capabilitySetLength = CB_CAPSTYPE_GENERAL_LEN;
     general.version = CB_CAPS_VERSION_2;
-    // Long format names only: no file-clip flags, since file transfer isn't implemented.
-    general.generalFlags = CB_USE_LONG_FORMAT_NAMES;
+    // Long format names, plus file streaming when the server offered it in its own
+    // capabilities (current_flags answers 0 otherwise, so we never claim what the
+    // other side cannot use). FileGroupDescriptorW is a named format, which is why
+    // long names were needed in the first place.
+    general.generalFlags = CB_USE_LONG_FORMAT_NAMES | cliprdr_file_context_current_flags(core->fileCtx);
     CLIPRDR_CAPABILITIES caps = {0};
     caps.cCapabilitiesSets = 1;
     caps.capabilitySets = (CLIPRDR_CAPABILITY_SET *)&general;
@@ -187,6 +212,24 @@ static UINT mrng_cliprdr_monitor_ready(CliprdrClientContext *cliprdr, const CLIP
     return rc;
 }
 
+// The server's capabilities arrive before Monitor Ready. The file helper keeps the
+// remote's flags: they decide whether files can be offered at all, and how the file
+// list is serialised (huge-file support changes the layout).
+static UINT mrng_cliprdr_server_capabilities(CliprdrClientContext *cliprdr, const CLIPRDR_CAPABILITIES *caps) {
+    RDPCore *core = coreFromCliprdr(cliprdr);
+    cliprdr_file_context_remote_set_flags(core->fileCtx, 0);
+    const BYTE *p = (const BYTE *)caps->capabilitySets;
+    for (UINT32 i = 0; i < caps->cCapabilitiesSets; i++) {
+        const CLIPRDR_CAPABILITY_SET *set = (const CLIPRDR_CAPABILITY_SET *)p;
+        if (set->capabilitySetType == CB_CAPSTYPE_GENERAL) {
+            const CLIPRDR_GENERAL_CAPABILITY_SET *g = (const CLIPRDR_GENERAL_CAPABILITY_SET *)set;
+            cliprdr_file_context_remote_set_flags(core->fileCtx, g->generalFlags);
+        }
+        p += set->capabilitySetLength;
+    }
+    return CHANNEL_RC_OK;
+}
+
 // Issue a single data request and mark it in flight. pendingClipboardFormat then
 // always matches the one response we're waiting for.
 static void mrng_cliprdr_issue_request(CliprdrClientContext *cliprdr, RDPCore *core, UINT32 fmt) {
@@ -201,7 +244,10 @@ static void mrng_cliprdr_issue_request(CliprdrClientContext *cliprdr, RDPCore *c
 // (text preferred, else image). Only one request is outstanding at a time so a
 // response is never attributed to a format from a later, overlapping list.
 static UINT mrng_cliprdr_server_format_list(CliprdrClientContext *cliprdr, const CLIPRDR_FORMAT_LIST *fl) {
-    RDPCore *core = (RDPCore *)cliprdr->custom;
+    RDPCore *core = coreFromCliprdr(cliprdr);
+    // A new remote clipboard invalidates whatever file state the helper held for the
+    // previous one. (Remote -> Mac files are not fetched yet; this keeps it honest.)
+    cliprdr_file_context_notify_new_server_format_list(core->fileCtx);
     bool hasText = false;
     UINT32 imageFormat = 0; // prefer CF_DIB, fall back to CF_DIBV5 if that's all the server offers
     for (UINT32 i = 0; i < fl->numFormats; i++) {
@@ -228,7 +274,12 @@ static UINT mrng_cliprdr_server_format_list(CliprdrClientContext *cliprdr, const
 // answers asynchronously via rdpcore_clipboard_provide().
 static UINT mrng_cliprdr_server_format_data_request(CliprdrClientContext *cliprdr,
                                                      const CLIPRDR_FORMAT_DATA_REQUEST *req) {
-    RDPCore *core = (RDPCore *)cliprdr->custom;
+    RDPCore *core = coreFromCliprdr(cliprdr);
+    if (core->fileFormatId && req->requestedFormatId == core->fileFormatId) {
+        if (core->cb.onClipboardFilesRequested) core->cb.onClipboardFilesRequested(core->ctx);
+        else rdpcore_clipboard_provide(core, NULL, 0);
+        return CHANNEL_RC_OK;
+    }
     if (core->cb.onClipboardDataRequested)
         core->cb.onClipboardDataRequested(core->ctx, req->requestedFormatId);
     return CHANNEL_RC_OK;
@@ -237,7 +288,7 @@ static UINT mrng_cliprdr_server_format_data_request(CliprdrClientContext *cliprd
 // Remote delivered the data we requested -> push it to the local pasteboard.
 static UINT mrng_cliprdr_server_format_data_response(CliprdrClientContext *cliprdr,
                                                      const CLIPRDR_FORMAT_DATA_RESPONSE *resp) {
-    RDPCore *core = (RDPCore *)cliprdr->custom;
+    RDPCore *core = coreFromCliprdr(cliprdr);
     if ((resp->common.msgFlags & CB_RESPONSE_OK) && core->cb.onClipboardRemoteData)
         core->cb.onClipboardRemoteData(core->ctx, core->pendingClipboardFormat,
                                        resp->requestedFormatData, resp->common.dataLen);
@@ -254,7 +305,10 @@ static void on_channel_connected(void *context, const ChannelConnectedEventArgs 
         // cliprdr is a STATIC (SVC) channel — same PubSub event, _SVC_ name macro.
         RDPCore *core = coreFromContext(ctx);
         CliprdrClientContext *c = (CliprdrClientContext *)e->pInterface;
-        c->custom = core;
+        // The helper takes c->custom for itself and hooks the file-contents and lock
+        // callbacks; ours are set after it, on the same context.
+        cliprdr_file_context_init(core->fileCtx, c);
+        c->ServerCapabilities = mrng_cliprdr_server_capabilities;
         c->MonitorReady = mrng_cliprdr_monitor_ready;
         c->ServerFormatList = mrng_cliprdr_server_format_list;
         c->ServerFormatDataRequest = mrng_cliprdr_server_format_data_request;
@@ -291,6 +345,7 @@ static void on_channel_disconnected(void *context, const ChannelDisconnectedEven
         pthread_mutex_unlock(&core->chanLock);
     } else if (strcmp(e->name, CLIPRDR_SVC_CHANNEL_NAME) == 0) {
         pthread_mutex_lock(&core->chanLock);
+        if (core->cliprdr) cliprdr_file_context_uninit(core->fileCtx, core->cliprdr);
         core->cliprdr = NULL;
         core->clipboardReady = 0;
         pthread_mutex_unlock(&core->chanLock);
@@ -550,6 +605,21 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     RDPCore *core = calloc(1, sizeof(RDPCore));
     if (!core) return NULL;
     pthread_mutex_init(&core->chanLock, NULL);
+    core->clip = ClipboardCreate();
+    core->fileCtx = cliprdr_file_context_new(core);
+    if (!core->clip || !core->fileCtx) {
+        // Without both there is no clipboard at all: the helper owns cliprdr->custom, so
+        // the text and image paths would have nothing to find the core through.
+        if (core->fileCtx) cliprdr_file_context_free(core->fileCtx);
+        if (core->clip) ClipboardDestroy(core->clip);
+        pthread_mutex_destroy(&core->chanLock);
+        free(core);
+        return NULL;
+    }
+    // winpr registers the file formats only when it was built with its file subsystem;
+    // an id of 0 means it was not, and files are simply never announced.
+    core->fileFormatId = ClipboardGetFormatId(core->clip, "FileGroupDescriptorW");
+    cliprdr_file_context_set_locally_available(core->fileCtx, core->fileFormatId != 0);
     core->host = dupstr(host);
     core->user = dupstr(user);
     core->domain = dupstr(domain);
@@ -714,6 +784,8 @@ void rdpcore_free(RDPCore *core) {
         core->context = NULL;
     }
     free(core->host); free(core->user); free(core->domain); free(core->pass);
+    if (core->fileCtx) cliprdr_file_context_free(core->fileCtx);
+    if (core->clip) ClipboardDestroy(core->clip);
     pthread_mutex_destroy(&core->chanLock);
     free(core);
 }
@@ -742,7 +814,7 @@ void rdpcore_resize(RDPCore *core, int width, int height, int scalePercent) {
 
 // MARK: - Clipboard senders (called from the app layer)
 
-bool rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage) {
+bool rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage, bool hasFiles) {
     if (!core) return false;
     pthread_mutex_lock(&core->chanLock);
     // Not until Monitor Ready: a format list sent before the handshake is a protocol
@@ -750,11 +822,23 @@ bool rdpcore_clipboard_announce(RDPCore *core, bool hasText, bool hasImage) {
     CliprdrClientContext *c = core->clipboardReady ? core->cliprdr : NULL;
     bool sent = false;
     if (c) {
-        CLIPRDR_FORMAT formats[2];
+        // Files only when both sides can stream them: the flags are 0 until the server
+        // said so, and winpr's id is 0 when it cannot build the descriptors.
+        bool offerFiles = hasFiles && core->fileFormatId
+                          && (cliprdr_file_context_current_flags(core->fileCtx) & CB_STREAM_FILECLIP_ENABLED);
+        CLIPRDR_FORMAT formats[3];
         memset(formats, 0, sizeof(formats));
         UINT32 n = 0;
         if (hasText)  { formats[n].formatId = CF_UNICODETEXT; n++; }
         if (hasImage) { formats[n].formatId = CF_DIB;         n++; }
+        if (offerFiles) {
+            // A named format: the id is whatever we registered it under, the name is what
+            // the remote matches on. FreeRDP copies the string while writing the PDU.
+            formats[n].formatId = core->fileFormatId;
+            formats[n].formatName = (char *)"FileGroupDescriptorW";
+            n++;
+        }
+        cliprdr_file_context_notify_new_client_format_list(core->fileCtx);
         CLIPRDR_FORMAT_LIST list = {0};
         list.numFormats = n;
         list.formats = n ? formats : NULL;
@@ -777,6 +861,50 @@ void rdpcore_clipboard_provide(RDPCore *core, const uint8_t *data, uint32_t size
         c->ClientFormatDataResponse(c, &resp); // FreeRDP consumes the buffer synchronously
     }
     pthread_mutex_unlock(&core->chanLock);
+}
+
+void rdpcore_clipboard_provide_files(RDPCore *core, const char *uriList, uint32_t size) {
+    if (!core) return;
+    BYTE *out = NULL;
+    UINT32 outSize = 0;
+    pthread_mutex_lock(&core->chanLock);
+    CliprdrClientContext *c = core->cliprdr;
+    if (c && core->fileFormatId && uriList && size) {
+        ClipboardLock(core->clip);
+        // winpr reads the list, stats every entry, descends into folders, and hands back
+        // FILEDESCRIPTORW records with paths relative to what was copied — exactly the
+        // walk Explorer does on its side before a paste.
+        UINT32 uriId = ClipboardGetFormatId(core->clip, "text/uri-list");
+        if (ClipboardSetData(core->clip, uriId, uriList, size)) {
+            UINT32 descSize = 0;
+            FILEDESCRIPTORW *desc = ClipboardGetData(core->clip, core->fileFormatId, &descSize);
+            if (desc) {
+                UINT32 count = descSize / sizeof(FILEDESCRIPTORW);
+                UINT32 flags = cliprdr_file_context_remote_get_flags(core->fileCtx);
+                if (cliprdr_serialize_file_list_ex(flags, desc, count, &out, &outSize) != NO_ERROR) {
+                    free(out); out = NULL; outSize = 0;
+                } else {
+                    // The helper needs the same list to serve the contents later: it
+                    // walks the folders itself and matches the remote's index into the
+                    // descriptor list against its own.
+                    UINT32 urlSize = 0;
+                    char *url = ClipboardGetData(core->clip, uriId, &urlSize);
+                    if (url) { cliprdr_file_context_update_client_data(core->fileCtx, url, urlSize); free(url); }
+                }
+                free(desc);
+            }
+        }
+        ClipboardUnlock(core->clip);
+    }
+    if (c) {
+        CLIPRDR_FORMAT_DATA_RESPONSE resp = {0};
+        resp.common.msgFlags = out ? CB_RESPONSE_OK : CB_RESPONSE_FAIL;
+        resp.common.dataLen = outSize;
+        resp.requestedFormatData = out;
+        c->ClientFormatDataResponse(c, &resp);
+    }
+    pthread_mutex_unlock(&core->chanLock);
+    free(out);
 }
 
 static rdpInput *coreInput(RDPCore *core) {

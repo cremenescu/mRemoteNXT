@@ -24,6 +24,7 @@ enum { MRNG_CF_UNICODETEXT = 13, MRNG_CF_DIB = 8, MRNG_CF_DIBV5 = 17 };
 - (void)enqueueImage:(CGImageRef)img;
 - (void)applyRemoteClipboardData:(NSData *)data format:(uint32_t)formatId;
 - (void)provideLocalClipboardForFormat:(uint32_t)formatId;
+- (void)provideLocalClipboardFiles;
 @property (nonatomic, copy) NSString *host;
 @property (nonatomic, copy) NSString *username;
 @property (nonatomic, copy) NSString *domain;
@@ -186,6 +187,14 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
     });
 }
 
+// Remote pasted files (Explorer asked for the file list we announced).
+static void core_onClipboardFilesRequested(void *ctx) {
+    RDPClient *self = (__bridge RDPClient *)ctx;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self provideLocalClipboardFiles];
+    });
+}
+
 @implementation RDPClient
 
 + (void)setDiagnosticLogging:(BOOL)enabled directory:(NSString *)directory {
@@ -233,6 +242,7 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
         .onDisconnected = core_onDisconnected,
         .onClipboardRemoteData = core_onClipboardRemoteData,
         .onClipboardDataRequested = core_onClipboardDataRequested,
+        .onClipboardFilesRequested = core_onClipboardFilesRequested,
         .onLegacyGraphicsSuggested = core_onLegacyGraphicsSuggested,
         .onCursorShape = core_onCursorShape,
         .onCursorHidden = core_onCursorHidden,
@@ -265,7 +275,10 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
         NSArray<NSPasteboardType> *types = pb.types;
         BOOL hasText = [types containsObject:NSPasteboardTypeString];
         BOOL hasImage = [types containsObject:NSPasteboardTypeTIFF] || [types containsObject:NSPasteboardTypePNG];
-        if (rdpcore_clipboard_announce(strong->_core, hasText, hasImage))
+        // Finder puts the names on as text as well, so both go out: Explorer takes the
+        // file list, Notepad takes the names — the same split Windows makes itself.
+        BOOL hasFiles = [types containsObject:NSPasteboardTypeFileURL];
+        if (rdpcore_clipboard_announce(strong->_core, hasText, hasImage, hasFiles))
             strong->_lastPasteboardChangeCount = cc;
     }];
 }
@@ -356,6 +369,28 @@ static void core_onClipboardDataRequested(void *ctx, uint32_t formatId) {
         out = mrng_bmpToDib(bmp);
     }
     rdpcore_clipboard_provide(_core, out.bytes, (uint32_t)out.length); // nil -> declines
+}
+
+// The file list goes to FreeRDP as text/uri-list, one "file://<path>" per line. Paths are
+// left unencoded on purpose: both winpr (which builds the descriptors) and the file helper
+// (which later serves the bytes) run the same percent-decoder over them, and the helper
+// checks whether an entry is a folder on the *raw* line — so a folder with a space in its
+// name would be read as a plain file if it arrived as "My%20Folder". Only a literal "%XX"
+// in a name is misread this way, which upstream shares.
+- (void)provideLocalClipboardFiles {
+    NSPasteboard *pb = NSPasteboard.generalPasteboard;
+    NSArray<NSURL *> *urls = [pb readObjectsForClasses:@[NSURL.class]
+                                               options:@{NSPasteboardURLReadingFileURLsOnlyKey: @YES}];
+    NSMutableString *list = [NSMutableString string];
+    for (NSURL *u in urls) {
+        NSString *path = u.path;
+        if (path.length == 0 || [path containsString:@"\n"] || [path containsString:@"\r"]) continue;
+        [list appendFormat:@"file://%@\r\n", path];
+    }
+    NSData *bytes = [list dataUsingEncoding:NSUTF8StringEncoding];
+    // Length includes the terminator: winpr's parser walks to a NUL it expects to be there.
+    rdpcore_clipboard_provide_files(_core, bytes.length ? list.UTF8String : NULL,
+                                    bytes.length ? (uint32_t)bytes.length + 1 : 0);
 }
 
 @end
