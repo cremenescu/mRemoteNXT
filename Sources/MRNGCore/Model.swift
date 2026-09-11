@@ -24,6 +24,14 @@ public final class MRNGNode: Identifiable, Hashable {
         self.isContainer = isContainer
         self.attributes = attributes
         self.attributes["Name"] = name
+        // The file carries the id as the "Id" attribute and the serializer writes the
+        // attributes, so the two must agree. Setting it here covers every way a node is
+        // born: parsed (same value written back), copied (the copy's new id replaces the
+        // original's, which used to travel along and put two nodes with one Id in the
+        // file), and created in the app (which used to write no Id at all, so the node
+        // got a new random one on every launch and nothing could refer to it — not a
+        // restored session, not a jump host).
+        self.attributes["Id"] = id
     }
 
     // MARK: - Tree mutations (editing)
@@ -56,6 +64,7 @@ public final class MRNGNode: Identifiable, Hashable {
         var copiedAttributes = attributes
         let copiedName = name ?? self.name
         copiedAttributes["Name"] = copiedName
+        // The init overwrites the copied "Id" attribute with this fresh one.
         let copied = MRNGNode(
             id: UUID().uuidString.lowercased(),
             name: copiedName,
@@ -153,7 +162,13 @@ public final class MRNGNode: Identifiable, Hashable {
 
     // Accessors with inheritance for the fields relevant at connect/display time.
     public var protocolType: String { resolved("Protocol", inheritKey: "InheritProtocol") ?? "RDP" }
-    public var hostname: String { attributes["Hostname"] ?? "" } // mRemoteNG has no InheritHostname
+    // mRemoteNG has no InheritHostname. Trimmed because a host pasted with a stray line
+    // break in front of it was stored that way, and ssh then went looking for "\n172…" —
+    // a connection that fails for no visible reason. No real host name starts or ends with
+    // whitespace, so nothing legitimate is lost.
+    public var hostname: String {
+        (attributes["Hostname"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
     public var port: Int { Int(resolved("Port", inheritKey: "InheritPort") ?? "") ?? defaultPort }
     public var username: String { resolved("Username", inheritKey: "InheritUsername") ?? "" }
     public var domain: String { resolved("Domain", inheritKey: "InheritDomain") ?? "" }
@@ -241,6 +256,10 @@ public struct ConfCons {
     public var protected: String
     public var confVersion: String
     public var roots: [MRNGNode]
+    /// Nodes whose Id was rewritten on load because another node already had it. Such a
+    /// file cannot be worked with as it is — every lookup by id lands on the first of the
+    /// pair — so the parser repairs it and reports how many, and the app saves the repair.
+    public var repairedDuplicateIDs: Int = 0
 
     public init(encryptionEngine: String, blockCipherMode: String, kdfIterations: Int,
                 fullFileEncryption: Bool, protected: String, confVersion: String,

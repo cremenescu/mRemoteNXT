@@ -87,6 +87,13 @@ public enum ConfConsSerializer {
         r = r.replacingOccurrences(of: ">", with: "&gt;")
         r = r.replacingOccurrences(of: "\"", with: "&quot;")
         r = r.replacingOccurrences(of: "'", with: "&apos;")
+        // A literal line break inside an attribute is legal XML but not stable: the parser
+        // normalises it to a space on the way back in, so a value written raw comes back
+        // changed. As a character reference it survives — which is also how .NET's
+        // XmlWriter, and so mRemoteNG, writes it.
+        r = r.replacingOccurrences(of: "\r", with: "&#xD;")
+        r = r.replacingOccurrences(of: "\n", with: "&#xA;")
+        r = r.replacingOccurrences(of: "\t", with: "&#x9;")
         return r
     }
 }

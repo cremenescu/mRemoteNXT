@@ -22,6 +22,8 @@ public final class ConfConsParser: NSObject, XMLParserDelegate {
     private var protectedValue = ""
     private var confVersion = ""
     private var foundRoot = false
+    private var seenIDs: Set<String> = []
+    private var repairedDuplicateIDs = 0
 
     public static func parse(fileURL: URL) throws -> ConfCons {
         guard let parser = XMLParser(contentsOf: fileURL) else { throw ConfConsError.fileNotReadable }
@@ -33,7 +35,7 @@ public final class ConfConsParser: NSObject, XMLParserDelegate {
         }
         guard delegate.foundRoot else { throw ConfConsError.noRootElement }
         if delegate.fullFileEncryption { throw ConfConsError.fullFileEncryptionUnsupported }
-        return ConfCons(
+        var doc = ConfCons(
             encryptionEngine: delegate.encryptionEngine,
             blockCipherMode: delegate.blockCipherMode,
             kdfIterations: delegate.kdfIterations,
@@ -42,6 +44,8 @@ public final class ConfConsParser: NSObject, XMLParserDelegate {
             confVersion: delegate.confVersion,
             roots: delegate.roots
         )
+        doc.repairedDuplicateIDs = delegate.repairedDuplicateIDs
+        return doc
     }
 
     public func parser(_ parser: XMLParser, didStartElement elementName: String,
@@ -57,8 +61,17 @@ public final class ConfConsParser: NSObject, XMLParserDelegate {
             protectedValue = attributeDict["Protected"] ?? ""
             confVersion = attributeDict["ConfVersion"] ?? ""
         case "Node":
+            // The first node to claim an Id keeps it; a later one gets a fresh id. Older
+            // builds wrote a duplicate's copy with the original's Id, and a file with two
+            // nodes under one Id has every lookup landing on the first of them.
+            var id = attributeDict["Id"] ?? UUID().uuidString.lowercased()
+            if seenIDs.contains(id) {
+                id = UUID().uuidString.lowercased()
+                repairedDuplicateIDs += 1
+            }
+            seenIDs.insert(id)
             let node = MRNGNode(
-                id: attributeDict["Id"] ?? UUID().uuidString,
+                id: id,
                 name: attributeDict["Name"] ?? "(no name)",
                 isContainer: (attributeDict["Type"] ?? "") == "Container",
                 attributes: attributeDict

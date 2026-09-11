@@ -6,13 +6,23 @@ import Foundation
 import MRNGCore
 
 guard CommandLine.arguments.count > 1 else {
-    print("Usage: mrngprobe <path-to-confCons.xml>")
+    print("Usage: mrngprobe <path-to-confCons.xml> [serialized-output.xml]")
+    print("  With a second path, writes the file back out through the serializer, so the two")
+    print("  can be diffed: what the app would save for a file it merely opened.")
     exit(1)
 }
 let path = CommandLine.arguments[1]
 
 do {
     let doc = try ConfConsParser.parse(fileURL: URL(fileURLWithPath: path))
+    if doc.repairedDuplicateIDs > 0 {
+        print("Repaired on load: \(doc.repairedDuplicateIDs) node(s) shared an Id with an earlier node and got a fresh one")
+    }
+    if CommandLine.arguments.count > 2 {
+        let out = URL(fileURLWithPath: CommandLine.arguments[2])
+        try ConfConsSerializer.serialize(doc).write(to: out, atomically: true, encoding: .utf8)
+        print("Serialized to \(out.path)")
+    }
     print("=== confCons \(doc.confVersion) | \(doc.encryptionEngine)/\(doc.blockCipherMode) | KDF \(doc.kdfIterations) ===")
 
     let all = doc.allNodes()

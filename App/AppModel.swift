@@ -427,6 +427,10 @@ final class AppModel: ObservableObject {
             self.fileURL = url
             self.doc = parsed
             self.loadError = nil
+            // Ids rewritten on load have to reach the disk, or the next launch repairs the
+            // same file again with different ids and nothing remembered about those nodes
+            // (open sessions, jump hosts) survives a restart.
+            if parsed.repairedDuplicateIDs > 0 { markDirty() }
             UserDefaults.standard.set(url.path, forKey: "lastOpenedFile")
             WindowRegistry.shared.syncOpenDocuments()
             loadExpanded(for: parsed)

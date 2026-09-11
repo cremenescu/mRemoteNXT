@@ -527,7 +527,11 @@ struct EditorSheet: View {
         Binding(
             get: { node.attributes[key] ?? "" },
             set: { v in
-                node.attributes[key] = v
+                // A single-line field, so a pasted line break has no meaning here — and for
+                // the host it made a connection that silently went nowhere.
+                node.attributes[key] = v.contains(where: \.isNewline)
+                    ? v.components(separatedBy: .newlines).joined()
+                    : v
                 if let inherit { node.attributes[inherit] = "false" }
                 model.markDirty()
             })
