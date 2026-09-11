@@ -531,7 +531,7 @@ struct RDPContainer: NSViewRepresentable {
         let view = RDPNSView(session: session)
         view.onDisconnect = onDisconnect
         view.onNeedsReconnect = onNeedsReconnect
-        let host = SessionHostView(content: view)
+        let host = SessionHostView(content: view, hiddenSizing: .whenSettled)
         host.isActive = isActive
         return host
     }

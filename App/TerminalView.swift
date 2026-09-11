@@ -544,7 +544,7 @@ struct TerminalContainer: NSViewRepresentable {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             term.applyCursorBlinkSpeed(cursorBlinkSpeed)
         }
-        let host = SessionHostView(content: term)
+        let host = SessionHostView(content: term, hiddenSizing: .whenActive)
         host.isActive = isActive
         return host
     }

@@ -44,20 +44,31 @@ static void core_onConnected(void *ctx, int w, int h) {
     });
 }
 
+// The frame goes to the screen as a CALayer's contents. Core Animation takes the bytes
+// of a CGImage as they are only when it recognises the format outright — BGRA, alpha
+// premultiplied, sRGB. Anything else it re-renders through CoreGraphics on the main
+// thread on every frame; with a device-RGB "skip alpha" image that was a colour-space
+// conversion per frame, measured at a tenth of the main thread while the app sat idle.
+//
+// FreeRDP writes the alpha byte on every path this app has seen, but no codec promises
+// it, and a frame tagged premultiplied with alpha 0 is a transparent desktop. So the copy
+// forces the byte on as it goes: the same streaming pass as the memcpy it replaces.
 static void core_onImage(void *ctx, const uint8_t *bgra, int w, int h, int stride) {
     RDPClient *self = (__bridge RDPClient *)ctx;
     size_t len = (size_t)stride * (size_t)h;
-    void *copy = malloc(len);
+    uint32_t *copy = malloc(len);
     if (!copy) return;
-    memcpy(copy, bgra, len);
+    const uint32_t *src = (const uint32_t *)bgra;
+    size_t words = len / 4;
+    for (size_t i = 0; i < words; i++) copy[i] = src[i] | 0xFF000000u; // byte 3 = alpha, little-endian
 
-    CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
+    static CGColorSpaceRef cs = NULL;
+    if (!cs) cs = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
     CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, copy, len, freeImageData);
-    CGBitmapInfo info = kCGImageAlphaNoneSkipFirst | kCGBitmapByteOrder32Little; // BGRA32
+    CGBitmapInfo info = kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little; // BGRA32, opaque
     CGImageRef img = CGImageCreate((size_t)w, (size_t)h, 8, 32, (size_t)stride, cs, info,
                                    provider, NULL, false, kCGRenderingIntentDefault);
     CGDataProviderRelease(provider);
-    CGColorSpaceRelease(cs);
     if (!img) return;
     [self enqueueImage:img]; // coalescing: keep only the latest frame for main
     CGImageRelease(img);
