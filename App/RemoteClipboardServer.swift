@@ -79,6 +79,7 @@ final class RemoteClipboardServer {
             m.revision += 1
             try? m.save()
         }
+        RemoteClipboard.log("start: manifest revision \(RemoteClipboard.Manifest.load().revision)")
         register()
         watch(requests)
     }
@@ -89,13 +90,18 @@ final class RemoteClipboardServer {
         let domain = self.domain
         NSFileProviderManager.getDomainsWithCompletionHandler { domains, _ in
             let stale = domains.first { $0.identifier == domain.identifier && $0.isHidden }
+            let mine = domains.first { $0.identifier == domain.identifier }
+            RemoteClipboard.log("register: domain exists=\(mine != nil) hidden=\(mine?.isHidden ?? false) userEnabled=\(mine?.userEnabled ?? false)")
             let add = {
                 NSFileProviderManager.add(domain) { error in
                     if let error {
-                        NSLog("mRemoteNXT: registering the remote clipboard domain failed: %@", String(describing: error))
+                        RemoteClipboard.log("register: addDomain failed: \(error)")
                         return
                     }
-                    NSFileProviderManager(for: domain)?.signalEnumerator(for: .workingSet) { _ in }
+                    RemoteClipboard.log("register: addDomain ok")
+                    NSFileProviderManager(for: domain)?.signalEnumerator(for: .workingSet) { error in
+                        RemoteClipboard.log("register: signal working set -> \(error.map { "\($0)" } ?? "ok")")
+                    }
                 }
             }
             if let stale {
@@ -141,8 +147,14 @@ final class RemoteClipboardServer {
         }
         clients[gen.id] = WeakClient(client, lock: files.first?.clipDataId ?? 0)
         latest = gen.id
-        guard let manager = NSFileProviderManager(for: domain) else { return }
-        manager.signalEnumerator(for: .workingSet) { _ in }
+        RemoteClipboard.log("offer: gen \(gen.id) folder \(gen.folder), \(entries.count) entries, lock \(files.first?.clipDataId ?? 0), revision \(m.revision)")
+        guard let manager = NSFileProviderManager(for: domain) else {
+            RemoteClipboard.log("offer: no manager for the domain")
+            return
+        }
+        manager.signalEnumerator(for: .workingSet) { error in
+            RemoteClipboard.log("offer: signal working set -> \(error.map { "\($0)" } ?? "ok")")
+        }
         publish(gen, manager: manager, client: client)
     }
 
@@ -154,23 +166,34 @@ final class RemoteClipboardServer {
             let deadline = Date().addingTimeInterval(15)
             for node in roots {
                 let id = NSFileProviderItemIdentifier(gen.identifier(for: node.path))
+                var lastError = ""
+                var found = false
                 while Date() < deadline {
                     let sem = DispatchSemaphore(value: 0)
                     var url: URL?
-                    manager.getUserVisibleURL(for: id) { u, _ in url = u; sem.signal() }
+                    manager.getUserVisibleURL(for: id) { u, e in
+                        url = u
+                        lastError = e.map { "\($0)" } ?? (u == nil ? "no url" : "url \(u!.path) not on disk yet")
+                        sem.signal()
+                    }
                     sem.wait()
                     // stat only: it does not materialise a placeholder.
-                    if let url, FileManager.default.fileExists(atPath: url.path) { urls.append(url); break }
+                    if let url, FileManager.default.fileExists(atPath: url.path) { urls.append(url); found = true; break }
                     usleep(200_000)
                 }
+                RemoteClipboard.log("publish: \(id.rawValue) -> \(found ? (urls.last?.path ?? "") : "TIMED OUT: \(lastError)")")
             }
             DispatchQueue.main.async { [weak client] in
                 // A newer copy may have come in while waiting; it owns the pasteboard now.
-                guard self.latest == gen.id else { return }
-                guard urls.count == roots.count else {
-                    NSLog("mRemoteNXT: only %d of %d remote clipboard items appeared", urls.count, roots.count)
+                guard self.latest == gen.id else {
+                    RemoteClipboard.log("publish: \(gen.id) superseded by a newer copy")
                     return
                 }
+                guard urls.count == roots.count else {
+                    RemoteClipboard.log("publish: only \(urls.count) of \(roots.count) items appeared; pasteboard untouched")
+                    return
+                }
+                RemoteClipboard.log("publish: \(urls.count) URL(s) on the pasteboard")
                 let pb = NSPasteboard.general
                 pb.clearContents()
                 pb.writeObjects(urls as [NSURL])
@@ -205,6 +228,7 @@ final class RemoteClipboardServer {
                   let request = try? JSONDecoder().decode(RemoteClipboard.Request.self, from: data) else { continue }
             // Taken: removing it keeps a rescan from serving it twice.
             try? FileManager.default.removeItem(at: url)
+            RemoteClipboard.log("serve: request \(id) gen \(request.generation) index \(request.index) size \(request.size)")
             handling.insert(id)
             let client = clients[request.generation]?.value
             let lock = clients[request.generation]?.lock ?? 0
@@ -214,6 +238,7 @@ final class RemoteClipboardServer {
                 let failure = Self.serve(request, id: id, client: client, lock: lock) { done, total in
                     DispatchQueue.main.async { panel.update(done: done, total: total) }
                 }
+                RemoteClipboard.log("serve: \(id) -> \(failure.map { "\($0)" } ?? "done")")
                 DispatchQueue.main.async {
                     panel.finish(failure)
                     self?.handling.remove(id)

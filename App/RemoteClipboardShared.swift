@@ -24,6 +24,29 @@ enum RemoteClipboard {
             .appendingPathComponent("RemoteClipboard", isDirectory: true)
     }
     static var manifestURL: URL? { container?.appendingPathComponent("manifest.json") }
+
+    /// A line in `diag.log` next to the manifest, from either process. The unified log is not
+    /// readable from everywhere a problem has to be looked at, and this one is a plain file
+    /// both halves can write. Kept under a megabyte: the older half is dropped.
+    static func log(_ message: String, file: String = #fileID) {
+        guard let url = container?.appendingPathComponent("diag.log") else { return }
+        let who = Bundle.main.bundleIdentifier?.hasSuffix(".RemoteClipboard") == true ? "ext" : "app"
+        let line = "\(ISO8601DateFormatter().string(from: Date())) [\(who)] \(message)\n"
+        logQueue.async {
+            let fm = FileManager.default
+            try? fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            if let size = (try? fm.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.intValue, size > 1_000_000,
+               let data = try? Data(contentsOf: url) {
+                try? data.suffix(500_000).write(to: url)
+            }
+            if let h = try? FileHandle(forWritingTo: url) {
+                h.seekToEndOfFile(); h.write(Data(line.utf8)); try? h.close()
+            } else {
+                try? Data(line.utf8).write(to: url)
+            }
+        }
+    }
+    private static let logQueue = DispatchQueue(label: "mRemoteNXT.remote-clipboard.log")
     static var requestsDir: URL? { container?.appendingPathComponent("requests", isDirectory: true) }
     static var transfersDir: URL? { container?.appendingPathComponent("transfers", isDirectory: true) }
 

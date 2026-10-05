@@ -13,7 +13,10 @@ import UniformTypeIdentifiers
 /// it is what makes the system call fetchContents, which asks the app for the bytes. The
 /// domain is read-only, hidden from the sidebar, and holds only the last two copies.
 final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
-    init(domain: NSFileProviderDomain) { super.init() }
+    init(domain: NSFileProviderDomain) {
+        super.init()
+        RemoteClipboard.log("extension: init for domain \(domain.identifier.rawValue)")
+    }
 
     func invalidate() {}
 
@@ -24,6 +27,7 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
         if let item = RemoteItem.anyItem(for: identifier, in: .load()) {
             completionHandler(item, nil)
         } else {
+            RemoteClipboard.log("item(for: \(identifier.rawValue)): not in the manifest")
             completionHandler(nil, NSError.fileProviderErrorForNonExistentItem(withIdentifier: identifier))
         }
         return Progress()
@@ -44,6 +48,7 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
                        request: NSFileProviderRequest,
                        completionHandler: @escaping (URL?, NSFileProviderItem?, Error?) -> Void) -> Progress {
         let manifest = RemoteClipboard.Manifest.load()
+        RemoteClipboard.log("fetchContents: \(itemIdentifier.rawValue)")
         guard let item = RemoteItem.nodeItem(for: itemIdentifier, in: manifest),
               let entry = item.node.entry, !entry.isDirectory,
               let requests = RemoteClipboard.requestsDir, let transfers = RemoteClipboard.transfersDir else {
@@ -91,6 +96,7 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
             try? fm.removeItem(at: requestURL)
             if error != nil { try? fm.removeItem(at: partial); try? fm.removeItem(at: done) }
             try? fm.removeItem(at: failed)
+            RemoteClipboard.log("fetchContents: \(itemIdentifier.rawValue) -> \(error.map { "\($0)" } ?? "delivered")")
             completionHandler(url, url == nil ? nil : item, error)
         }
         timer.schedule(deadline: .now() + 0.1, repeating: 0.2)
@@ -287,6 +293,7 @@ final class RemoteEnumerator: NSObject, NSFileProviderEnumerator {
         let items = container == .workingSet
             ? RemoteItem.all(in: manifest)
             : RemoteItem.children(of: container, in: manifest)
+        RemoteClipboard.log("enumerateItems(\(container.rawValue)): \(items.count) items, revision \(manifest.revision)")
         observer.didEnumerate(items)
         observer.finishEnumerating(upTo: nil)
     }
@@ -299,6 +306,7 @@ final class RemoteEnumerator: NSObject, NSFileProviderEnumerator {
         if !manifest.retired.isEmpty {
             observer.didDeleteItems(withIdentifiers: manifest.retired.map { NSFileProviderItemIdentifier($0) })
         }
+        RemoteClipboard.log("enumerateChanges(\(container.rawValue)) from \(String(decoding: anchor.rawValue, as: UTF8.self)): \(current.count) updated, \(manifest.retired.count) retired, to revision \(manifest.revision)")
         if !current.isEmpty { observer.didUpdate(current) }
         observer.finishEnumeratingChanges(upTo: Self.anchor(manifest), moreComing: false)
     }
