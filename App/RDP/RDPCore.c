@@ -18,6 +18,8 @@
 #include <freerdp/client/client_cliprdr_file.h>
 #include <freerdp/utils/cliprdr_utils.h>
 #include <winpr/clipboard.h>
+#include <winpr/shell.h>
+#include <winpr/file.h>
 #include <freerdp/client/cmdline.h>   // freerdp_client_add_device_channel
 #include <freerdp/gdi/gdi.h>
 #include <freerdp/gdi/gfx.h>
@@ -128,6 +130,10 @@ struct RDPCore {
     wClipboard *clip;
     CliprdrFileContext *fileCtx;
     UINT32 fileFormatId;
+    // File clipboard, remote -> Mac: the id the SERVER gave "FileGroupDescriptorW" in its
+    // latest format list (0 = the remote clipboard holds no files). Server ids are its own,
+    // so this is learned from every list rather than assumed.
+    UINT32 remoteFileFormatId;
     int gfxNegotiated;             // this session advertised the graphics pipeline
     const void *lastPointer;       // last shape handed up, to skip repeats
 
@@ -246,16 +252,20 @@ static void mrng_cliprdr_issue_request(CliprdrClientContext *cliprdr, RDPCore *c
 static UINT mrng_cliprdr_server_format_list(CliprdrClientContext *cliprdr, const CLIPRDR_FORMAT_LIST *fl) {
     RDPCore *core = coreFromCliprdr(cliprdr);
     // A new remote clipboard invalidates whatever file state the helper held for the
-    // previous one. (Remote -> Mac files are not fetched yet; this keeps it honest.)
+    // previous one.
     cliprdr_file_context_notify_new_server_format_list(core->fileCtx);
     bool hasText = false;
     UINT32 imageFormat = 0; // prefer CF_DIB, fall back to CF_DIBV5 if that's all the server offers
+    UINT32 fileFormat = 0;  // the server's id for FileGroupDescriptorW, a named format
     for (UINT32 i = 0; i < fl->numFormats; i++) {
         UINT32 id = fl->formats[i].formatId;
+        const char *name = fl->formats[i].formatName;
         if (id == CF_UNICODETEXT) hasText = true;
         else if (id == CF_DIB) imageFormat = CF_DIB;
         else if (id == CF_DIBV5 && imageFormat == 0) imageFormat = CF_DIBV5;
+        else if (name && strcmp(name, "FileGroupDescriptorW") == 0) fileFormat = id;
     }
+    core->remoteFileFormatId = fileFormat;
     CLIPRDR_FORMAT_LIST_RESPONSE resp = {0};
     resp.common.msgFlags = CB_RESPONSE_OK;
     cliprdr->ClientFormatListResponse(cliprdr, &resp);
@@ -263,10 +273,53 @@ static UINT mrng_cliprdr_server_format_list(CliprdrClientContext *cliprdr, const
     if (core->cb.onClipboardRemoteFormats)
         core->cb.onClipboardRemoteFormats(core->ctx, hasText, imageFormat != 0);
 
-    UINT32 want = hasText ? CF_UNICODETEXT : imageFormat;
+    // Text first: Outlook, for one, offers a message as text AND as a file, and a paste in
+    // a text field expects the text. Explorer offers files with no text at all. The file
+    // list itself is small — names and sizes; no file's contents move until a paste asks.
+    UINT32 want = hasText ? CF_UNICODETEXT : (fileFormat ? fileFormat : imageFormat);
     core->clipboardWantedFormat = want;
     if (want && !core->clipboardRequestInFlight)
         mrng_cliprdr_issue_request(cliprdr, core, want);
+    return CHANNEL_RC_OK;
+}
+
+// The remote's file list (MS-RDPECLIP CLIPRDR_FILELIST) handed up as plain structs, so the
+// app layer needs neither winpr's FILEDESCRIPTORW nor its parser.
+static void mrng_report_remote_files(RDPCore *core, const BYTE *data, UINT32 size) {
+    if (!core->cb.onClipboardRemoteFiles || !data || !size) return;
+    FILEDESCRIPTORW *descs = NULL;
+    UINT32 count = 0;
+    if (cliprdr_parse_file_list(data, size, &descs, &count) != CHANNEL_RC_OK || count == 0) {
+        free(descs);
+        return;
+    }
+    RDPCoreRemoteFile *files = calloc(count, sizeof(RDPCoreRemoteFile));
+    if (files) {
+        for (UINT32 i = 0; i < count; i++) {
+            const FILEDESCRIPTORW *d = &descs[i];
+            RDPCoreRemoteFile *f = &files[i];
+            for (size_t k = 0; k < 259 && d->cFileName[k]; k++) f->name[k] = (uint16_t)d->cFileName[k];
+            // Attributes are only meaningful when the descriptor says it carries them.
+            f->isDirectory = (d->dwFlags & FD_ATTRIBUTES) && (d->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+            f->hasSize = (d->dwFlags & FD_FILESIZE) != 0;
+            f->size = ((uint64_t)d->nFileSizeHigh << 32) | d->nFileSizeLow;
+            f->hasWriteTime = (d->dwFlags & FD_WRITESTIME) != 0;
+            f->writeTime = ((uint64_t)d->ftLastWriteTime.dwHighDateTime << 32) | d->ftLastWriteTime.dwLowDateTime;
+        }
+        core->cb.onClipboardRemoteFiles(core->ctx, files, count);
+        free(files);
+    }
+    free(descs);
+}
+
+// The remote answered one of our file-contents requests.
+static UINT mrng_cliprdr_server_file_contents_response(CliprdrClientContext *cliprdr,
+                                                       const CLIPRDR_FILE_CONTENTS_RESPONSE *r) {
+    RDPCore *core = coreFromCliprdr(cliprdr);
+    bool ok = (r->common.msgFlags & CB_RESPONSE_OK) != 0;
+    if (core->cb.onClipboardFileContents)
+        core->cb.onClipboardFileContents(core->ctx, r->streamId, ok,
+                                         ok ? r->requestedData : NULL, ok ? r->cbRequested : 0);
     return CHANNEL_RC_OK;
 }
 
@@ -289,9 +342,13 @@ static UINT mrng_cliprdr_server_format_data_request(CliprdrClientContext *cliprd
 static UINT mrng_cliprdr_server_format_data_response(CliprdrClientContext *cliprdr,
                                                      const CLIPRDR_FORMAT_DATA_RESPONSE *resp) {
     RDPCore *core = coreFromCliprdr(cliprdr);
-    if ((resp->common.msgFlags & CB_RESPONSE_OK) && core->cb.onClipboardRemoteData)
+    bool ok = (resp->common.msgFlags & CB_RESPONSE_OK) != 0;
+    if (ok && core->remoteFileFormatId && core->pendingClipboardFormat == core->remoteFileFormatId) {
+        mrng_report_remote_files(core, resp->requestedFormatData, resp->common.dataLen);
+    } else if (ok && core->cb.onClipboardRemoteData) {
         core->cb.onClipboardRemoteData(core->ctx, core->pendingClipboardFormat,
                                        resp->requestedFormatData, resp->common.dataLen);
+    }
     // Request complete. If the remote offered a different format meanwhile, fetch it now.
     core->clipboardRequestInFlight = 0;
     if (core->clipboardWantedFormat && core->clipboardWantedFormat != core->pendingClipboardFormat)
@@ -308,6 +365,9 @@ static void on_channel_connected(void *context, const ChannelConnectedEventArgs 
         // The helper takes c->custom for itself and hooks the file-contents and lock
         // callbacks; ours are set after it, on the same context.
         cliprdr_file_context_init(core->fileCtx, c);
+        // Ours: without FUSE the helper leaves this one alone, and it is the half that
+        // carries files from the remote to the Mac.
+        c->ServerFileContentsResponse = mrng_cliprdr_server_file_contents_response;
         c->ServerCapabilities = mrng_cliprdr_server_capabilities;
         c->MonitorReady = mrng_cliprdr_monitor_ready;
         c->ServerFormatList = mrng_cliprdr_server_format_list;
@@ -348,7 +408,9 @@ static void on_channel_disconnected(void *context, const ChannelDisconnectedEven
         if (core->cliprdr) cliprdr_file_context_uninit(core->fileCtx, core->cliprdr);
         core->cliprdr = NULL;
         core->clipboardReady = 0;
+        core->remoteFileFormatId = 0;
         pthread_mutex_unlock(&core->chanLock);
+        if (core->cb.onClipboardChannelClosed) core->cb.onClipboardChannelClosed(core->ctx);
     } else if (strcmp(e->name, RDPGFX_DVC_CHANNEL_NAME) == 0) {
         if (ctx->gdi) gdi_graphics_pipeline_uninit(ctx->gdi, (RdpgfxClientContext *)e->pInterface);
     }
@@ -905,6 +967,28 @@ void rdpcore_clipboard_provide_files(RDPCore *core, const char *uriList, uint32_
     }
     pthread_mutex_unlock(&core->chanLock);
     free(out);
+}
+
+bool rdpcore_clipboard_request_file_contents(RDPCore *core, uint32_t streamId, uint32_t listIndex,
+                                             bool sizeOnly, uint64_t offset, uint32_t length) {
+    if (!core) return false;
+    pthread_mutex_lock(&core->chanLock);
+    CliprdrClientContext *c = core->clipboardReady ? core->cliprdr : NULL;
+    UINT rc = ERROR_INVALID_STATE;
+    if (c) {
+        CLIPRDR_FILE_CONTENTS_REQUEST req = {0};
+        req.streamId = streamId;
+        req.listIndex = listIndex;
+        // MS-RDPECLIP 2.2.5.3: a size request carries position 0 and asks for exactly 8 bytes.
+        req.dwFlags = sizeOnly ? FILECONTENTS_SIZE : FILECONTENTS_RANGE;
+        req.nPositionLow = sizeOnly ? 0 : (UINT32)(offset & 0xFFFFFFFFu);
+        req.nPositionHigh = sizeOnly ? 0 : (UINT32)(offset >> 32);
+        req.cbRequested = sizeOnly ? 8 : length;
+        req.haveClipDataId = FALSE; // no clipboard locking: the list is read as it is now
+        rc = c->ClientFileContentsRequest(c, &req);
+    }
+    pthread_mutex_unlock(&core->chanLock);
+    return rc == CHANNEL_RC_OK;
 }
 
 static rdpInput *coreInput(RDPCore *core) {

@@ -20,8 +20,18 @@ enum { MRNG_CF_UNICODETEXT = 13, MRNG_CF_DIB = 8, MRNG_CF_DIBV5 = 17 };
     NSString *_sharedFolder;    // macOS folder exposed as a redirected drive (nil = none)
     BOOL _useLegacyGraphics;    // skip EGFX, take the classic bitmap update path
     NSInteger _lastPasteboardChangeCount;
+    // Remote clipboard file contents: one request in flight at a time (_fileRequestLock),
+    // answered through a semaphore of its own so a late reply to an abandoned request can
+    // never release the next one. Guarded by @synchronized(self).
+    NSLock *_fileRequestLock;
+    uint32_t _fileStreamId;
+    dispatch_semaphore_t _fileSema;
+    NSData *_fileResponse;
+    BOOL _fileResponseOK;
 }
 - (void)enqueueImage:(CGImageRef)img;
+- (void)deliverFileContents:(uint32_t)streamId ok:(BOOL)ok data:(nullable NSData *)data;
+- (void)abortRemoteFileRequests;
 - (void)applyRemoteClipboardData:(NSData *)data format:(uint32_t)formatId;
 - (void)provideLocalClipboardForFormat:(uint32_t)formatId;
 - (void)provideLocalClipboardFiles;
@@ -79,6 +89,7 @@ static void core_onDisconnected(void *ctx, const char *err) {
     // Transfer the +1 retain held by core back to ARC: after this callback the
     // client can be safely deallocated (the thread is done).
     RDPClient *self = (__bridge_transfer RDPClient *)ctx;
+    [self abortRemoteFileRequests]; // a paste waiting on this session gets its answer now
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.delegate rdpClient:self didDisconnectWithError:msg];
     });
@@ -206,6 +217,48 @@ static void core_onClipboardFilesRequested(void *ctx) {
     });
 }
 
+// MARK: - Remote clipboard files
+
+@implementation RDPRemoteFile
+- (instancetype)initWithCore:(const RDPCoreRemoteFile *)f index:(uint32_t)index {
+    if ((self = [super init])) {
+        _index = index;
+        NSUInteger len = 0;
+        while (len < 260 && f->name[len]) len++;
+        _remotePath = [NSString stringWithCharacters:(const unichar *)f->name length:len];
+        _isDirectory = f->isDirectory;
+        _size = f->hasSize ? (int64_t)f->size : -1;
+        // FILETIME counts 100 ns from 1601-01-01; the Unix epoch is 11 644 473 600 s later.
+        if (f->hasWriteTime && f->writeTime > 116444736000000000ULL)
+            _modified = [NSDate dateWithTimeIntervalSince1970:
+                         (double)(f->writeTime - 116444736000000000ULL) / 1e7];
+    }
+    return self;
+}
+@end
+
+static void core_onClipboardRemoteFiles(void *ctx, const RDPCoreRemoteFile *files, uint32_t count) {
+    RDPClient *self = (__bridge RDPClient *)ctx;
+    NSMutableArray<RDPRemoteFile *> *list = [NSMutableArray arrayWithCapacity:count];
+    for (uint32_t i = 0; i < count; i++)
+        [list addObject:[[RDPRemoteFile alloc] initWithCore:&files[i] index:i]];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        id<RDPClientDelegate> d = self.delegate;
+        if ([d respondsToSelector:@selector(rdpClient:didCopyRemoteFiles:)])
+            [d rdpClient:self didCopyRemoteFiles:list];
+    });
+}
+
+static void core_onClipboardFileContents(void *ctx, uint32_t streamId, bool ok,
+                                         const uint8_t *data, uint32_t size) {
+    RDPClient *self = (__bridge RDPClient *)ctx;
+    [self deliverFileContents:streamId ok:ok data:(ok && data) ? [NSData dataWithBytes:data length:size] : nil];
+}
+
+static void core_onClipboardChannelClosed(void *ctx) {
+    [(__bridge RDPClient *)ctx abortRemoteFileRequests];
+}
+
 @implementation RDPClient
 
 + (void)setDiagnosticLogging:(BOOL)enabled directory:(NSString *)directory {
@@ -254,6 +307,9 @@ static void core_onClipboardFilesRequested(void *ctx) {
         .onClipboardRemoteData = core_onClipboardRemoteData,
         .onClipboardDataRequested = core_onClipboardDataRequested,
         .onClipboardFilesRequested = core_onClipboardFilesRequested,
+        .onClipboardRemoteFiles = core_onClipboardRemoteFiles,
+        .onClipboardFileContents = core_onClipboardFileContents,
+        .onClipboardChannelClosed = core_onClipboardChannelClosed,
         .onLegacyGraphicsSuggested = core_onLegacyGraphicsSuggested,
         .onCursorShape = core_onCursorShape,
         .onCursorHidden = core_onCursorHidden,
@@ -298,6 +354,87 @@ static void core_onClipboardFilesRequested(void *ctx) {
     if (_core) rdpcore_stop(_core);
     [_clipboardTimer invalidate];
     _clipboardTimer = nil;
+    [self abortRemoteFileRequests];
+}
+
+- (void)noteOwnPasteboardWrite {
+    _lastPasteboardChangeCount = NSPasteboard.generalPasteboard.changeCount;
+}
+
+- (void)deliverFileContents:(uint32_t)streamId ok:(BOOL)ok data:(NSData *)data {
+    @synchronized (self) {
+        // Only the request still being waited for; anything else is a late reply.
+        if (!_fileSema || streamId != _fileStreamId) return;
+        _fileResponse = data;
+        _fileResponseOK = ok;
+        dispatch_semaphore_signal(_fileSema);
+        _fileSema = nil;
+    }
+}
+
+- (void)abortRemoteFileRequests {
+    @synchronized (self) {
+        if (!_fileSema) return;
+        _fileResponse = nil;
+        _fileResponseOK = NO;
+        dispatch_semaphore_signal(_fileSema);
+        _fileSema = nil;
+    }
+}
+
+static NSError *mrng_fileError(NSString *what) {
+    return [NSError errorWithDomain:@"ro.cremenescu.mRemoteNXT.RemoteFiles" code:1
+                           userInfo:@{NSLocalizedDescriptionKey: what}];
+}
+
+- (nullable NSData *)remoteFileRequest:(uint32_t)index sizeOnly:(BOOL)sizeOnly
+                                offset:(uint64_t)offset length:(uint32_t)length
+                                 error:(NSError **)error {
+    NSAssert(!NSThread.isMainThread, @"remote file reads block until the server answers");
+    @synchronized (self) { if (!_fileRequestLock) _fileRequestLock = [NSLock new]; }
+    [_fileRequestLock lock];
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+    uint32_t sid;
+    @synchronized (self) {
+        sid = ++_fileStreamId;
+        _fileSema = sema;
+        _fileResponse = nil;
+        _fileResponseOK = NO;
+    }
+    BOOL sent = _core && rdpcore_clipboard_request_file_contents(_core, sid, index, sizeOnly, offset, length);
+    // Thirty seconds of silence for one chunk means the remote is not going to answer:
+    // its clipboard changed under us, or the link is gone.
+    BOOL answered = sent && dispatch_semaphore_wait(sema, dispatch_time(DISPATCH_TIME_NOW, 30 * NSEC_PER_SEC)) == 0;
+    NSData *data;
+    BOOL ok;
+    @synchronized (self) {
+        if (_fileSema == sema) _fileSema = nil; // timed out: stop listening for it
+        data = _fileResponse;
+        ok = _fileResponseOK;
+        _fileResponse = nil;
+    }
+    [_fileRequestLock unlock];
+    if (!sent) { if (error) *error = mrng_fileError(@"The session's clipboard is not available."); return nil; }
+    if (!answered) { if (error) *error = mrng_fileError(@"The remote computer stopped answering."); return nil; }
+    if (!ok || !data) {
+        if (error) *error = mrng_fileError(@"The remote computer refused the file — it may have copied something else since.");
+        return nil;
+    }
+    return data;
+}
+
+- (nullable NSNumber *)sizeOfRemoteFileAtIndex:(uint32_t)index error:(NSError **)error {
+    NSData *d = [self remoteFileRequest:index sizeOnly:YES offset:0 length:8 error:error];
+    if (!d) return nil;
+    if (d.length < 8) { if (error) *error = mrng_fileError(@"The remote computer sent a malformed size."); return nil; }
+    uint64_t v = 0;
+    memcpy(&v, d.bytes, 8);
+    return @((int64_t)OSSwapLittleToHostInt64(v));
+}
+
+- (nullable NSData *)readRemoteFileAtIndex:(uint32_t)index offset:(uint64_t)offset
+                                    length:(uint32_t)length error:(NSError **)error {
+    return [self remoteFileRequest:index sizeOnly:NO offset:offset length:length error:error];
 }
 
 - (void)resizeToWidth:(int)width height:(int)height scale:(int)scalePercent {

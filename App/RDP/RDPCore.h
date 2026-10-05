@@ -17,6 +17,19 @@ extern "C" {
 
 typedef struct RDPCore RDPCore;
 
+/// One entry of the file list the remote put on its clipboard (files copied in Explorer).
+/// name is the path relative to what was copied — UTF-16, backslash-separated, NUL-terminated
+/// within the 260 characters Windows allows. Folders come as their own entries, before or
+/// after their contents; the position in the list is the index the contents are asked by.
+typedef struct {
+    uint16_t name[260];
+    bool isDirectory;
+    bool hasSize;
+    uint64_t size;
+    bool hasWriteTime;
+    uint64_t writeTime;   // FILETIME: 100 ns intervals since 1601-01-01 UTC
+} RDPCoreRemoteFile;
+
 typedef struct {
     void (*onConnected)(void *ctx, int width, int height);
     // bgra = live buffer (valid only during the callback); the consumer copies synchronously.
@@ -28,6 +41,14 @@ typedef struct {
     void (*onClipboardDataRequested)(void *ctx, uint32_t formatId); // remote wants our clipboard
     // Remote wants the files we announced: answer with rdpcore_clipboard_provide_files().
     void (*onClipboardFilesRequested)(void *ctx);
+    // Remote copied files. The array is valid only during the callback.
+    void (*onClipboardRemoteFiles)(void *ctx, const RDPCoreRemoteFile *files, uint32_t count);
+    // Answer to rdpcore_clipboard_request_file_contents, matched by streamId. data is valid
+    // only during the callback; for a size request it is 8 bytes, little-endian.
+    void (*onClipboardFileContents)(void *ctx, uint32_t streamId, bool ok,
+                                    const uint8_t *data, uint32_t size);
+    // The clipboard channel went away: nothing outstanding will be answered.
+    void (*onClipboardChannelClosed)(void *ctx);
     /// The server turned out to be too old for the graphics pipeline, and this session
     /// negotiated it anyway. Fired once, right after connecting: the caller should
     /// remember the host and reconnect with useLegacyGraphics.
@@ -92,6 +113,11 @@ void rdpcore_clipboard_provide(RDPCore *core, const uint8_t *data, uint32_t size
 // path>" per line, CRLF-separated, paths unencoded. The descriptors go out now; the
 // contents are streamed later, on demand, as the remote reads each file.
 void rdpcore_clipboard_provide_files(RDPCore *core, const char *uriList, uint32_t size);
+// Ask the remote for a file on ITS clipboard, by its index in the list onClipboardRemoteFiles
+// reported: the size (sizeOnly) or `length` bytes from `offset`. The answer arrives through
+// onClipboardFileContents with the same streamId. Returns false when the channel is not up.
+bool rdpcore_clipboard_request_file_contents(RDPCore *core, uint32_t streamId, uint32_t listIndex,
+                                             bool sizeOnly, uint64_t offset, uint32_t length);
 
 void rdpcore_mouse_move(RDPCore *core, int x, int y);
 void rdpcore_mouse_button(RDPCore *core, int button, bool down, int x, int y);

@@ -323,6 +323,11 @@ final class RDPNSView: NSView, RDPClientDelegate {
         applyCursor(nil)
     }
 
+    /// Explorer copied files: offer them to the Finder. Nothing is transferred until a paste.
+    func rdpClient(_ client: RDPClient, didCopy files: [RDPRemoteFile]) {
+        RemoteFileClipboard.offer(files, from: client)
+    }
+
     func rdpClientNeedsLegacyGraphics(_ client: RDPClient) {
         let host = session.node.hostname
         guard !LegacyGraphicsHosts.contains(host) else { return }
