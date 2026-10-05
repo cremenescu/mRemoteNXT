@@ -155,6 +155,12 @@ final class RemoteClipboardServer {
         manager.signalEnumerator(for: .workingSet) { error in
             RemoteClipboard.log("offer: signal working set -> \(error.map { "\($0)" } ?? "ok")")
         }
+        // The placeholders take a moment to appear — measured up to twelve seconds for the first
+        // copy after a launch. Until then the pasteboard would still hold whatever was copied on
+        // the Mac before, and a quick Cmd+V would paste that instead. Emptied, Paste is simply
+        // unavailable for those seconds. The remote keeps its files regardless: they are locked.
+        NSPasteboard.general.clearContents()
+        client.noteOwnPasteboardWrite()
         publish(gen, manager: manager, client: client)
     }
 
@@ -163,7 +169,8 @@ final class RemoteClipboardServer {
         let roots = gen.nodes.filter { $0.path.count == 1 }
         DispatchQueue.global(qos: .userInitiated).async {
             var urls: [URL] = []
-            let deadline = Date().addingTimeInterval(15)
+            // Generous: a timeout here leaves the pasteboard empty, which is the failure the user sees.
+            let deadline = Date().addingTimeInterval(60)
             for node in roots {
                 let id = NSFileProviderItemIdentifier(gen.identifier(for: node.path))
                 var lastError = ""
@@ -277,9 +284,21 @@ final class RemoteClipboardServer {
             while offset < size {
                 if fm.fileExists(atPath: cancel.path) { return fail(.cancelled) }
                 let want = UInt32(min(Int64(chunk), size - offset))
-                let data = try client.readRemoteFile(at: request.index, offset: UInt64(offset), length: want, lock: lock)
+                let data: Data
+                do {
+                    data = try client.readRemoteFile(at: request.index, offset: UInt64(offset), length: want, lock: lock)
+                } catch {
+                    // Where it stopped tells a file the remote cannot read past (a database holding
+                    // byte-range locks fails at the same offset every time) from a clipboard that
+                    // changed underneath (fails wherever the change happened).
+                    RemoteClipboard.log("serve: \(id) read failed at offset \(offset) of \(size): \(error)")
+                    throw error
+                }
                 // An empty answer before the end would loop forever.
-                guard !data.isEmpty else { return fail(.refused) }
+                guard !data.isEmpty else {
+                    RemoteClipboard.log("serve: \(id) empty answer at offset \(offset) of \(size)")
+                    return fail(.refused)
+                }
                 try handle.write(contentsOf: data)
                 offset += Int64(data.count)
                 progress(offset, size)
