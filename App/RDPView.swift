@@ -99,10 +99,32 @@ final class RDPNSView: NSView, RDPClientDelegate {
     /// Cursor the remote asked for, nil = the system arrow.
     private var remoteCursor: NSCursor?
 
+    /// Whether this session's tab is the one on screen.
+    ///
+    /// Every open session stays alive in a ZStack, the hidden ones at opacity zero, and a
+    /// tracking area takes no notice of opacity. So every hidden desktop kept its own area
+    /// over the same rectangle and kept setting the cursor: when a Windows box in a
+    /// background tab hid its pointer — a locked screen, a video, a console that hides it
+    /// while typing — the transparent cursor went up over whichever tab was actually
+    /// showing, and the mouse vanished there. Hidden tabs also forwarded every mouse move
+    /// to their servers. Only the active tab owns a tracking area now.
+    var isActiveTab = false {
+        didSet {
+            guard isActiveTab != oldValue else { return }
+            updateTrackingAreas()
+            // Leaving: if the pointer still wears this session's shape, hand back the arrow
+            // — the tab now on screen sets its own on its first update. Only our own shape is
+            // touched, so a tab that became active before this one went inactive keeps its.
+            if !isActiveTab, let mine = remoteCursor, NSCursor.current === mine {
+                NSCursor.arrow.set()
+            }
+        }
+    }
+
     /// AppKit asks for the cursor through the tracking machinery, so a change only takes
     /// effect once the rects are rebuilt.
     override func resetCursorRects() {
-        if let c = remoteCursor {
+        if isActiveTab, let c = remoteCursor {
             addCursorRect(bounds, cursor: c)
         } else {
             super.resetCursorRects()
@@ -112,6 +134,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
     /// Belt and braces: while the pointer is already inside the view AppKit sends this
     /// instead of rebuilding the rects.
     override func cursorUpdate(with event: NSEvent) {
+        guard isActiveTab else { return }
         if let c = remoteCursor { c.set() } else { super.cursorUpdate(with: event) }
     }
 
@@ -131,7 +154,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
     /// Deliberately no invalidateCursorRects: it used to run on every shape change and,
     /// mid-drag, rebuilding the window's cursor rects interferes with the drag itself.
     private func applyCursorIfInside() {
-        guard let w = window, w.isKeyWindow,
+        guard isActiveTab, let w = window, w.isKeyWindow,
               bounds.contains(convert(w.mouseLocationOutsideOfEventStream, from: nil))
         else { return }
         let wanted = remoteCursor ?? .arrow
@@ -353,6 +376,8 @@ final class RDPNSView: NSView, RDPClientDelegate {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
+        // A hidden tab gets none at all — see isActiveTab.
+        guard isActiveTab else { return }
         // .cursorUpdate is what makes AppKit ask US for the cursor. Without it the only
         // route is the cursor-rect machinery, which SwiftUI resets underneath a view that
         // redraws every frame — so the remote cursor arrived, was installed, and was
@@ -531,6 +556,7 @@ struct RDPContainer: NSViewRepresentable {
         let view = RDPNSView(session: session)
         view.onDisconnect = onDisconnect
         view.onNeedsReconnect = onNeedsReconnect
+        view.isActiveTab = isActive
         let host = SessionHostView(content: view, hiddenSizing: .whenSettled)
         host.isActive = isActive
         return host
@@ -539,6 +565,8 @@ struct RDPContainer: NSViewRepresentable {
     func updateNSView(_ host: SessionHostView<RDPNSView>, context: Context) {
         let view = host.content
         view.ensureStarted()
+        // Only the tab on screen may set the cursor or hear the mouse.
+        view.isActiveTab = isActive
         // The host sizes the desktop view only while it is on screen; tell it which that is.
         host.isActive = isActive
         guard isActive else { return }
