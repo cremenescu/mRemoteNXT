@@ -294,3 +294,15 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 /* RDP: scancode typing */
 "Settings.ScancodeTyping" = "Trimite tastele ca pozitii (RDP)";
 "Settings.ScancodeTypingNote" = "Programele de consola care citesc tastele brut — printre ele powershell.exe — nu primesc nimic cand tastele ajung ca si caractere, de-aia acolo nu se scria nimic desi in cmd.exe mergea. Trimiterea pozitiilor rezolva asta, iar aranjamentul de tastatura al Mac-ului e anuntat serverului ca sa fie citite corect. Opreste-o daca o sesiune incepe sa scrie alte caractere, adica serverul nu a putut potrivi aranjamentul.";
+
+/* Files pasted from a remote session */
+"RemoteFiles.Copying" = "Se copiaza „%@” de pe calculatorul remote…";
+"RemoteFiles.Bytes" = "%1$@ din %2$@";
+"RemoteFiles.Cancel" = "Anuleaza";
+"RemoteFiles.Failed" = "Nu s-a putut lipi de pe calculatorul remote";
+"RemoteFiles.Error.Unavailable" = "Clipboard-ul sesiunii nu e disponibil.";
+"RemoteFiles.Error.Timeout" = "Calculatorul remote nu mai raspunde.";
+"RemoteFiles.Error.Refused" = "Calculatorul remote a refuzat fisierul — e posibil sa se fi copiat altceva acolo intre timp.";
+"RemoteFiles.Error.Malformed" = "Calculatorul remote a trimis un raspuns care nu poate fi citit.";
+"RemoteFiles.Error.Closed" = "Sesiunea din care s-a copiat e inchisa.";
+"RemoteFiles.Error.Short" = "Calculatorul remote a trimis mai putin decat marimea fisierului.";

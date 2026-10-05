@@ -382,9 +382,11 @@ static void core_onClipboardChannelClosed(void *ctx) {
     }
 }
 
-static NSError *mrng_fileError(NSString *what) {
-    return [NSError errorWithDomain:@"ro.cremenescu.mRemoteNXT.RemoteFiles" code:1
-                           userInfo:@{NSLocalizedDescriptionKey: what}];
+// Codes, not sentences: the app layer turns them into the user's language.
+// Kept in step with RemoteFileClipboard.ErrorCode on the Swift side.
+enum { MRNGFileErrUnavailable = 10, MRNGFileErrTimeout = 11, MRNGFileErrRefused = 12, MRNGFileErrMalformed = 13 };
+static NSError *mrng_fileError(NSInteger code) {
+    return [NSError errorWithDomain:@"ro.cremenescu.mRemoteNXT.RemoteFiles" code:code userInfo:nil];
 }
 
 - (nullable NSData *)remoteFileRequest:(uint32_t)index sizeOnly:(BOOL)sizeOnly
@@ -414,19 +416,16 @@ static NSError *mrng_fileError(NSString *what) {
         _fileResponse = nil;
     }
     [_fileRequestLock unlock];
-    if (!sent) { if (error) *error = mrng_fileError(@"The session's clipboard is not available."); return nil; }
-    if (!answered) { if (error) *error = mrng_fileError(@"The remote computer stopped answering."); return nil; }
-    if (!ok || !data) {
-        if (error) *error = mrng_fileError(@"The remote computer refused the file — it may have copied something else since.");
-        return nil;
-    }
+    if (!sent) { if (error) *error = mrng_fileError(MRNGFileErrUnavailable); return nil; }
+    if (!answered) { if (error) *error = mrng_fileError(MRNGFileErrTimeout); return nil; }
+    if (!ok || !data) { if (error) *error = mrng_fileError(MRNGFileErrRefused); return nil; }
     return data;
 }
 
 - (nullable NSNumber *)sizeOfRemoteFileAtIndex:(uint32_t)index error:(NSError **)error {
     NSData *d = [self remoteFileRequest:index sizeOnly:YES offset:0 length:8 error:error];
     if (!d) return nil;
-    if (d.length < 8) { if (error) *error = mrng_fileError(@"The remote computer sent a malformed size."); return nil; }
+    if (d.length < 8) { if (error) *error = mrng_fileError(MRNGFileErrMalformed); return nil; }
     uint64_t v = 0;
     memcpy(&v, d.bytes, 8);
     return @((int64_t)OSSwapLittleToHostInt64(v));
