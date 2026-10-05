@@ -18,5 +18,12 @@
          to let the main binary load them. -->
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
+
+    <!-- Shared with the File Provider extension that makes files copied in a remote
+         session pasteable in the Finder. Team-prefixed: no provisioning profile needed. -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>FU62DHV366.ro.cremenescu.mRemoteNXT</string>
+    </array>
 </dict>
 </plist>

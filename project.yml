@@ -29,6 +29,8 @@ targets:
         product: SwiftTerm
       - package: Sparkle
         product: Sparkle
+      # Embedded into Contents/PlugIns. Pastes files copied in a remote session into the Finder.
+      - target: RemoteClipboard
     info:
       path: App/Info.plist
       properties:
@@ -87,3 +89,37 @@ targets:
           # directly from RDPCore.c, so link libcrypto explicitly rather than
           # relying on the transitive dep through FreeRDP.
           - -lcrypto
+
+  # File Provider extension: shows what a remote session copied as placeholder files, and
+  # fetches their contents through the app when the Finder copies them. See
+  # App/RemoteClipboardServer.swift for the app's half.
+  RemoteClipboard:
+    type: app-extension
+    platform: macOS
+    sources:
+      - FileProvider
+      - path: App/RemoteClipboardShared.swift
+    info:
+      path: FileProvider/Info.plist
+      properties:
+        CFBundleDisplayName: mRemoteNXT Remote Clipboard
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSHumanReadableCopyright: "Copyright © 2026 Razvan Cremenescu. Released under GPL-2.0-or-later."
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.fileprovider-nonui
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).FileProviderExtension"
+          NSExtensionFileProviderDocumentGroup: FU62DHV366.ro.cremenescu.mRemoteNXT
+          NSExtensionFileProviderSupportsEnumeration: true
+    entitlements:
+      path: FileProvider/RemoteClipboard.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ro.cremenescu.mRemoteNXT.RemoteClipboard
+        PRODUCT_NAME: RemoteClipboard
+        MARKETING_VERSION: "0.8.14"
+        CURRENT_PROJECT_VERSION: "91"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_ALLOWED: YES
+        ENABLE_HARDENED_RUNTIME: YES
+        SWIFT_VERSION: "5.9"

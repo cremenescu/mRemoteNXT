@@ -292,15 +292,3 @@ Lui faire confiance mémorise exactement ce certificat pour cet hôte. La questi
 /* RDP: scancode typing */
 "Settings.ScancodeTyping" = "Envoyer les touches comme positions (RDP)";
 "Settings.ScancodeTypingNote" = "Les programmes en console qui lisent les touches brutes — dont powershell.exe — ne reçoivent rien lorsque les touches arrivent sous forme de caractères : la saisie n’y produisait donc rien alors que cmd.exe fonctionnait. Envoyer les positions corrige cela, et la disposition clavier du Mac est annoncée au serveur pour qu’il les interprète correctement. Désactivez-le si une session se met à taper de mauvais caractères, signe que le serveur n’a pas pu retrouver la disposition.";
-
-/* Files pasted from a remote session */
-"RemoteFiles.Copying" = "Copie de « %@ » depuis l'ordinateur distant…";
-"RemoteFiles.Bytes" = "%1$@ sur %2$@";
-"RemoteFiles.Cancel" = "Annuler";
-"RemoteFiles.Failed" = "Impossible de coller depuis l'ordinateur distant";
-"RemoteFiles.Error.Unavailable" = "Le presse-papiers de la session n'est pas disponible.";
-"RemoteFiles.Error.Timeout" = "L'ordinateur distant ne répond plus.";
-"RemoteFiles.Error.Refused" = "L'ordinateur distant a refusé le fichier — autre chose y a peut-être été copié entre-temps.";
-"RemoteFiles.Error.Malformed" = "L'ordinateur distant a envoyé une réponse illisible.";
-"RemoteFiles.Error.Closed" = "La session d'où provient la copie est fermée.";
-"RemoteFiles.Error.Short" = "L'ordinateur distant a envoyé moins que la taille du fichier.";

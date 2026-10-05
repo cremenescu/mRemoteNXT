@@ -292,15 +292,3 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 /* RDP: scancode typing */
 "Settings.ScancodeTyping" = "Tuslari konum olarak gonder (RDP)";
 "Settings.ScancodeTypingNote" = "Ham klavye girdisi okuyan konsol programlari — powershell.exe dahil — tuslar karakter olarak geldiginde hicbir sey almaz; cmd.exe calisirken orada yazmanin islememesinin nedeni budur. Konum gondermek bunu duzeltir ve Mac klavye duzeni sunucuya bildirilir ki konumlar dogru okunsun. Bir oturum yanlis karakterler yazmaya baslarsa kapatin; bu, sunucunun duzeni eslestiremedigi anlamina gelir.";
-
-/* Files pasted from a remote session */
-"RemoteFiles.Copying" = "“%@” uzak bilgisayardan kopyalanıyor…";
-"RemoteFiles.Bytes" = "%1$@ / %2$@";
-"RemoteFiles.Cancel" = "İptal";
-"RemoteFiles.Failed" = "Uzak bilgisayardan yapıştırılamadı";
-"RemoteFiles.Error.Unavailable" = "Oturumun panosu kullanılamıyor.";
-"RemoteFiles.Error.Timeout" = "Uzak bilgisayar yanıt vermeyi bıraktı.";
-"RemoteFiles.Error.Refused" = "Uzak bilgisayar dosyayı reddetti — bu arada orada başka bir şey kopyalanmış olabilir.";
-"RemoteFiles.Error.Malformed" = "Uzak bilgisayar okunamayan bir yanıt gönderdi.";
-"RemoteFiles.Error.Closed" = "Kopyalamanın yapıldığı oturum kapalı.";
-"RemoteFiles.Error.Short" = "Uzak bilgisayar dosya boyutundan daha az veri gönderdi.";

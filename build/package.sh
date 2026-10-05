@@ -251,6 +251,16 @@ if [ "$SIGN_MODE" = "developer-id" ]; then
                  "$SPARKLE_FW"
     fi
 
+    # The File Provider extension carries its own entitlements (sandbox + the app group it
+    # shares with the app), so it is signed on its own and before the app that contains it.
+    APPEX="$APP/Contents/PlugIns/RemoteClipboard.appex"
+    if [ -d "$APPEX" ]; then
+        echo "    Signing RemoteClipboard.appex"
+        codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+                 --entitlements "$PROJECT_ROOT/FileProvider/RemoteClipboard.entitlements" \
+                 "$APPEX"
+    fi
+
     codesign --force --sign "$DEVELOPER_ID" \
              --options runtime --timestamp \
              --entitlements "$ENTITLEMENTS" \

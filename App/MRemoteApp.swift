@@ -30,6 +30,9 @@ struct MRemoteApp: App {
         // non-AD Windows hosts — otherwise NLA fails with a misleading
         // "transport failed". Must run before the first connection.
         RDPClient.initCrypto()
+        // Files copied in a remote session become pasteable in the Finder through a File
+        // Provider domain; it has to be registered before the first copy arrives.
+        RemoteClipboardServer.shared.start()
     }
 
     /// macOS hands a GUI app a soft limit of 256 open file descriptors, and an RDP session

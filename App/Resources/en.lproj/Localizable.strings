@@ -292,15 +292,3 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 /* RDP: scancode typing */
 "Settings.ScancodeTyping" = "Send keystrokes as key positions (RDP)";
 "Settings.ScancodeTypingNote" = "Console programs that read raw keyboard input — powershell.exe among them — receive nothing when keys arrive as characters, which is why typing there did nothing at all while cmd.exe was fine. Sending positions instead fixes that, and the Mac keyboard layout is announced to the server so the positions are read correctly. Turn it off if a session starts typing the wrong characters, which means the server could not match the layout.";
-
-/* Files pasted from a remote session */
-"RemoteFiles.Copying" = "Copying “%@” from the remote computer…";
-"RemoteFiles.Bytes" = "%1$@ of %2$@";
-"RemoteFiles.Cancel" = "Cancel";
-"RemoteFiles.Failed" = "Could not paste from the remote computer";
-"RemoteFiles.Error.Unavailable" = "The session's clipboard is not available.";
-"RemoteFiles.Error.Timeout" = "The remote computer stopped answering.";
-"RemoteFiles.Error.Refused" = "The remote computer refused the file — something else may have been copied there since.";
-"RemoteFiles.Error.Malformed" = "The remote computer sent an answer that could not be read.";
-"RemoteFiles.Error.Closed" = "The session this was copied from is closed.";
-"RemoteFiles.Error.Short" = "The remote computer sent less than the file's size.";

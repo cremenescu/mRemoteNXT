@@ -292,15 +292,3 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 /* RDP: scancode typing */
 "Settings.ScancodeTyping" = "Wysylaj klawisze jako pozycje (RDP)";
 "Settings.ScancodeTypingNote" = "Programy konsolowe czytajace surowe zdarzenia klawiatury — w tym powershell.exe — nie dostaja nic, gdy klawisze docieraja jako znaki; dlatego pisanie tam nie dzialalo, choc cmd.exe byl w porzadku. Wysylanie pozycji to naprawia, a uklad klawiatury Maca jest zglaszany serwerowi, by odczytal je poprawnie. Wylacz, jesli sesja zaczyna pisac zle znaki, co oznacza, ze serwer nie dopasowal ukladu.";
-
-/* Files pasted from a remote session */
-"RemoteFiles.Copying" = "Kopiowanie „%@” z komputera zdalnego…";
-"RemoteFiles.Bytes" = "%1$@ z %2$@";
-"RemoteFiles.Cancel" = "Anuluj";
-"RemoteFiles.Failed" = "Nie można wkleić z komputera zdalnego";
-"RemoteFiles.Error.Unavailable" = "Schowek sesji jest niedostępny.";
-"RemoteFiles.Error.Timeout" = "Komputer zdalny przestał odpowiadać.";
-"RemoteFiles.Error.Refused" = "Komputer zdalny odmówił wydania pliku — być może w międzyczasie skopiowano tam coś innego.";
-"RemoteFiles.Error.Malformed" = "Komputer zdalny wysłał odpowiedź, której nie da się odczytać.";
-"RemoteFiles.Error.Closed" = "Sesja, z której skopiowano pliki, jest zamknięta.";
-"RemoteFiles.Error.Short" = "Komputer zdalny wysłał mniej danych, niż wynosi rozmiar pliku.";
