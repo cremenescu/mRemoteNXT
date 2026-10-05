@@ -111,8 +111,16 @@ targets:
           NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).FileProviderExtension"
           NSExtensionFileProviderDocumentGroup: FU62DHV366.ro.cremenescu.mRemoteNXT
           NSExtensionFileProviderSupportsEnumeration: true
+    # XcodeGen writes this file from `properties` on every generate — a path alone gets it
+    # overwritten with an empty dict, and an extension without the sandbox never loads.
+    # Sandbox: app extensions must run sandboxed. Group: shared with the app
+    # (build/entitlements.plist); team-prefixed, so no provisioning profile is needed.
     entitlements:
       path: FileProvider/RemoteClipboard.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.application-groups:
+          - FU62DHV366.ro.cremenescu.mRemoteNXT
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ro.cremenescu.mRemoteNXT.RemoteClipboard
