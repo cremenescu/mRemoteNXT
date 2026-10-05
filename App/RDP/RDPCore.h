@@ -41,8 +41,11 @@ typedef struct {
     void (*onClipboardDataRequested)(void *ctx, uint32_t formatId); // remote wants our clipboard
     // Remote wants the files we announced: answer with rdpcore_clipboard_provide_files().
     void (*onClipboardFilesRequested)(void *ctx);
-    // Remote copied files. The array is valid only during the callback.
-    void (*onClipboardRemoteFiles)(void *ctx, const RDPCoreRemoteFile *files, uint32_t count);
+    // Remote copied files. The array is valid only during the callback. clipDataId is the
+    // lock that keeps them readable after the remote clipboard changes (0 = the server
+    // cannot lock); pass it with every contents request and release it when done.
+    void (*onClipboardRemoteFiles)(void *ctx, const RDPCoreRemoteFile *files, uint32_t count,
+                                   uint32_t clipDataId);
     // Answer to rdpcore_clipboard_request_file_contents, matched by streamId. data is valid
     // only during the callback; for a size request it is 8 bytes, little-endian.
     void (*onClipboardFileContents)(void *ctx, uint32_t streamId, bool ok,
@@ -117,7 +120,10 @@ void rdpcore_clipboard_provide_files(RDPCore *core, const char *uriList, uint32_
 // reported: the size (sizeOnly) or `length` bytes from `offset`. The answer arrives through
 // onClipboardFileContents with the same streamId. Returns false when the channel is not up.
 bool rdpcore_clipboard_request_file_contents(RDPCore *core, uint32_t streamId, uint32_t listIndex,
-                                             bool sizeOnly, uint64_t offset, uint32_t length);
+                                             bool sizeOnly, uint64_t offset, uint32_t length,
+                                             uint32_t clipDataId);
+// Release a lock reported by onClipboardRemoteFiles; the server may then drop those files.
+void rdpcore_clipboard_unlock(RDPCore *core, uint32_t clipDataId);
 
 void rdpcore_mouse_move(RDPCore *core, int x, int y);
 void rdpcore_mouse_button(RDPCore *core, int button, bool down, int x, int y);

@@ -21,6 +21,8 @@ NS_ASSUME_NONNULL_BEGIN
 /// -1 when the remote did not say.
 @property (nonatomic, readonly) int64_t size;
 @property (nonatomic, readonly, nullable) NSDate *modified;
+/// The lock keeping this list readable after the remote clipboard changes; 0 = none.
+@property (nonatomic, readonly) uint32_t clipDataId;
 @end
 
 @protocol RDPClientDelegate <NSObject>
@@ -75,9 +77,13 @@ NS_ASSUME_NONNULL_BEGIN
 // they must never be called on the main thread — the answer is delivered on the RDP thread
 // and the main thread may be needed meanwhile. They fail on timeout, on a refused request,
 // and when the session or its clipboard channel goes away.
-- (nullable NSNumber *)sizeOfRemoteFileAtIndex:(uint32_t)index error:(NSError **)error;
+- (nullable NSNumber *)sizeOfRemoteFileAtIndex:(uint32_t)index lock:(uint32_t)clipDataId
+                                         error:(NSError **)error;
 - (nullable NSData *)readRemoteFileAtIndex:(uint32_t)index offset:(uint64_t)offset
-                                    length:(uint32_t)length error:(NSError **)error;
+                                    length:(uint32_t)length lock:(uint32_t)clipDataId
+                                     error:(NSError **)error;
+/// Release a lock taken for a remote file list (see RDPRemoteFile.clipDataId).
+- (void)unlockRemoteClipboard:(uint32_t)clipDataId;
 /// The pasteboard was just written on this session's behalf; don't offer it back to the remote.
 - (void)noteOwnPasteboardWrite;
 

@@ -220,9 +220,10 @@ static void core_onClipboardFilesRequested(void *ctx) {
 // MARK: - Remote clipboard files
 
 @implementation RDPRemoteFile
-- (instancetype)initWithCore:(const RDPCoreRemoteFile *)f index:(uint32_t)index {
+- (instancetype)initWithCore:(const RDPCoreRemoteFile *)f index:(uint32_t)index lock:(uint32_t)clipDataId {
     if ((self = [super init])) {
         _index = index;
+        _clipDataId = clipDataId;
         NSUInteger len = 0;
         while (len < 260 && f->name[len]) len++;
         _remotePath = [NSString stringWithCharacters:(const unichar *)f->name length:len];
@@ -237,11 +238,12 @@ static void core_onClipboardFilesRequested(void *ctx) {
 }
 @end
 
-static void core_onClipboardRemoteFiles(void *ctx, const RDPCoreRemoteFile *files, uint32_t count) {
+static void core_onClipboardRemoteFiles(void *ctx, const RDPCoreRemoteFile *files, uint32_t count,
+                                        uint32_t clipDataId) {
     RDPClient *self = (__bridge RDPClient *)ctx;
     NSMutableArray<RDPRemoteFile *> *list = [NSMutableArray arrayWithCapacity:count];
     for (uint32_t i = 0; i < count; i++)
-        [list addObject:[[RDPRemoteFile alloc] initWithCore:&files[i] index:i]];
+        [list addObject:[[RDPRemoteFile alloc] initWithCore:&files[i] index:i lock:clipDataId]];
     dispatch_async(dispatch_get_main_queue(), ^{
         id<RDPClientDelegate> d = self.delegate;
         if ([d respondsToSelector:@selector(rdpClient:didCopyRemoteFiles:)])
@@ -391,7 +393,7 @@ static NSError *mrng_fileError(NSInteger code) {
 
 - (nullable NSData *)remoteFileRequest:(uint32_t)index sizeOnly:(BOOL)sizeOnly
                                 offset:(uint64_t)offset length:(uint32_t)length
-                                 error:(NSError **)error {
+                                  lock:(uint32_t)clipDataId error:(NSError **)error {
     NSAssert(!NSThread.isMainThread, @"remote file reads block until the server answers");
     @synchronized (self) { if (!_fileRequestLock) _fileRequestLock = [NSLock new]; }
     [_fileRequestLock lock];
@@ -403,7 +405,8 @@ static NSError *mrng_fileError(NSInteger code) {
         _fileResponse = nil;
         _fileResponseOK = NO;
     }
-    BOOL sent = _core && rdpcore_clipboard_request_file_contents(_core, sid, index, sizeOnly, offset, length);
+    BOOL sent = _core && rdpcore_clipboard_request_file_contents(_core, sid, index, sizeOnly, offset, length,
+                                                                 clipDataId);
     // Thirty seconds of silence for one chunk means the remote is not going to answer:
     // its clipboard changed under us, or the link is gone.
     BOOL answered = sent && dispatch_semaphore_wait(sema, dispatch_time(DISPATCH_TIME_NOW, 30 * NSEC_PER_SEC)) == 0;
@@ -422,8 +425,9 @@ static NSError *mrng_fileError(NSInteger code) {
     return data;
 }
 
-- (nullable NSNumber *)sizeOfRemoteFileAtIndex:(uint32_t)index error:(NSError **)error {
-    NSData *d = [self remoteFileRequest:index sizeOnly:YES offset:0 length:8 error:error];
+- (nullable NSNumber *)sizeOfRemoteFileAtIndex:(uint32_t)index lock:(uint32_t)clipDataId
+                                         error:(NSError **)error {
+    NSData *d = [self remoteFileRequest:index sizeOnly:YES offset:0 length:8 lock:clipDataId error:error];
     if (!d) return nil;
     if (d.length < 8) { if (error) *error = mrng_fileError(MRNGFileErrMalformed); return nil; }
     uint64_t v = 0;
@@ -432,8 +436,13 @@ static NSError *mrng_fileError(NSInteger code) {
 }
 
 - (nullable NSData *)readRemoteFileAtIndex:(uint32_t)index offset:(uint64_t)offset
-                                    length:(uint32_t)length error:(NSError **)error {
-    return [self remoteFileRequest:index sizeOnly:NO offset:offset length:length error:error];
+                                    length:(uint32_t)length lock:(uint32_t)clipDataId
+                                     error:(NSError **)error {
+    return [self remoteFileRequest:index sizeOnly:NO offset:offset length:length lock:clipDataId error:error];
+}
+
+- (void)unlockRemoteClipboard:(uint32_t)clipDataId {
+    if (_core) rdpcore_clipboard_unlock(_core, clipDataId);
 }
 
 - (void)resizeToWidth:(int)width height:(int)height scale:(int)scalePercent {

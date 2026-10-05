@@ -134,6 +134,14 @@ struct RDPCore {
     // latest format list (0 = the remote clipboard holds no files). Server ids are its own,
     // so this is learned from every list rather than assumed.
     UINT32 remoteFileFormatId;
+    // Clipboard data locking (MS-RDPECLIP 2.2.4.6). A file list is only good while the remote
+    // clipboard still holds it: copy anything — on the remote, or on the Mac, which this
+    // client then announces to the remote — and every later contents request is refused.
+    // A lock asks the server to keep that clipboard's data regardless. Taken when files are
+    // copied, released by the app when it stops offering them. Only when both sides said so.
+    bool canLockClipData;
+    UINT32 nextClipDataId;
+    UINT32 remoteClipDataId;   // the lock covering the latest remote file list, 0 = none
     int gfxNegotiated;             // this session advertised the graphics pipeline
     const void *lastPointer;       // last shape handed up, to skip repeats
 
@@ -201,6 +209,10 @@ static UINT mrng_cliprdr_monitor_ready(CliprdrClientContext *cliprdr, const CLIP
     // other side cannot use). FileGroupDescriptorW is a named format, which is why
     // long names were needed in the first place.
     general.generalFlags = CB_USE_LONG_FORMAT_NAMES | cliprdr_file_context_current_flags(core->fileCtx);
+    // Locking, when the server offers it. The helper already answers the server's locks for
+    // files going the other way, so announcing it changes nothing on that side.
+    core->canLockClipData = (cliprdr_file_context_remote_get_flags(core->fileCtx) & CB_CAN_LOCK_CLIPDATA) != 0;
+    if (core->canLockClipData) general.generalFlags |= CB_CAN_LOCK_CLIPDATA;
     CLIPRDR_CAPABILITIES caps = {0};
     caps.cCapabilitiesSets = 1;
     caps.capabilitySets = (CLIPRDR_CAPABILITY_SET *)&general;
@@ -270,6 +282,19 @@ static UINT mrng_cliprdr_server_format_list(CliprdrClientContext *cliprdr, const
     resp.common.msgFlags = CB_RESPONSE_OK;
     cliprdr->ClientFormatListResponse(cliprdr, &resp);
 
+    // Lock a file list the moment it is announced, before anything is read from it. Older
+    // locks stay: the app still offers the previous copy and releases it itself.
+    core->remoteClipDataId = 0;
+    // Only when the files are what gets fetched (text wins when both are offered, see below):
+    // a lock nobody will release would pin the remote's data for the rest of the session.
+    if (fileFormat && !hasText && core->canLockClipData) {
+        CLIPRDR_LOCK_CLIPBOARD_DATA lock = {0};
+        lock.clipDataId = ++core->nextClipDataId;
+        if (lock.clipDataId == 0) lock.clipDataId = ++core->nextClipDataId; // 0 means "none" here
+        if (cliprdr->ClientLockClipboardData(cliprdr, &lock) == CHANNEL_RC_OK)
+            core->remoteClipDataId = lock.clipDataId;
+    }
+
     if (core->cb.onClipboardRemoteFormats)
         core->cb.onClipboardRemoteFormats(core->ctx, hasText, imageFormat != 0);
 
@@ -306,7 +331,7 @@ static void mrng_report_remote_files(RDPCore *core, const BYTE *data, UINT32 siz
             f->hasWriteTime = (d->dwFlags & FD_WRITESTIME) != 0;
             f->writeTime = ((uint64_t)d->ftLastWriteTime.dwHighDateTime << 32) | d->ftLastWriteTime.dwLowDateTime;
         }
-        core->cb.onClipboardRemoteFiles(core->ctx, files, count);
+        core->cb.onClipboardRemoteFiles(core->ctx, files, count, core->remoteClipDataId);
         free(files);
     }
     free(descs);
@@ -970,7 +995,8 @@ void rdpcore_clipboard_provide_files(RDPCore *core, const char *uriList, uint32_
 }
 
 bool rdpcore_clipboard_request_file_contents(RDPCore *core, uint32_t streamId, uint32_t listIndex,
-                                             bool sizeOnly, uint64_t offset, uint32_t length) {
+                                             bool sizeOnly, uint64_t offset, uint32_t length,
+                                             uint32_t clipDataId) {
     if (!core) return false;
     pthread_mutex_lock(&core->chanLock);
     CliprdrClientContext *c = core->clipboardReady ? core->cliprdr : NULL;
@@ -984,11 +1010,26 @@ bool rdpcore_clipboard_request_file_contents(RDPCore *core, uint32_t streamId, u
         req.nPositionLow = sizeOnly ? 0 : (UINT32)(offset & 0xFFFFFFFFu);
         req.nPositionHigh = sizeOnly ? 0 : (UINT32)(offset >> 32);
         req.cbRequested = sizeOnly ? 8 : length;
-        req.haveClipDataId = FALSE; // no clipboard locking: the list is read as it is now
+        // With a lock the server reads from the clipboard as it was when the files were
+        // copied; without one, from whatever the clipboard holds now.
+        req.haveClipDataId = clipDataId != 0;
+        req.clipDataId = clipDataId;
         rc = c->ClientFileContentsRequest(c, &req);
     }
     pthread_mutex_unlock(&core->chanLock);
     return rc == CHANNEL_RC_OK;
+}
+
+void rdpcore_clipboard_unlock(RDPCore *core, uint32_t clipDataId) {
+    if (!core || clipDataId == 0) return;
+    pthread_mutex_lock(&core->chanLock);
+    CliprdrClientContext *c = core->clipboardReady ? core->cliprdr : NULL;
+    if (c) {
+        CLIPRDR_UNLOCK_CLIPBOARD_DATA unlock = {0};
+        unlock.clipDataId = clipDataId;
+        (void)c->ClientUnlockClipboardData(c, &unlock);
+    }
+    pthread_mutex_unlock(&core->chanLock);
 }
 
 static rdpInput *coreInput(RDPCore *core) {

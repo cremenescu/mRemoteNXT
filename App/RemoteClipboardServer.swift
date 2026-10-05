@@ -32,7 +32,13 @@ final class RemoteClipboardServer {
         identifier: NSFileProviderDomainIdentifier(rawValue: RemoteClipboard.domainIdentifier),
         displayName: "mRemoteNXT")
 
-    private final class WeakClient { weak var value: RDPClient?; init(_ c: RDPClient) { value = c } }
+    /// The session a generation's bytes come from, and the clipboard lock that keeps them
+    /// readable there after the remote clipboard changes (0 = the server cannot lock).
+    private final class WeakClient {
+        weak var value: RDPClient?
+        let lock: UInt32
+        init(_ c: RDPClient, lock: UInt32) { value = c; self.lock = lock }
+    }
     /// Which session each generation's bytes come from. Only in memory: after a restart
     /// there is no session behind an old generation, so start() retires them all.
     private var clients: [String: WeakClient] = [:]
@@ -120,7 +126,11 @@ final class RemoteClipboardServer {
                                              folder: String(m.revision + 1), entries: entries, created: Date())
         // Keep the previous copy: the Finder may still be pasting out of it.
         let dropped = m.generations.dropLast()
-        for g in dropped { clients[g.id] = nil }
+        for g in dropped {
+            // Its files are no longer offered: let the remote drop them.
+            if let held = clients[g.id], held.lock != 0 { held.value?.unlockRemoteClipboard(held.lock) }
+            clients[g.id] = nil
+        }
         m.retired = Array((m.retired + dropped.flatMap { g in [g.id] + g.nodes.map { g.identifier(for: $0.path) } })
             .suffix(Self.retiredCap))
         m.generations = Array(m.generations.suffix(1)) + [gen]
@@ -129,7 +139,7 @@ final class RemoteClipboardServer {
             NSLog("mRemoteNXT: writing the remote clipboard manifest failed: %@", String(describing: error))
             return
         }
-        clients[gen.id] = WeakClient(client)
+        clients[gen.id] = WeakClient(client, lock: files.first?.clipDataId ?? 0)
         latest = gen.id
         guard let manager = NSFileProviderManager(for: domain) else { return }
         manager.signalEnumerator(for: .workingSet) { _ in }
@@ -197,10 +207,11 @@ final class RemoteClipboardServer {
             try? FileManager.default.removeItem(at: url)
             handling.insert(id)
             let client = clients[request.generation]?.value
+            let lock = clients[request.generation]?.lock ?? 0
             let panel = TransferPanel(name: request.name ?? "?", total: request.size,
                                       cancel: dir.appendingPathComponent(id + ".cancel"))
             queue.addOperation { [weak self] in
-                let failure = Self.serve(request, id: id, client: client) { done, total in
+                let failure = Self.serve(request, id: id, client: client, lock: lock) { done, total in
                     DispatchQueue.main.async { panel.update(done: done, total: total) }
                 }
                 DispatchQueue.main.async {
@@ -214,7 +225,7 @@ final class RemoteClipboardServer {
     /// Stream one file from the remote into `<id>.partial`, then rename it `<id>.done`. On
     /// failure write the reason into `<id>.error` instead, and return it.
     @discardableResult
-    private static func serve(_ request: RemoteClipboard.Request, id: String, client: RDPClient?,
+    private static func serve(_ request: RemoteClipboard.Request, id: String, client: RDPClient?, lock: UInt32,
                               progress: (Int64, Int64) -> Void = { _, _ in }) -> RemoteClipboard.Failure? {
         guard let transfers = RemoteClipboard.transfersDir, let requests = RemoteClipboard.requestsDir else { return .io }
         let fm = FileManager.default
@@ -231,7 +242,8 @@ final class RemoteClipboardServer {
         }
         guard let client else { return fail(.sessionGone) }
         do {
-            let size = request.size > 0 ? request.size : try client.sizeOfRemoteFile(at: request.index).int64Value
+            let size = request.size > 0 ? request.size
+                : try client.sizeOfRemoteFile(at: request.index, lock: lock).int64Value
             guard fm.createFile(atPath: partial.path, contents: nil) else { return fail(.io) }
             let handle = try FileHandle(forWritingTo: partial)
             defer { try? handle.close() }
@@ -240,7 +252,7 @@ final class RemoteClipboardServer {
             while offset < size {
                 if fm.fileExists(atPath: cancel.path) { return fail(.cancelled) }
                 let want = UInt32(min(Int64(chunk), size - offset))
-                let data = try client.readRemoteFile(at: request.index, offset: UInt64(offset), length: want)
+                let data = try client.readRemoteFile(at: request.index, offset: UInt64(offset), length: want, lock: lock)
                 // An empty answer before the end would loop forever.
                 guard !data.isEmpty else { return fail(.refused) }
                 try handle.write(contentsOf: data)
