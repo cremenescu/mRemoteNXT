@@ -292,3 +292,15 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 /* RDP: scancode typing */
 "Settings.ScancodeTyping" = "Wysylaj klawisze jako pozycje (RDP)";
 "Settings.ScancodeTypingNote" = "Programy konsolowe czytajace surowe zdarzenia klawiatury — w tym powershell.exe — nie dostaja nic, gdy klawisze docieraja jako znaki; dlatego pisanie tam nie dzialalo, choc cmd.exe byl w porzadku. Wysylanie pozycji to naprawia, a uklad klawiatury Maca jest zglaszany serwerowi, by odczytal je poprawnie. Wylacz, jesli sesja zaczyna pisac zle znaki, co oznacza, ze serwer nie dopasowal ukladu.";
+
+/* Files copied in a remote session and pasted in the Finder */
+"RemoteFiles.Copying" = "Kopiowanie „%@” z komputera zdalnego";
+"RemoteFiles.Progress" = "%1$@ z %2$@ · %3$@/s · zostało ok. %4$@";
+"RemoteFiles.ProgressShort" = "%1$@ z %2$@";
+"RemoteFiles.Cancel" = "Anuluj";
+"RemoteFiles.Close" = "Zamknij";
+"RemoteFiles.Failed" = "Nie można skopiować „%@” z komputera zdalnego";
+"RemoteFiles.Error.Refused" = "Windows nie wydał pliku. Zwykle trzyma go otwartym inny program — na przykład używana baza danych — albo w międzyczasie skopiowano tam coś innego.";
+"RemoteFiles.Error.SessionGone" = "Sesja, z której skopiowano plik, jest zamknięta.";
+"RemoteFiles.Error.Timeout" = "Komputer zdalny przestał odpowiadać.";
+"RemoteFiles.Error.IO" = "Nie udało się zapisać pliku na tym Macu.";

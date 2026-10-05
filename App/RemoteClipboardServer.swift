@@ -117,7 +117,7 @@ final class RemoteClipboardServer {
 
         var m = RemoteClipboard.Manifest.load()
         let gen = RemoteClipboard.Generation(id: String(UUID().uuidString.prefix(8)),
-                                             folder: String(m.revision + 1), entries: entries)
+                                             folder: String(m.revision + 1), entries: entries, created: Date())
         // Keep the previous copy: the Finder may still be pasting out of it.
         let dropped = m.generations.dropLast()
         for g in dropped { clients[g.id] = nil }
@@ -197,17 +197,26 @@ final class RemoteClipboardServer {
             try? FileManager.default.removeItem(at: url)
             handling.insert(id)
             let client = clients[request.generation]?.value
+            let panel = TransferPanel(name: request.name ?? "?", total: request.size,
+                                      cancel: dir.appendingPathComponent(id + ".cancel"))
             queue.addOperation { [weak self] in
-                Self.serve(request, id: id, client: client)
-                DispatchQueue.main.async { self?.handling.remove(id) }
+                let failure = Self.serve(request, id: id, client: client) { done, total in
+                    DispatchQueue.main.async { panel.update(done: done, total: total) }
+                }
+                DispatchQueue.main.async {
+                    panel.finish(failure)
+                    self?.handling.remove(id)
+                }
             }
         }
     }
 
     /// Stream one file from the remote into `<id>.partial`, then rename it `<id>.done`. On
-    /// failure write the reason into `<id>.error` instead.
-    private static func serve(_ request: RemoteClipboard.Request, id: String, client: RDPClient?) {
-        guard let transfers = RemoteClipboard.transfersDir, let requests = RemoteClipboard.requestsDir else { return }
+    /// failure write the reason into `<id>.error` instead, and return it.
+    @discardableResult
+    private static func serve(_ request: RemoteClipboard.Request, id: String, client: RDPClient?,
+                              progress: (Int64, Int64) -> Void = { _, _ in }) -> RemoteClipboard.Failure? {
+        guard let transfers = RemoteClipboard.transfersDir, let requests = RemoteClipboard.requestsDir else { return .io }
         let fm = FileManager.default
         let partial = transfers.appendingPathComponent(id + ".partial")
         let done = transfers.appendingPathComponent(id + ".done")
@@ -215,35 +224,39 @@ final class RemoteClipboardServer {
         let cancel = requests.appendingPathComponent(id + ".cancel")
         defer { try? fm.removeItem(at: cancel) }
 
-        func fail(_ reason: RemoteClipboard.Failure) {
+        func fail(_ reason: RemoteClipboard.Failure) -> RemoteClipboard.Failure {
             try? fm.removeItem(at: partial)
             try? Data(String(reason.rawValue).utf8).write(to: failed, options: .atomic)
+            return reason
         }
-        guard let client else { fail(.sessionGone); return }
+        guard let client else { return fail(.sessionGone) }
         do {
             let size = request.size > 0 ? request.size : try client.sizeOfRemoteFile(at: request.index).int64Value
-            guard fm.createFile(atPath: partial.path, contents: nil) else { fail(.io); return }
+            guard fm.createFile(atPath: partial.path, contents: nil) else { return fail(.io) }
             let handle = try FileHandle(forWritingTo: partial)
             defer { try? handle.close() }
             var offset: Int64 = 0
+            progress(0, size)
             while offset < size {
-                if fm.fileExists(atPath: cancel.path) { fail(.cancelled); return }
+                if fm.fileExists(atPath: cancel.path) { return fail(.cancelled) }
                 let want = UInt32(min(Int64(chunk), size - offset))
                 let data = try client.readRemoteFile(at: request.index, offset: UInt64(offset), length: want)
                 // An empty answer before the end would loop forever.
-                guard !data.isEmpty else { fail(.refused); return }
+                guard !data.isEmpty else { return fail(.refused) }
                 try handle.write(contentsOf: data)
                 offset += Int64(data.count)
+                progress(offset, size)
             }
             try handle.close()
             try fm.moveItem(at: partial, to: done)
+            return nil
         } catch {
             let ns = error as NSError
             switch (ns.domain, ns.code) {
-            case ("ro.cremenescu.mRemoteNXT.RemoteFiles", 10): fail(.sessionGone)
-            case ("ro.cremenescu.mRemoteNXT.RemoteFiles", 11): fail(.timeout)
-            case ("ro.cremenescu.mRemoteNXT.RemoteFiles", _):  fail(.refused)
-            default:                                           fail(.io)
+            case ("ro.cremenescu.mRemoteNXT.RemoteFiles", 10): return fail(.sessionGone)
+            case ("ro.cremenescu.mRemoteNXT.RemoteFiles", 11): return fail(.timeout)
+            case ("ro.cremenescu.mRemoteNXT.RemoteFiles", _):  return fail(.refused)
+            default:                                           return fail(.io)
             }
         }
     }
@@ -258,5 +271,171 @@ final class RemoteClipboardServer {
             if p.contains("/") || p.contains(":") || p.contains("\0") { return nil }
         }
         return parts
+    }
+}
+
+/// What the Finder does not show. While the system fetches a file for a paste, the Finder's
+/// copy window says "Preparing to copy" and nothing else — no bytes, no time left — and when
+/// the fetch fails its message is a bare error number. This small floating window, owned by
+/// the app that is actually moving the bytes, says how far along the copy is and, if it
+/// fails, why.
+private final class TransferPanel: NSObject, NSWindowDelegate {
+    /// Nothing else holds a panel once its transfer is over, and a failure stays on screen
+    /// until the user closes it — so the open ones are kept here.
+    private static var live = Set<TransferPanel>()
+
+    private let name: String
+    private let cancelURL: URL
+    private var total: Int64
+    private var done: Int64 = 0
+    private var finished = false
+    private var panel: NSPanel?
+    private let label = NSTextField(wrappingLabelWithString: "")
+    private let detail = NSTextField(labelWithString: "")
+    private let bar = NSProgressIndicator()
+    private let bytes = ByteCountFormatter()
+    private let eta: DateComponentsFormatter = {
+        let f = DateComponentsFormatter()
+        f.unitsStyle = .abbreviated
+        f.maximumUnitCount = 2
+        f.allowedUnits = [.hour, .minute, .second]
+        return f
+    }()
+    /// Recent (time, bytes) samples: the speed is read over the last few seconds, so a link
+    /// that changes pace shows its current one.
+    private var samples: [(Date, Int64)] = []
+
+    init(name: String, total: Int64, cancel: URL) {
+        self.name = name
+        self.total = total
+        self.cancelURL = cancel
+        super.init()
+        Self.live.insert(self)
+        bytes.countStyle = .file
+        // A file that arrives at once never gets a window.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
+            guard let self, !self.finished else { return }
+            self.show()
+        }
+    }
+
+    func update(done: Int64, total: Int64) {
+        self.done = done
+        self.total = total
+        let now = Date()
+        samples.append((now, done))
+        samples.removeAll { now.timeIntervalSince($0.0) > 5 }
+        refresh()
+    }
+
+    func finish(_ failure: RemoteClipboard.Failure?) {
+        finished = true
+        guard let failure, failure != .cancelled else { close(); return }
+        // Say why, in the same window — the Finder only reports an error number.
+        if panel == nil { show() }
+        label.stringValue = String(format: t("RemoteFiles.Failed"), name)
+        detail.stringValue = Self.message(for: failure)
+        detail.textColor = .labelColor
+        bar.isHidden = true
+        cancelButton?.title = t("RemoteFiles.Close")
+        cancelButton?.action = #selector(closeTapped)
+        NSApp.requestUserAttention(.informationalRequest)
+    }
+
+    private static func message(for failure: RemoteClipboard.Failure) -> String {
+        switch failure {
+        case .refused:     return t("RemoteFiles.Error.Refused")
+        case .sessionGone: return t("RemoteFiles.Error.SessionGone")
+        case .timeout:     return t("RemoteFiles.Error.Timeout")
+        case .io:          return t("RemoteFiles.Error.IO")
+        case .cancelled:   return ""
+        }
+    }
+
+    private var cancelButton: NSButton?
+
+    private func show() {
+        let p = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 440, height: 120),
+                        styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        p.title = "mRemoteNXT"
+        // The paste was made in the Finder, which stays in front; this app does not.
+        p.level = .floating
+        p.hidesOnDeactivate = false
+        p.isReleasedWhenClosed = false
+        p.delegate = self
+
+        label.stringValue = String(format: t("RemoteFiles.Copying"), name)
+        label.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
+        label.maximumNumberOfLines = 2
+        label.lineBreakMode = .byTruncatingMiddle
+        detail.font = .monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular)
+        detail.textColor = .secondaryLabelColor
+        detail.lineBreakMode = .byWordWrapping
+        detail.maximumNumberOfLines = 4
+        bar.isIndeterminate = false
+        bar.minValue = 0
+        bar.maxValue = 1
+        let cancel = NSButton(title: t("RemoteFiles.Cancel"), target: self, action: #selector(cancelTapped))
+        cancel.bezelStyle = .rounded
+        cancelButton = cancel
+
+        let stack = NSStackView(views: [label, bar, detail, cancel])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.edgeInsets = NSEdgeInsets(top: 16, left: 18, bottom: 14, right: 18)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        let content = NSView()
+        content.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: content.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            bar.widthAnchor.constraint(equalToConstant: 404),
+            label.widthAnchor.constraint(equalTo: bar.widthAnchor),
+            detail.widthAnchor.constraint(equalTo: bar.widthAnchor),
+        ])
+        p.contentView = content
+        panel = p
+        refresh()
+        p.center()
+        p.orderFrontRegardless()
+    }
+
+    private func refresh() {
+        guard panel != nil, !finished else { return }
+        bar.doubleValue = total > 0 ? Double(done) / Double(total) : 0
+        let doneText = bytes.string(fromByteCount: done)
+        let totalText = bytes.string(fromByteCount: total)
+        if let first = samples.first, let last = samples.last, last.0.timeIntervalSince(first.0) >= 1,
+           last.1 > first.1 {
+            let rate = Double(last.1 - first.1) / last.0.timeIntervalSince(first.0)
+            let left = rate > 0 ? Double(total - done) / rate : 0
+            detail.stringValue = String(format: t("RemoteFiles.Progress"), doneText, totalText,
+                                        bytes.string(fromByteCount: Int64(rate)),
+                                        eta.string(from: max(left, 1)) ?? "—")
+        } else {
+            detail.stringValue = String(format: t("RemoteFiles.ProgressShort"), doneText, totalText)
+        }
+    }
+
+    @objc private func cancelTapped() {
+        // The transfer sees this between two chunks; the extension then fails the Finder's copy.
+        FileManager.default.createFile(atPath: cancelURL.path, contents: nil)
+        cancelButton?.isEnabled = false
+    }
+
+    @objc private func closeTapped() { close() }
+
+    func windowWillClose(_ notification: Notification) {
+        panel = nil
+        Self.live.remove(self)
+    }
+
+    private func close() {
+        panel?.orderOut(nil)
+        panel = nil
+        Self.live.remove(self)
     }
 }

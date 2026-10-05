@@ -42,6 +42,8 @@ enum RemoteClipboard {
         var id: String           // short, unique; prefixes every item identifier below it
         var folder: String       // the folder's name in the domain
         var entries: [Entry]
+        /// When the copy was made: the date of its folder, and of folders the remote only implied.
+        var created: Date?
     }
 
     struct Entry: Codable {
@@ -83,6 +85,8 @@ enum RemoteClipboard {
         var generation: String
         var index: UInt32
         var size: Int64
+        /// For the app's transfer window; the index is what the bytes are asked by.
+        var name: String?
     }
 }
 

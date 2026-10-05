@@ -292,3 +292,15 @@ Confiar nele memoriza este certificado exato para este host. Você será pergunt
 /* RDP: scancode typing */
 "Settings.ScancodeTyping" = "Enviar teclas como posições físicas (RDP)";
 "Settings.ScancodeTypingNote" = "Programas de console que leem entrada de teclado bruta — o powershell.exe entre eles — não recebem nada quando as teclas chegam como caracteres, o que explica por que digitar ali não fazia nada enquanto o cmd.exe funcionava normalmente. Enviar posições em vez disso resolve isso, e o layout de teclado do Mac é informado ao servidor para que as posições sejam lidas corretamente. Desative isso se uma sessão começar a digitar os caracteres errados, o que significa que o servidor não conseguiu corresponder ao layout.";
+
+/* Files copied in a remote session and pasted in the Finder */
+"RemoteFiles.Copying" = "Copiando “%@” do computador remoto";
+"RemoteFiles.Progress" = "%1$@ de %2$@ · %3$@/s · faltam cerca de %4$@";
+"RemoteFiles.ProgressShort" = "%1$@ de %2$@";
+"RemoteFiles.Cancel" = "Cancelar";
+"RemoteFiles.Close" = "Fechar";
+"RemoteFiles.Failed" = "Não foi possível copiar “%@” do computador remoto";
+"RemoteFiles.Error.Refused" = "O Windows não liberou o arquivo. Normalmente outro programa o mantém aberto — um banco de dados em uso, por exemplo — ou outra coisa foi copiada lá nesse meio-tempo.";
+"RemoteFiles.Error.SessionGone" = "A sessão de onde o arquivo foi copiado está fechada.";
+"RemoteFiles.Error.Timeout" = "O computador remoto parou de responder.";
+"RemoteFiles.Error.IO" = "Não foi possível gravar o arquivo neste Mac.";

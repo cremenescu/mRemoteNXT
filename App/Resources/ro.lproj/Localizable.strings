@@ -294,3 +294,15 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 /* RDP: scancode typing */
 "Settings.ScancodeTyping" = "Trimite tastele ca pozitii (RDP)";
 "Settings.ScancodeTypingNote" = "Programele de consola care citesc tastele brut — printre ele powershell.exe — nu primesc nimic cand tastele ajung ca si caractere, de-aia acolo nu se scria nimic desi in cmd.exe mergea. Trimiterea pozitiilor rezolva asta, iar aranjamentul de tastatura al Mac-ului e anuntat serverului ca sa fie citite corect. Opreste-o daca o sesiune incepe sa scrie alte caractere, adica serverul nu a putut potrivi aranjamentul.";
+
+/* Files copied in a remote session and pasted in the Finder */
+"RemoteFiles.Copying" = "Se copiaza „%@” de pe calculatorul remote";
+"RemoteFiles.Progress" = "%1$@ din %2$@ · %3$@/s · mai e cam %4$@";
+"RemoteFiles.ProgressShort" = "%1$@ din %2$@";
+"RemoteFiles.Cancel" = "Anuleaza";
+"RemoteFiles.Close" = "Inchide";
+"RemoteFiles.Failed" = "Nu s-a putut copia „%@” de pe calculatorul remote";
+"RemoteFiles.Error.Refused" = "Windows nu a dat fisierul. De obicei il tine deschis alt program — o baza de date in uz, de exemplu — sau intre timp s-a copiat altceva acolo.";
+"RemoteFiles.Error.SessionGone" = "Sesiunea din care s-a copiat fisierul e inchisa.";
+"RemoteFiles.Error.Timeout" = "Calculatorul remote nu mai raspunde.";
+"RemoteFiles.Error.IO" = "Fisierul nu a putut fi scris pe acest Mac.";

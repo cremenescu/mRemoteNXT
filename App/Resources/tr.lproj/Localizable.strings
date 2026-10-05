@@ -292,3 +292,15 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 /* RDP: scancode typing */
 "Settings.ScancodeTyping" = "Tuslari konum olarak gonder (RDP)";
 "Settings.ScancodeTypingNote" = "Ham klavye girdisi okuyan konsol programlari — powershell.exe dahil — tuslar karakter olarak geldiginde hicbir sey almaz; cmd.exe calisirken orada yazmanin islememesinin nedeni budur. Konum gondermek bunu duzeltir ve Mac klavye duzeni sunucuya bildirilir ki konumlar dogru okunsun. Bir oturum yanlis karakterler yazmaya baslarsa kapatin; bu, sunucunun duzeni eslestiremedigi anlamina gelir.";
+
+/* Files copied in a remote session and pasted in the Finder */
+"RemoteFiles.Copying" = "“%@” uzak bilgisayardan kopyalanıyor";
+"RemoteFiles.Progress" = "%1$@ / %2$@ · %3$@/sn · yaklaşık %4$@ kaldı";
+"RemoteFiles.ProgressShort" = "%1$@ / %2$@";
+"RemoteFiles.Cancel" = "İptal";
+"RemoteFiles.Close" = "Kapat";
+"RemoteFiles.Failed" = "“%@” uzak bilgisayardan kopyalanamadı";
+"RemoteFiles.Error.Refused" = "Windows dosyayı vermedi. Genellikle başka bir program dosyayı açık tutuyordur — örneğin kullanımdaki bir veritabanı — ya da bu arada orada başka bir şey kopyalanmıştır.";
+"RemoteFiles.Error.SessionGone" = "Dosyanın kopyalandığı oturum kapalı.";
+"RemoteFiles.Error.Timeout" = "Uzak bilgisayar yanıt vermeyi bıraktı.";
+"RemoteFiles.Error.IO" = "Dosya bu Mac'e yazılamadı.";

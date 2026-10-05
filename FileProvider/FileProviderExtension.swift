@@ -63,7 +63,8 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
             let fm = FileManager.default
             try fm.createDirectory(at: requests, withIntermediateDirectories: true)
             try fm.createDirectory(at: transfers, withIntermediateDirectories: true)
-            let body = RemoteClipboard.Request(generation: item.generation.id, index: entry.index, size: size)
+            let body = RemoteClipboard.Request(generation: item.generation.id, index: entry.index, size: size,
+                                               name: item.filename)
             try JSONEncoder().encode(body).write(to: requestURL, options: .atomic)
         } catch {
             completionHandler(nil, nil, NSFileProviderError(.serverUnreachable))
@@ -187,13 +188,22 @@ final class RemoteItem: NSObject, NSFileProviderItem {
         return (ext.isEmpty ? nil : UTType(filenameExtension: ext)) ?? .data
     }
 
+    /// Writable, though nothing written here is kept. Without it the system locks every item
+    /// (the uchg flag) and makes it r--------, and the Finder carries both onto the copy it
+    /// pastes: the user got a locked, read-only file. The domain is still never changed —
+    /// create, modify and delete are refused below.
     var capabilities: NSFileProviderItemCapabilities {
-        isFolder ? [.allowsReading, .allowsContentEnumerating] : [.allowsReading]
+        isFolder ? [.allowsReading, .allowsContentEnumerating, .allowsAddingSubItems] : [.allowsReading, .allowsWriting]
+    }
+
+    var fileSystemFlags: NSFileProviderFileSystemFlags {
+        isFolder ? [.userReadable, .userWritable, .userExecutable] : [.userReadable, .userWritable]
     }
 
     var documentSize: NSNumber? { isFolder ? nil : node.entry?.size.map { NSNumber(value: $0) } }
-    var contentModificationDate: Date? { node.entry?.modified }
-    var creationDate: Date? { node.entry?.modified }
+    /// The remote's own date; folders it only implied take the time of the copy.
+    var contentModificationDate: Date? { node.entry?.modified ?? generation.created }
+    var creationDate: Date? { node.entry?.modified ?? generation.created }
 
     /// The remote's copy never changes under an identifier — a new copy gets new ones.
     var itemVersion: NSFileProviderItemVersion {
