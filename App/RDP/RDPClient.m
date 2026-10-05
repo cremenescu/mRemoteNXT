@@ -28,10 +28,14 @@ enum { MRNG_CF_UNICODETEXT = 13, MRNG_CF_DIB = 8, MRNG_CF_DIBV5 = 17 };
     dispatch_semaphore_t _fileSema;
     NSData *_fileResponse;
     BOOL _fileResponseOK;
+    // Remote -> Mac transfers in progress, and when the last one ended. Guarded by @synchronized(self).
+    NSInteger _remoteFileTransfers;
+    CFAbsoluteTime _lastRemoteFileActivity;
 }
 - (void)enqueueImage:(CGImageRef)img;
 - (void)deliverFileContents:(uint32_t)streamId ok:(BOOL)ok data:(nullable NSData *)data;
 - (void)abortRemoteFileRequests;
+- (BOOL)remoteFileTransferBusy;
 - (void)applyRemoteClipboardData:(NSData *)data format:(uint32_t)formatId;
 - (void)provideLocalClipboardForFormat:(uint32_t)formatId;
 - (void)provideLocalClipboardFiles;
@@ -338,6 +342,12 @@ static void core_onClipboardChannelClosed(void *ctx) {
     _clipboardTimer = [NSTimer scheduledTimerWithTimeInterval:0.4 repeats:YES block:^(NSTimer *t) {
         RDPClient *strong = weakSelf;
         if (!strong) { [t invalidate]; return; }
+        // Announcing a Mac clipboard change replaces the remote's clipboard, and the remote
+        // then refuses every further read of the files being pasted from it — measured: a
+        // screenshot taken to the clipboard mid-copy stopped an 843 MB file at exactly the next
+        // chunk, and a clipboard lock (MS-RDPECLIP) did not prevent it. So the change waits:
+        // the marker is left alone, and the first tick after the transfer announces it.
+        if ([strong remoteFileTransferBusy]) return;
         NSPasteboard *pb = NSPasteboard.generalPasteboard;
         NSInteger cc = pb.changeCount;
         if (cc == strong->_lastPasteboardChangeCount) return;
@@ -443,6 +453,26 @@ static NSError *mrng_fileError(NSInteger code) {
 
 - (void)unlockRemoteClipboard:(uint32_t)clipDataId {
     if (_core) rdpcore_clipboard_unlock(_core, clipDataId);
+}
+
+- (void)beginRemoteFileTransfer {
+    @synchronized (self) { _remoteFileTransfers++; }
+}
+
+- (void)endRemoteFileTransfer {
+    @synchronized (self) {
+        if (_remoteFileTransfers > 0) _remoteFileTransfers--;
+        _lastRemoteFileActivity = CFAbsoluteTimeGetCurrent();
+    }
+}
+
+- (BOOL)remoteFileTransferBusy {
+    @synchronized (self) {
+        // The files of a pasted folder are fetched one after another with short gaps between
+        // them; three seconds of grace keeps a change from slipping into one of those gaps.
+        return _remoteFileTransfers > 0
+            || (_lastRemoteFileActivity > 0 && CFAbsoluteTimeGetCurrent() - _lastRemoteFileActivity < 3.0);
+    }
 }
 
 - (void)resizeToWidth:(int)width height:(int)height scale:(int)scalePercent {

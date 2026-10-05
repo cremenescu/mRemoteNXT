@@ -84,6 +84,11 @@ NS_ASSUME_NONNULL_BEGIN
                                      error:(NSError **)error;
 /// Release a lock taken for a remote file list (see RDPRemoteFile.clipDataId).
 - (void)unlockRemoteClipboard:(uint32_t)clipDataId;
+/// Bracket a transfer of remote clipboard files. While one runs (and for a few seconds
+/// after, so the files of a folder are not split by a gap), changes to the Mac clipboard are
+/// held back from this session and announced once it is idle.
+- (void)beginRemoteFileTransfer;
+- (void)endRemoteFileTransfer;
 /// The pasteboard was just written on this session's behalf; don't offer it back to the remote.
 - (void)noteOwnPasteboardWrite;
 

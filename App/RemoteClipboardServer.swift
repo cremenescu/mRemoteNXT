@@ -171,6 +171,22 @@ final class RemoteClipboardServer {
             var urls: [URL] = []
             // Generous: a timeout here leaves the pasteboard empty, which is the failure the user sees.
             let deadline = Date().addingTimeInterval(60)
+            // List the copy's folder first. A new folder arrives dataless and the system fills
+            // it in when it gets round to it — measured at nine seconds for the first copy after
+            // a launch, during which Paste stayed unavailable. A listing is a reader waiting on
+            // the folder, which is what makes the system populate it now.
+            let folderID = NSFileProviderItemIdentifier(gen.id)
+            while Date() < deadline {
+                let sem = DispatchSemaphore(value: 0)
+                var folder: URL?
+                manager.getUserVisibleURL(for: folderID) { u, _ in folder = u; sem.signal() }
+                sem.wait()
+                if let folder, (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) != nil {
+                    RemoteClipboard.log("publish: folder \(gen.folder) listed")
+                    break
+                }
+                usleep(100_000)
+            }
             for node in roots {
                 let id = NSFileProviderItemIdentifier(gen.identifier(for: node.path))
                 var lastError = ""
@@ -273,6 +289,8 @@ final class RemoteClipboardServer {
             return reason
         }
         guard let client else { return fail(.sessionGone) }
+        client.beginRemoteFileTransfer()
+        defer { client.endRemoteFileTransfer() }
         do {
             let size = request.size > 0 ? request.size
                 : try client.sizeOfRemoteFile(at: request.index, lock: lock).int64Value
