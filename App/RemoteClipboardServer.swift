@@ -23,13 +23,14 @@ import FileProvider
 final class RemoteClipboardServer {
     static let shared = RemoteClipboardServer()
 
-    private let domain: NSFileProviderDomain = {
-        let d = NSFileProviderDomain(identifier: NSFileProviderDomainIdentifier(rawValue: RemoteClipboard.domainIdentifier),
-                                     displayName: "mRemoteNXT")
-        // Not a place to browse: it holds the last two copies, nothing else.
-        d.isHidden = true
-        return d
-    }()
+    /// Visible on purpose. A hidden domain was the first choice — it holds only the last two
+    /// copies, nothing worth browsing — but macOS 26 starts a new provider disabled until the
+    /// user turns it on, and a hidden domain is created disabled with nowhere to turn it on:
+    /// fileproviderd reported it "user-disabled" and refused every operation (-2011). Visible,
+    /// it shows up as "mRemoteNXT" under Locations in the Finder, where it can be enabled.
+    private let domain = NSFileProviderDomain(
+        identifier: NSFileProviderDomainIdentifier(rawValue: RemoteClipboard.domainIdentifier),
+        displayName: "mRemoteNXT")
 
     private final class WeakClient { weak var value: RDPClient?; init(_ c: RDPClient) { value = c } }
     /// Which session each generation's bytes come from. Only in memory: after a restart
@@ -72,11 +73,31 @@ final class RemoteClipboardServer {
             m.revision += 1
             try? m.save()
         }
-        NSFileProviderManager.add(domain) { [domain] error in
-            if let error { NSLog("mRemoteNXT: registering the remote clipboard domain failed: %@", String(describing: error)) }
-            NSFileProviderManager(for: domain)?.signalEnumerator(for: .workingSet) { _ in }
-        }
+        register()
         watch(requests)
+    }
+
+    /// Add the domain, replacing one that build 92-93 registered hidden: addDomain updates the
+    /// display name of an existing domain but not whether it is hidden.
+    private func register() {
+        let domain = self.domain
+        NSFileProviderManager.getDomainsWithCompletionHandler { domains, _ in
+            let stale = domains.first { $0.identifier == domain.identifier && $0.isHidden }
+            let add = {
+                NSFileProviderManager.add(domain) { error in
+                    if let error {
+                        NSLog("mRemoteNXT: registering the remote clipboard domain failed: %@", String(describing: error))
+                        return
+                    }
+                    NSFileProviderManager(for: domain)?.signalEnumerator(for: .workingSet) { _ in }
+                }
+            }
+            if let stale {
+                NSFileProviderManager.remove(stale) { _ in add() }
+            } else {
+                add()
+            }
+        }
     }
 
     // MARK: Offering a copy
