@@ -251,6 +251,22 @@ struct AppearanceSettings: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 VStack(alignment: .leading, spacing: 4) {
+                    Toggle(t("Settings.OptionSendsAlt"), isOn: $prefs.rdpOptionSendsAlt)
+                    Text(t("Settings.OptionSendsAltNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Picker(t("Settings.CommandAsCtrl"), selection: $prefs.rdpCommandAsCtrl) {
+                        Text(t("Settings.CommandAsCtrl.Both")).tag(CommandAsCtrl.both)
+                        Text(t("Settings.CommandAsCtrl.Left")).tag(CommandAsCtrl.left)
+                        Text(t("Settings.CommandAsCtrl.Right")).tag(CommandAsCtrl.right)
+                    }
+                    Text(t("Settings.CommandAsCtrlNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 4) {
                     Toggle(t("Settings.OptionAsMeta"), isOn: $prefs.optionAsMetaKey)
                     Text(t("Settings.OptionAsMetaNote"))
                         .font(.caption).foregroundStyle(.secondary)

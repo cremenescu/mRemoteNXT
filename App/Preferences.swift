@@ -63,6 +63,14 @@ final class Preferences: ObservableObject {
     @Published var rdpScancodeTyping: Bool = true {
         didSet { UserDefaults.standard.set(rdpScancodeTyping, forKey: "rdpScancodeTyping") }
     }
+    /// Option reaches the server as Alt (the default). Off keeps it to composing characters.
+    @Published var rdpOptionSendsAlt: Bool = true {
+        didSet { UserDefaults.standard.set(rdpOptionSendsAlt, forKey: "rdpOptionSendsAlt") }
+    }
+    /// Which Command key stands in for Ctrl in RDP sessions.
+    @Published var rdpCommandAsCtrl: CommandAsCtrl = .both {
+        didSet { UserDefaults.standard.set(rdpCommandAsCtrl.rawValue, forKey: "rdpCommandAsCtrl") }
+    }
     /// Open the release notes once, the first time a new build runs.
     @Published var showWhatsNewAfterUpdate: Bool = true {
         didSet { UserDefaults.standard.set(showWhatsNewAfterUpdate, forKey: "showWhatsNewAfterUpdate") }
@@ -131,6 +139,8 @@ final class Preferences: ObservableObject {
         if let v = d.string(forKey: "cursorBlinkSpeed"), let s = CursorBlinkSpeed(rawValue: v) { cursorBlinkSpeed = s }
         if let v = d.object(forKey: "optionAsMetaKey") as? Bool { optionAsMetaKey = v }
         if let v = d.object(forKey: "rdpScancodeTyping") as? Bool { rdpScancodeTyping = v }
+        if let v = d.object(forKey: "rdpOptionSendsAlt") as? Bool { rdpOptionSendsAlt = v }
+        if let v = d.string(forKey: "rdpCommandAsCtrl"), let c = CommandAsCtrl(rawValue: v) { rdpCommandAsCtrl = c }
         if let v = d.object(forKey: "showWhatsNewAfterUpdate") as? Bool { showWhatsNewAfterUpdate = v }
         if let v = d.string(forKey: "lastWhatsNewBuild") { lastWhatsNewBuild = v }
         if let v = d.object(forKey: "updateTabTitleFromTerminal") as? Bool { updateTabTitleFromTerminal = v }

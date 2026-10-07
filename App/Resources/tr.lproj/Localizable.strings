@@ -304,3 +304,12 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 "RemoteFiles.Error.SessionGone" = "Dosyanın kopyalandığı oturum kapalı.";
 "RemoteFiles.Error.Timeout" = "Uzak bilgisayar yanıt vermeyi bıraktı.";
 "RemoteFiles.Error.IO" = "Dosya bu Mac'e yazılamadı.";
+"Keyboard.Closest" = "Klavye: “%@” düzeninin Windows'ta tam karşılığı yok, en yakın düzen kullanılıyor — birkaç simge farklı çıkabilir.";
+"Keyboard.Unknown" = "Klavye: “%@” tanınmadı, bu yüzden yazılanlar karakter olarak gönderiliyor — PowerShell gibi konsol programları bunları yok sayar. ABC veya U.S. her yerde çalışır.";
+"Settings.OptionSendsAlt" = "Option tuşu Alt gönderir (RDP)";
+"Settings.OptionSendsAltNote" = "Mac düzeninin Option ile yazdığı @ veya [ gibi karakterler her zaman o karakter olarak ulaşır. Option'ın Windows'a hiç Alt olarak ulaşmasını istemiyorsanız bunu kapatın.";
+"Settings.CommandAsCtrl" = "Command, Ctrl gibi davranır (RDP)";
+"Settings.CommandAsCtrl.Both" = "Her iki Command tuşu";
+"Settings.CommandAsCtrl.Left" = "Yalnızca sol Command";
+"Settings.CommandAsCtrl.Right" = "Yalnızca sağ Command";
+"Settings.CommandAsCtrlNote" = "⌘C, ⌘V ve benzerleri Windows'a Ctrl+C ve Ctrl+V olarak ulaşır. Yalnızca biri seçildiğinde diğer Command tuşu Mac'te kalır ve oturumda hiçbir şey yazmaz. Ctrl+Option+Delete, Ctrl+Alt+Del gönderir.";

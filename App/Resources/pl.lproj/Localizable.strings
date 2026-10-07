@@ -304,3 +304,12 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 "RemoteFiles.Error.SessionGone" = "Sesja, z której skopiowano plik, jest zamknięta.";
 "RemoteFiles.Error.Timeout" = "Komputer zdalny przestał odpowiadać.";
 "RemoteFiles.Error.IO" = "Nie udało się zapisać pliku na tym Macu.";
+"Keyboard.Closest" = "Klawiatura: „%@” nie ma dokładnego odpowiednika w Windows, więc użyto najbliższego układu — kilka symboli może wyjść inaczej.";
+"Keyboard.Unknown" = "Klawiatura: „%@” nie została rozpoznana, więc tekst jest wysyłany jako znaki — programy konsolowe, takie jak PowerShell, je ignorują. ABC lub U.S. działają wszędzie.";
+"Settings.OptionSendsAlt" = "Klawisz Option wysyła Alt (RDP)";
+"Settings.OptionSendsAltNote" = "Znaki, które układ Maca wpisuje z Option, takie jak @ czy [, i tak docierają jako te znaki. Wyłącz, jeśli Option nigdy nie ma docierać do Windows jako Alt.";
+"Settings.CommandAsCtrl" = "Command działa jak Ctrl (RDP)";
+"Settings.CommandAsCtrl.Both" = "Oba klawisze Command";
+"Settings.CommandAsCtrl.Left" = "Tylko lewy Command";
+"Settings.CommandAsCtrl.Right" = "Tylko prawy Command";
+"Settings.CommandAsCtrlNote" = "⌘C, ⌘V i podobne docierają do Windows jako Ctrl+C i Ctrl+V. Przy jednym wybranym klawiszu drugi Command zostaje przy Macu i nic nie wpisuje w sesji. Ctrl+Option+Delete wysyła Ctrl+Alt+Del.";

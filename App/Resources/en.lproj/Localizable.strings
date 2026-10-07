@@ -304,3 +304,12 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 "RemoteFiles.Error.SessionGone" = "The session the file was copied from is closed.";
 "RemoteFiles.Error.Timeout" = "The remote computer stopped answering.";
 "RemoteFiles.Error.IO" = "The file could not be written on this Mac.";
+"Keyboard.Closest" = "Keyboard: “%@” has no exact match on Windows, so the closest layout is in use — a few symbols may come out differently.";
+"Keyboard.Unknown" = "Keyboard: “%@” is not recognised, so typing is sent as characters — console programs such as PowerShell ignore those. ABC or U.S. work everywhere.";
+"Settings.OptionSendsAlt" = "Option key sends Alt (RDP)";
+"Settings.OptionSendsAltNote" = "Characters the Mac layout types with Option, such as @ or [, always arrive as those characters. Turn this off if you never want Option to reach Windows as Alt.";
+"Settings.CommandAsCtrl" = "Command acts as Ctrl (RDP)";
+"Settings.CommandAsCtrl.Both" = "Both Command keys";
+"Settings.CommandAsCtrl.Left" = "Left Command only";
+"Settings.CommandAsCtrl.Right" = "Right Command only";
+"Settings.CommandAsCtrlNote" = "⌘C, ⌘V and the like reach Windows as Ctrl+C and Ctrl+V. With only one key chosen, the other Command key stays with the Mac and types nothing in the session. Ctrl+Option+Delete sends Ctrl+Alt+Del.";

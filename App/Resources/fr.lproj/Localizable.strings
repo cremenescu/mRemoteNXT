@@ -304,3 +304,12 @@ Lui faire confiance mémorise exactement ce certificat pour cet hôte. La questi
 "RemoteFiles.Error.SessionGone" = "La session d'où provient le fichier est fermée.";
 "RemoteFiles.Error.Timeout" = "L'ordinateur distant ne répond plus.";
 "RemoteFiles.Error.IO" = "Le fichier n'a pas pu être écrit sur ce Mac.";
+"Keyboard.Closest" = "Clavier : « %@ » n'a pas d'équivalent exact sous Windows, la disposition la plus proche est utilisée — quelques symboles peuvent différer.";
+"Keyboard.Unknown" = "Clavier : « %@ » n'est pas reconnu, la saisie est donc envoyée sous forme de caractères — les programmes console comme PowerShell les ignorent. ABC ou U.S. fonctionnent partout.";
+"Settings.OptionSendsAlt" = "La touche Option envoie Alt (RDP)";
+"Settings.OptionSendsAltNote" = "Les caractères que la disposition Mac produit avec Option, comme @ ou [, arrivent toujours tels quels. Désactivez cette option si Option ne doit jamais arriver sous Windows comme Alt.";
+"Settings.CommandAsCtrl" = "Commande agit comme Ctrl (RDP)";
+"Settings.CommandAsCtrl.Both" = "Les deux touches Commande";
+"Settings.CommandAsCtrl.Left" = "Commande gauche uniquement";
+"Settings.CommandAsCtrl.Right" = "Commande droite uniquement";
+"Settings.CommandAsCtrlNote" = "⌘C, ⌘V et les autres arrivent sous Windows comme Ctrl+C et Ctrl+V. Si une seule touche est choisie, l'autre touche Commande reste au Mac et ne tape rien dans la session. Ctrl+Option+Supprimer envoie Ctrl+Alt+Suppr.";

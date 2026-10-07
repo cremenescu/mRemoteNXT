@@ -306,3 +306,12 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 "RemoteFiles.Error.SessionGone" = "Sesiunea din care s-a copiat fisierul e inchisa.";
 "RemoteFiles.Error.Timeout" = "Calculatorul remote nu mai raspunde.";
 "RemoteFiles.Error.IO" = "Fisierul nu a putut fi scris pe acest Mac.";
+"Keyboard.Closest" = "Tastatura: „%@” nu are un echivalent exact in Windows, asa ca se foloseste cel mai apropiat layout — cateva simboluri pot iesi altfel.";
+"Keyboard.Unknown" = "Tastatura: „%@” nu e recunoscuta, asa ca tastarea se trimite ca simboluri — programele de consola, ca PowerShell, le ignora. ABC sau U.S. merg peste tot.";
+"Settings.OptionSendsAlt" = "Tasta Option trimite Alt (RDP)";
+"Settings.OptionSendsAltNote" = "Simbolurile pe care layout-ul Mac le scrie cu Option, ca @ sau [, ajung oricum ca atare. Opreste optiunea daca nu vrei ca Option sa ajunga niciodata in Windows ca Alt.";
+"Settings.CommandAsCtrl" = "Command functioneaza ca Ctrl (RDP)";
+"Settings.CommandAsCtrl.Both" = "Ambele taste Command";
+"Settings.CommandAsCtrl.Left" = "Doar Command stanga";
+"Settings.CommandAsCtrl.Right" = "Doar Command dreapta";
+"Settings.CommandAsCtrlNote" = "⌘C, ⌘V si celelalte ajung in Windows ca Ctrl+C si Ctrl+V. Cu o singura tasta aleasa, cealalta tasta Command ramane a Mac-ului si nu scrie nimic in sesiune. Ctrl+Option+Delete trimite Ctrl+Alt+Del.";
