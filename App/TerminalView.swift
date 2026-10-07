@@ -45,7 +45,15 @@ enum CursorBlinkSpeed: String, CaseIterable, Identifiable {
 ///   * **Dynamic tab title** via OSC 0/1/2 — delegated to a `TerminalCoordinator`
 ///     stored on the SwiftUI Coordinator so that `setTerminalTitle` can flow
 ///     into the model and re-render the SessionTabBar.
-final class MRNGTerminalView: LocalProcessTerminalView {
+final class MRNGTerminalView: LocalProcessTerminalView, SessionPreviewing {
+    /// What the terminal shows right now, drawn off screen — the tab may be hidden.
+    func previewImage() -> CGImage? {
+        guard bounds.width > 1, bounds.height > 1,
+              let rep = bitmapImageRepForCachingDisplay(in: bounds) else { return nil }
+        cacheDisplay(in: bounds, to: rep)
+        return rep.cgImage
+    }
+
     private var mouseUpMonitor: Any?
     private var wheelMonitor: Any?
     private var shiftClickMonitor: Any?
@@ -522,6 +530,7 @@ struct TerminalContainer: NSViewRepresentable {
         TerminalThemes.apply(theme, to: term)
         context.coordinator.onTitleChange = onTitleChange
         context.coordinator.onProcessExit = { _ in onEnded() }
+        SessionViews.shared.register(session.id, term)
         term.processDelegate = context.coordinator
         // changeScrollback() is the supported way to resize the buffer: it updates
         // Buffer.scrollback and lines.maxLength in place and keeps existing content.

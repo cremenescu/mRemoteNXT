@@ -938,6 +938,27 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     return core;
 }
 
+bool rdpcore_get_stats(RDPCore *core, RDPCoreStats *out) {
+    if (!core || !out || !core->context || !core->context->rdp) return false;
+    memset(out, 0, sizeof(*out));
+    rdpContext *ctx = core->context;
+    // Read from the main thread while the RDP thread updates them: torn values are possible
+    // in principle and harmless for a display refreshed every second.
+    UINT64 inPackets = 0, outPackets = 0;
+    if (!freerdp_get_stats(ctx->rdp, &out->inBytes, &out->outBytes, &inPackets, &outPackets))
+        return false;
+    if (ctx->autodetect) {
+        out->averageRTT = ctx->autodetect->netCharAverageRTT;
+        out->baseRTT = ctx->autodetect->netCharBaseRTT;
+        out->bandwidthKbps = ctx->autodetect->netCharBandwidth;
+    }
+    out->width = (int)freerdp_settings_get_uint32(ctx->settings, FreeRDP_DesktopWidth);
+    out->height = (int)freerdp_settings_get_uint32(ctx->settings, FreeRDP_DesktopHeight);
+    out->graphicsPipeline = core->gfxNegotiated != 0;
+    out->viaGateway = freerdp_settings_get_bool(ctx->settings, FreeRDP_GatewayEnabled);
+    return true;
+}
+
 void rdpcore_start(RDPCore *core) {
     if (!core || !core->context) return;
     freerdp_client_start(core->context); // -> ClientStart -> thread_proc

@@ -101,6 +101,19 @@ void rdpcore_set_keyboard_layout(RDPCore *core, uint32_t klid);
 // right ones for the gateway.
 void rdpcore_set_gateway(RDPCore *core, const char *host, int port, int usage, bool sameCredentials,
                          const char *user, const char *domain, const char *pass);
+/// A snapshot for the connection info window. Counters only ever grow; RTT and bandwidth
+/// are what the server measured and reported, 0 until it has.
+typedef struct {
+    uint64_t inBytes, outBytes;
+    uint32_t averageRTT, baseRTT;   // ms
+    uint32_t bandwidthKbps;
+    int width, height;              // desktop in remote pixels
+    bool graphicsPipeline;          // EGFX; false = classic bitmap updates
+    bool viaGateway;
+} RDPCoreStats;
+/// false when there is no live connection to read from.
+bool rdpcore_get_stats(RDPCore *core, RDPCoreStats *out);
+
 void rdpcore_start(RDPCore *core);
 void rdpcore_stop(RDPCore *core);
 void rdpcore_free(RDPCore *core);

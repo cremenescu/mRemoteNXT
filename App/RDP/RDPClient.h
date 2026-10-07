@@ -77,6 +77,11 @@ NS_ASSUME_NONNULL_BEGIN
                    sharedFolder:(nullable NSString *)sharedFolder
              useLegacyGraphics:(BOOL)useLegacyGraphics;
 
+/// Live numbers for the connection info window, nil when not connected. Keys: inBytes,
+/// outBytes, averageRTT, baseRTT (ms), bandwidthKbps, width, height, graphicsPipeline,
+/// viaGateway.
+- (nullable NSDictionary<NSString *, NSNumber *> *)connectionStats;
+
 /// Windows keyboard layout id announced to the server. Set before -start.
 - (void)setKeyboardLayout:(uint32_t)klid;
 

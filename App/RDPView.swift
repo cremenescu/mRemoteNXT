@@ -35,7 +35,7 @@ enum LegacyGraphicsHosts {
     }
 }
 
-final class RDPNSView: NSView, RDPClientDelegate {
+final class RDPNSView: NSView, RDPClientDelegate, SessionPreviewing {
     private var client: RDPClient?
     private var desktop = CGSize(width: 1280, height: 800)
     private var statusLayer: CATextLayer?
@@ -60,6 +60,19 @@ final class RDPNSView: NSView, RDPClientDelegate {
     /// True when the session was told which keyboard layout we use, which is the only
     /// condition under which sending key positions instead of characters is safe.
     private var layoutAnnounced = false
+    /// For the connection info window.
+    private(set) var framesShown = 0
+    private(set) var connectedAt: Date?
+    /// The Mac input source and what was announced for it; nil = typing goes as characters.
+    private(set) var layoutSummary: String?
+
+    func connectionStats() -> [String: NSNumber]? { client?.connectionStats() }
+
+    func previewImage() -> CGImage? {
+        guard let contents = layer?.contents else { return nil }
+        return (contents as! CGImage)
+    }
+
     /// Shown once over the first frame when the keyboard layout could not be matched exactly.
     private var keyboardNotice: String?
     private var noticeLayer: CALayer?
@@ -335,6 +348,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
             if let klid = layout.klid {
                 c.setKeyboardLayout(klid)
                 layoutAnnounced = true
+                layoutSummary = layout.name + " → " + String(format: "0x%08X", klid)
             }
             keyboardNotice = Self.notice(for: layout)
         }
@@ -464,11 +478,13 @@ final class RDPNSView: NSView, RDPClientDelegate {
     func rdpClient(_ client: RDPClient, didConnectWithWidth width: Int32, height: Int32) {
         desktop = CGSize(width: Int(width), height: Int(height))
         didConnectOnce = true
+        connectedAt = Date()
     }
 
     func rdpClient(_ client: RDPClient, didUpdate image: CGImage) {
         clearStatus()
         layer?.contents = image
+        framesShown &+= 1
         if let notice = keyboardNotice {
             keyboardNotice = nil
             showNotice(notice)
@@ -814,6 +830,7 @@ struct RDPContainer: NSViewRepresentable {
         view.onDisconnect = onDisconnect
         view.onEnded = onEnded
         view.onNeedsReconnect = onNeedsReconnect
+        SessionViews.shared.register(session.id, view)
         view.isActiveTab = isActive
         let host = SessionHostView(content: view, hiddenSizing: .whenSettled)
         host.isActive = isActive

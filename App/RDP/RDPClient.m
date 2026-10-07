@@ -566,6 +566,15 @@ static NSError *mrng_fileError(NSInteger code) {
 
 - (BOOL)isStopping { return _stopping; }
 
+- (NSDictionary<NSString *, NSNumber *> *)connectionStats {
+    RDPCoreStats st;
+    if (!_core || !rdpcore_get_stats(_core, &st)) return nil;
+    return @{ @"inBytes": @(st.inBytes), @"outBytes": @(st.outBytes),
+              @"averageRTT": @(st.averageRTT), @"baseRTT": @(st.baseRTT),
+              @"bandwidthKbps": @(st.bandwidthKbps), @"width": @(st.width), @"height": @(st.height),
+              @"graphicsPipeline": @(st.graphicsPipeline), @"viaGateway": @(st.viaGateway) };
+}
+
 - (void)setGatewayHost:(NSString *)host port:(int)port usage:(int)usage
        sameCredentials:(BOOL)sameCredentials username:(NSString *)username
                 domain:(NSString *)domain password:(NSString *)password {

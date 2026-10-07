@@ -794,6 +794,9 @@ struct SessionTabView: View {
     @State private var dragX: CGFloat = 0
 
     private var isDragging: Bool { model.draggingSessionID == session.id }
+    /// A live picture of a tab that is not the one on screen, after the pointer rests on it.
+    @State private var previewShown = false
+    @State private var hoverWork: DispatchWorkItem?
     private var showsMarker: Bool { model.tabDropTargetID == session.id && !isDragging }
 
     var body: some View {
@@ -834,7 +837,23 @@ struct SessionTabView: View {
         .offset(x: isDragging ? dragX : 0)
         .opacity(isDragging ? 0.75 : 1)
         .zIndex(isDragging ? 1 : 0)
-        .onTapGesture { model.selectedSessionID = session.id }
+        .onHover { inside in
+            hoverWork?.cancel()
+            guard inside else { previewShown = false; return }
+            let work = DispatchWorkItem {
+                guard session.id != model.selectedSessionID, model.draggingSessionID == nil else { return }
+                previewShown = true
+            }
+            hoverWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
+        }
+        .popover(isPresented: $previewShown, arrowEdge: .bottom) {
+            SessionPreviewView(sessionID: session.id)
+        }
+        .onTapGesture {
+            previewShown = false
+            model.selectedSessionID = session.id
+        }
         .gesture(
             DragGesture(minimumDistance: 6, coordinateSpace: .named(SessionTabBar.space))
                 .onChanged { value in
@@ -854,6 +873,7 @@ struct SessionTabView: View {
             if session.kind == .rdp {
                 Divider()
                 Button(t("Context.SendCtrlAltDel")) { model.sendCtrlAltDel(session) }
+                Button(t("Context.ConnectionInfo")) { ConnectionInfoWindow.show(session) }
             }
             Divider()
             Button(t("Context.RevealInSidebar")) { model.revealInSidebar(session.node) }
