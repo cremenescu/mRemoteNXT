@@ -416,3 +416,4 @@ Confiar nele memoriza este certificado exato para este host. Você será pergunt
 "Info.FramesValue" = "%.0f por segundo";
 "Info.ConnectedFor" = "Conectado há";
 "Preview.Nothing" = "Nada para mostrar ainda";
+"Error.FileLocked" = "Este arquivo está criptografado por inteiro. Digite a senha mestra para abri-lo.";

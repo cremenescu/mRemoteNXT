@@ -418,3 +418,4 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 "Info.FramesValue" = "%.0f pe secunda";
 "Info.ConnectedFor" = "Conectat de";
 "Preview.Nothing" = "Nimic de aratat inca";
+"Error.FileLocked" = "Fisierul e criptat in intregime. Introdu parola master ca sa-l deschizi.";

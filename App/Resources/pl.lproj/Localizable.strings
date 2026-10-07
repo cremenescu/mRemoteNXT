@@ -416,3 +416,4 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 "Info.FramesValue" = "%.0f na sekundę";
 "Info.ConnectedFor" = "Połączono od";
 "Preview.Nothing" = "Na razie nic do pokazania";
+"Error.FileLocked" = "Ten plik jest zaszyfrowany w całości. Podaj jego hasło główne, aby go otworzyć.";

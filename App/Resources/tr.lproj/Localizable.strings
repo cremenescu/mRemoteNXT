@@ -416,3 +416,4 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 "Info.FramesValue" = "saniyede %.0f";
 "Info.ConnectedFor" = "Bağlantı süresi";
 "Preview.Nothing" = "Henüz gösterilecek bir şey yok";
+"Error.FileLocked" = "Bu dosya bütünüyle şifrelenmiş. Açmak için ana parolasını girin.";

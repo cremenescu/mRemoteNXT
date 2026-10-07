@@ -416,3 +416,4 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 "Info.FramesValue" = "%.0f per second";
 "Info.ConnectedFor" = "Connected for";
 "Preview.Nothing" = "Nothing to show yet";
+"Error.FileLocked" = "This file is encrypted as a whole. Enter its master password to open it.";

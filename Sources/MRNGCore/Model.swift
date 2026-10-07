@@ -15,6 +15,9 @@ public final class MRNGNode: Identifiable, Hashable {
     public var attributes: [String: String]
     public weak var parent: MRNGNode?
     public var children: [MRNGNode] = []
+    /// The text of a <PluginData> child element (schema 2.8): plugin settings this app does
+    /// not use but must write back, or saving would delete them.
+    public var pluginData: String?
 
     /// Name is always read from attributes (stays in sync with edits).
     public var name: String { attributes["Name"] ?? "(no name)" }
@@ -71,6 +74,7 @@ public final class MRNGNode: Identifiable, Hashable {
             isContainer: isContainer,
             attributes: copiedAttributes
         )
+        copied.pluginData = pluginData
         for child in children {
             copied.addChild(child.deepCopy())
         }

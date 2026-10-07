@@ -416,3 +416,4 @@ Lui faire confiance mémorise exactement ce certificat pour cet hôte. La questi
 "Info.FramesValue" = "%.0f par seconde";
 "Info.ConnectedFor" = "Connecté depuis";
 "Preview.Nothing" = "Rien à afficher pour l'instant";
+"Error.FileLocked" = "Ce fichier est entièrement chiffré. Saisissez son mot de passe principal pour l'ouvrir.";

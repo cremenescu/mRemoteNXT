@@ -12,15 +12,17 @@ guard CommandLine.arguments.count > 1 else {
     exit(1)
 }
 let path = CommandLine.arguments[1]
+/// The master password of a file encrypted as a whole: MRNG_PASSWORD, else mRemoteNG's default.
+let probePassword = ProcessInfo.processInfo.environment["MRNG_PASSWORD"] ?? MRNGCrypto.defaultPassword
 
 do {
-    let doc = try ConfConsParser.parse(fileURL: URL(fileURLWithPath: path))
+    let doc = try ConfConsParser.parse(fileURL: URL(fileURLWithPath: path), password: probePassword)
     if doc.repairedDuplicateIDs > 0 {
         print("Repaired on load: \(doc.repairedDuplicateIDs) node(s) shared an Id with an earlier node and got a fresh one")
     }
     if CommandLine.arguments.count > 2 {
         let out = URL(fileURLWithPath: CommandLine.arguments[2])
-        try ConfConsSerializer.serialize(doc).write(to: out, atomically: true, encoding: .utf8)
+        try (ConfConsSerializer.serialize(doc, password: probePassword) ?? "").write(to: out, atomically: true, encoding: .utf8)
         print("Serialized to \(out.path)")
     }
     print("=== confCons \(doc.confVersion) | \(doc.encryptionEngine)/\(doc.blockCipherMode) | KDF \(doc.kdfIterations) ===")
@@ -57,10 +59,10 @@ do {
     print("Encrypt round-trip: \(dec == secret ? "OK" : "FAILED (\(dec ?? "nil"))")")
 
     // Serializer round-trip test: serialize -> re-parse -> compare.
-    let xml = ConfConsSerializer.serialize(doc)
+    let xml = ConfConsSerializer.serialize(doc, password: probePassword) ?? ""
     let tmp = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("mrng_roundtrip.xml")
     try xml.write(to: tmp, atomically: true, encoding: .utf8)
-    let doc2 = try ConfConsParser.parse(fileURL: tmp)
+    let doc2 = try ConfConsParser.parse(fileURL: tmp, password: probePassword)
     let n2 = doc2.allNodes()
     print("Serialize round-trip: nodes \(all.count) -> \(n2.count) | connections \(connections.count) -> \(n2.filter{!$0.isContainer}.count) | \(all.count == n2.count ? "OK" : "DIFFERS")")
     // Make sure an encrypted password is still decryptable after the round-trip.

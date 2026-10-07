@@ -463,7 +463,9 @@ final class AppModel: ObservableObject {
             roots: []
         )
         do {
-            let xml = ConfConsSerializer.serialize(blank)
+            guard let xml = ConfConsSerializer.serialize(blank) else {
+                return String(format: t("Error.SaveFailed"), t("Error.EncryptionFailed"))
+            }
             try xml.write(to: url, atomically: true, encoding: String.Encoding.utf8)
             return nil
         } catch {
@@ -495,9 +497,31 @@ final class AppModel: ObservableObject {
         WindowRegistry.shared.syncOpenDocuments()
     }
 
-    func load(url: URL) {
+    /// A file encrypted as a whole whose password is not known yet: there is no tree to show
+    /// until it is unlocked, only what is needed to check a candidate password.
+    private var lockedFile: (url: URL, protected: String, iterations: Int)?
+
+    func load(url: URL, password: String? = nil) {
         do {
-            let parsed = try ConfConsParser.parse(fileURL: url)
+            let parsed: ConfCons
+            do {
+                parsed = try ConfConsParser.parse(fileURL: url, password: password ?? MRNGCrypto.defaultPassword)
+            } catch ConfConsError.passwordRequired(let protected, let iterations) {
+                // The whole file is under a master password of its own: the one remembered
+                // for it, if it fits, otherwise ask — the tree itself is behind it this time.
+                if password == nil, let saved = MasterPasswordStore.password(for: url),
+                   MRNGCrypto.passwordIsCorrect(protectedBase64: protected, password: saved, iterations: iterations) {
+                    load(url: url, password: saved)
+                    return
+                }
+                self.doc = nil
+                self.fileURL = url
+                self.lockedFile = (url, protected, iterations)
+                self.loadError = t("Error.FileLocked")
+                self.needsMasterPassword = url
+                return
+            }
+            self.lockedFile = nil
             self.fileURL = url
             self.doc = parsed
             self.loadError = nil
@@ -510,9 +534,9 @@ final class AppModel: ObservableObject {
             loadExpanded(for: parsed)
             // Work out the passphrase: the public default, one already in the keychain for
             // this file, or ask. An empty Protected attribute means nothing to check against.
-            self.masterPassword = MRNGCrypto.defaultPassword
+            self.masterPassword = password ?? MRNGCrypto.defaultPassword
             self.needsMasterPassword = nil
-            if !parsed.protected.isEmpty,
+            if password == nil, !parsed.protected.isEmpty,
                !MRNGCrypto.passwordIsCorrect(protectedBase64: parsed.protected,
                                              password: MRNGCrypto.defaultPassword,
                                              iterations: parsed.kdfIterations) {
@@ -569,6 +593,15 @@ final class AppModel: ObservableObject {
     /// the Protected blob, leaving the file locked.
     @discardableResult
     func unlock(with candidate: String, remember: Bool) -> Bool {
+        if doc == nil, let locked = lockedFile {
+            guard MRNGCrypto.passwordIsCorrect(protectedBase64: locked.protected, password: candidate,
+                                               iterations: locked.iterations) else { return false }
+            if remember { MasterPasswordStore.save(candidate, for: locked.url) }
+            load(url: locked.url, password: candidate)
+            guard doc != nil else { return false }
+            restoreOpenSessions()
+            return true
+        }
         guard let doc, !doc.protected.isEmpty else { return false }
         guard MRNGCrypto.passwordIsCorrect(protectedBase64: doc.protected,
                                            password: candidate,
@@ -887,7 +920,10 @@ final class AppModel: ObservableObject {
 
     func save() {
         guard let doc, let url = fileURL else { return }
-        let xml = ConfConsSerializer.serialize(doc)
+        guard let xml = ConfConsSerializer.serialize(doc, password: masterPassword) else {
+            loadError = String(format: t("Error.SaveFailed"), t("Error.EncryptionFailed"))
+            return
+        }
         backUp(url)
         do {
             try xml.write(to: url, atomically: true, encoding: .utf8)
