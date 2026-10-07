@@ -5,6 +5,7 @@
 import SwiftUI
 import AppKit
 import Combine
+import UniformTypeIdentifiers
 import MRNGCore
 
 /// An open session backed by a tab.
@@ -20,6 +21,9 @@ struct Session: Identifiable {
     /// RD Gateway password, decrypted like `password`. Empty when the gateway takes the
     /// connection's own logon, or when there is no gateway.
     var gatewayPassword: String = ""
+    /// Opened from an .rdp file or an rdp:// link: the node is not in the configuration,
+    /// so the session is never remembered for restore and keeps the password it was given.
+    var temporary = false
     /// Jump hosts to reach this one through, outermost first. Empty for a direct
     /// connection and for every protocol that does not go out over ssh.
     var hops: [Hop] = []
@@ -369,6 +373,59 @@ final class AppModel: ObservableObject {
             alert.informativeText = error.localizedDescription
             alert.runModal()
         }
+    }
+
+    /// Import Microsoft .rdp files, as many as are picked, into the selected folder (the
+    /// folder of the selected connection, or the top of the tree). Like the Royal TS import,
+    /// nothing is written until the file is saved.
+    func importRDPFilesPanel() {
+        guard doc != nil else { return }
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: "rdp") ?? .data]
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.message = t("Import.RDPPrompt")
+        guard panel.runModal() == .OK, !panel.urls.isEmpty else { return }
+
+        let parent = targetContainer()
+        var imported: [MRNGNode] = []
+        var failed: [String] = []
+        var hadPasswords = false
+        let urls = panel.urls.sorted {
+            $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending
+        }
+        for url in urls {
+            guard let data = try? Data(contentsOf: url) else {
+                failed.append(String(format: t("Import.RDPUnreadable"), url.lastPathComponent))
+                continue
+            }
+            let settings = RDPFile.parse(data: data)
+            guard let node = RDPFile.makeConnection(name: url.deletingPathExtension().lastPathComponent,
+                                                    settings: settings) else {
+                failed.append(String(format: t("Import.RDPNoAddress"), url.lastPathComponent))
+                continue
+            }
+            hadPasswords = hadPasswords || RDPFile.hadPassword(settings)
+            imported.append(node)
+        }
+        for node in imported {
+            if let parent { parent.addChild(node) } else { doc?.roots.append(node) }
+        }
+        if !imported.isEmpty {
+            if let parent { expandedIDs.insert(parent.id) }
+            if let last = imported.last { revealInSidebar(last) }
+            markDirty()
+        }
+
+        let alert = NSAlert()
+        alert.alertStyle = imported.isEmpty ? .warning : .informational
+        alert.messageText = t("Import.RDPDoneTitle")
+        var body = parent.map { String(format: t("Import.RDPDoneBodyFolder"), imported.count, urls.count, $0.name) }
+            ?? String(format: t("Import.RDPDoneBodyRoot"), imported.count, urls.count)
+        if hadPasswords { body += "\n\n" + t("Import.RDPPasswordNote") }
+        if !failed.isEmpty { body += "\n\n" + t("Import.RDPFailedNote") + "\n" + failed.joined(separator: "\n") }
+        alert.informativeText = body
+        alert.runModal()
     }
 
     func openFilePanel() {
@@ -948,9 +1005,13 @@ final class AppModel: ObservableObject {
         // Reconnect otherwise retried with the stale password — the only way to pick up the
         // change was closing the tab and opening it again from the sidebar. Everything else
         // (host, user, domain) is already read live from the node at connect time.
+        // A temporary session has nothing stored to re-read: it keeps what it was given.
         let fresh = Session(title: session.title, kind: session.kind, node: session.node,
-                            password: decryptedPassword(for: session.node), panel: session.panel,
-                            gatewayPassword: decryptedGatewayPassword(for: session.node),
+                            password: session.temporary ? session.password : decryptedPassword(for: session.node),
+                            panel: session.panel,
+                            gatewayPassword: session.temporary ? session.gatewayPassword
+                                                               : decryptedGatewayPassword(for: session.node),
+                            temporary: session.temporary,
                             hops: hops(for: session.node))
         sessions[idx] = fresh
         selectedSessionID = fresh.id
@@ -958,7 +1019,21 @@ final class AppModel: ObservableObject {
     }
 
     func duplicate(_ session: Session) {
-        connect(session.node)
+        if session.temporary {
+            connectTemporary(session.node, password: session.password)
+        } else {
+            connect(session.node)
+        }
+    }
+
+    /// A connection that is not part of the configuration (see RDPLaunch).
+    func connectTemporary(_ node: MRNGNode, password: String) {
+        let session = Session(title: node.name, kind: .rdp, node: node, password: password,
+                              panel: node.panel.isEmpty ? "General" : node.panel,
+                              temporary: true)
+        sessions.append(session)
+        selectedSessionID = session.id
+        selectedPanel = session.panel
     }
 
     // MARK: - Session restore (remember open connections across launches)
@@ -978,7 +1053,7 @@ final class AppModel: ObservableObject {
             return
         }
         let restorable: Set<Session.Kind> = [.ssh, .telnet, .http, .rdp, .sftp]
-        let open = sessions.filter { restorable.contains($0.kind) }
+        let open = sessions.filter { restorable.contains($0.kind) && !$0.temporary }
         let items = open.map {
             SavedSessionState.Item(nodeID: $0.node.id, sftp: $0.kind == .sftp, panel: $0.panel)
         }

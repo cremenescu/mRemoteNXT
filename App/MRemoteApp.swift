@@ -60,6 +60,9 @@ struct MRemoteApp: App {
                 .environmentObject(lang)
                 .frame(minWidth: 900, minHeight: 560)
         }
+        // An .rdp file or rdp:// link goes to a window that is already open rather than
+        // conjuring up a new one; only with none open does SwiftUI make one.
+        .handlesExternalEvents(matching: ["*"])
         .commands {
             MRNGCommands(updater: updaterController.updater, language: lang.choice)
         }
@@ -85,6 +88,8 @@ struct DocumentWindow: View {
             .background(WindowChrome(fileURL: model.fileURL, model: model))
             // Publishes this window's model to the menu bar while it is frontmost.
             .focusedSceneValue(\.appModel, model)
+            .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
+            .onOpenURL { url in RDPLaunch.open([url], preferring: model) }
             .onAppear {
                 // Opening a window is a view-only action; hand it to the router so the menu
                 // bar and the launch-time restore can open windows too.
@@ -138,6 +143,8 @@ struct MRNGCommands: Commands {
                 .keyboardShortcut("o")
             Divider()
             Button(t("Menu.ImportRoyalTS")) { model?.importRoyalTSPanel() }
+                .disabled(model?.doc == nil)
+            Button(t("Menu.ImportRDP")) { model?.importRDPFilesPanel() }
                 .disabled(model?.doc == nil)
             Divider()
             // Cmd+W closes a tab, as in Safari — it used to close the window and take every

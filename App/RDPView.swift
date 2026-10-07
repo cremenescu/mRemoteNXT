@@ -291,7 +291,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
         let node = session.node
         let usage = node.gatewayUsageMethod
         guard usage == "Always" || usage == "Detect", !node.gatewayHostname.isEmpty else { return }
-        let (host, port) = Self.splitHostPort(node.gatewayHostname, defaultPort: 443)
+        let (host, port) = RDPFile.splitHostPort(node.gatewayHostname, defaultPort: 443)
         let same = node.gatewayUseConnectionCredentials == "Yes"
         var gwUser = same ? user : node.gatewayUsername
         var gwDomain = same ? domain : node.gatewayDomain
@@ -302,20 +302,6 @@ final class RDPNSView: NSView, RDPClientDelegate {
         c.setGatewayHost(host, port: Int32(port), usage: usage == "Detect" ? 2 : 1,
                          sameCredentials: same, username: gwUser, domain: gwDomain,
                          password: same ? session.password : session.gatewayPassword)
-    }
-
-    /// `host:port` as mRemoteNG lets it be typed into the gateway field. A bracketed IPv6
-    /// address keeps its colons; a bare one is taken as a host with no port.
-    static func splitHostPort(_ value: String, defaultPort: Int) -> (String, Int) {
-        if value.hasPrefix("["), let close = value.firstIndex(of: "]") {
-            let host = String(value[value.index(after: value.startIndex)..<close])
-            let rest = value[value.index(after: close)...]
-            if rest.hasPrefix(":"), let p = Int(rest.dropFirst()) { return (host, p) }
-            return (host, defaultPort)
-        }
-        let parts = value.split(separator: ":", omittingEmptySubsequences: false)
-        if parts.count == 2, let p = Int(parts[1]) { return (String(parts[0]), p) }
-        return (value, defaultPort)
     }
 
     /// Sends the Ctrl+Alt+Del sequence to the RDP session.

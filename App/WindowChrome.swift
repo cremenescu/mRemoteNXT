@@ -53,6 +53,12 @@ final class QuitGuardDelegate: NSObject, NSApplicationDelegate {
     /// Keep the app alive with no windows open, like Finder or Mail: the menu bar stays,
     /// and Cmd+N or the Dock icon brings a window back. Closing the last window is not a
     /// decision to quit — especially now that closing one is a routine thing to do.
+    /// .rdp files from the Finder and rdp:// links. SwiftUI may deliver the same open to
+    /// onOpenURL as well; RDPLaunch drops the repeat.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        MainActor.assumeIsolated { RDPLaunch.open(urls) }
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }

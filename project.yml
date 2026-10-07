@@ -61,6 +61,26 @@ targets:
         SUEnableAutomaticChecks: true
         SUScheduledCheckInterval: 86400
         SUAutomaticallyUpdate: false
+        # .rdp files and rdp:// links connect straight away, without being saved (File >
+        # Import RDP Files keeps them). Alternate rank: never made the default viewer for
+        # .rdp over the user's choice, just offered in Open With. The type is imported under
+        # Microsoft's own identifier so it is the same type whether or not Windows App is
+        # installed.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Remote Desktop Connection
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [com.microsoft.uti.rdpfile]
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: com.microsoft.uti.rdpfile
+            UTTypeDescription: Remote Desktop Connection
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [rdp]
+              public.mime-type: [application/x-rdp]
+        CFBundleURLTypes:
+          - CFBundleURLName: ro.cremenescu.mRemoteNXT.rdp
+            CFBundleURLSchemes: [rdp]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ro.cremenescu.mRemoteNXT
