@@ -315,3 +315,17 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 "Settings.CommandAsCtrl.Left" = "Doar Command stanga";
 "Settings.CommandAsCtrl.Right" = "Doar Command dreapta";
 "Settings.CommandAsCtrlNote" = "⌘C, ⌘V si celelalte ajung in Windows ca Ctrl+C si Ctrl+V. Cu o singura tasta aleasa, cealalta tasta Command ramane a Mac-ului si nu scrie nimic in sesiune. Ctrl+Option+Delete trimite Ctrl+Alt+Del.";
+"Editor.Gateway" = "Remote Desktop Gateway";
+"Editor.Field.GatewayUsage" = "Folosire";
+"Editor.Gateway.Never" = "Niciodata";
+"Editor.Gateway.Always" = "Intotdeauna";
+"Editor.Gateway.Detect" = "Detectare";
+"Editor.Field.GatewayHost" = "Gateway";
+"Editor.Field.GatewayCredentials" = "Autentificare";
+"Editor.Gateway.SameCredentials" = "Aceleasi ca ale conexiunii";
+"Editor.Gateway.SeparateCredentials" = "Separate";
+"Editor.GatewayHint" = "Host-ul poate avea si port (gateway.example.com:8443); altfel 443. Ca toate conexiunile dintr-un folder sa treaca prin acelasi gateway, seteaza-l pe folder si lasa conexiunile sa mosteneasca.";
+"Gateway.MessageTitle" = "Mesaj de la Remote Desktop Gateway — %@";
+"Gateway.Accept" = "Accept";
+"Gateway.Decline" = "Refuz";
+"Gateway.OK" = "OK";

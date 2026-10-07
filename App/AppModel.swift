@@ -17,6 +17,9 @@ struct Session: Identifiable {
     let password: String
     let panel: String
     var command: String? = nil // for .externalTool: the resolved command line
+    /// RD Gateway password, decrypted like `password`. Empty when the gateway takes the
+    /// connection's own logon, or when there is no gateway.
+    var gatewayPassword: String = ""
     /// Jump hosts to reach this one through, outermost first. Empty for a direct
     /// connection and for every protocol that does not go out over ssh.
     var hops: [Hop] = []
@@ -486,7 +489,15 @@ final class AppModel: ObservableObject {
     }
 
     func decryptedPassword(for node: MRNGNode) -> String {
-        let enc = node.encryptedPassword
+        decrypt(node.encryptedPassword)
+    }
+
+    func decryptedGatewayPassword(for node: MRNGNode) -> String {
+        decrypt(node.gatewayEncryptedPassword)
+    }
+
+    /// A stored secret in plain text; empty when there is none or it doesn't decrypt.
+    func decrypt(_ enc: String) -> String {
         guard !enc.isEmpty, let doc else { return "" }
         return MRNGCrypto.decrypt(base64: enc, password: masterPassword, iterations: doc.kdfIterations) ?? ""
     }
@@ -887,6 +898,7 @@ final class AppModel: ObservableObject {
             node: node,
             password: decryptedPassword(for: node),
             panel: node.panel.isEmpty ? "General" : node.panel,
+            gatewayPassword: decryptedGatewayPassword(for: node),
             hops: hops(for: node)
         )
         sessions.append(session)
@@ -938,6 +950,7 @@ final class AppModel: ObservableObject {
         // (host, user, domain) is already read live from the node at connect time.
         let fresh = Session(title: session.title, kind: session.kind, node: session.node,
                             password: decryptedPassword(for: session.node), panel: session.panel,
+                            gatewayPassword: decryptedGatewayPassword(for: session.node),
                             hops: hops(for: session.node))
         sessions[idx] = fresh
         selectedSessionID = fresh.id

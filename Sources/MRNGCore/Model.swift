@@ -192,6 +192,30 @@ public final class MRNGNode: Identifiable, Hashable {
     public var redirectDiskDrivesCustom: String {
         resolved("RedirectDiskDrivesCustom", inheritKey: "InheritRedirectDiskDrivesCustom") ?? ""
     }
+    // RD Gateway: mRemoteNG's own attributes, all inheritable, so a gateway set once on a
+    // folder serves every connection under it.
+    /// "Never", "Always" or "Detect".
+    public var gatewayUsageMethod: String {
+        resolved("RDGatewayUsageMethod", inheritKey: "InheritRDGatewayUsageMethod") ?? "Never"
+    }
+    public var gatewayHostname: String {
+        (resolved("RDGatewayHostname", inheritKey: "InheritRDGatewayHostname") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    /// "Yes" (log on to the gateway as the connection), "No" (its own credentials below),
+    /// or mRemoteNG's "SmartCard".
+    public var gatewayUseConnectionCredentials: String {
+        resolved("RDGatewayUseConnectionCredentials", inheritKey: "InheritRDGatewayUseConnectionCredentials") ?? "Yes"
+    }
+    public var gatewayUsername: String {
+        resolved("RDGatewayUsername", inheritKey: "InheritRDGatewayUsername") ?? ""
+    }
+    public var gatewayDomain: String {
+        resolved("RDGatewayDomain", inheritKey: "InheritRDGatewayDomain") ?? ""
+    }
+    public var gatewayEncryptedPassword: String {
+        resolved("RDGatewayPassword", inheritKey: "InheritRDGatewayPassword") ?? ""
+    }
     /// Attribute holding the id of another connection to reach this one through
     /// (`ssh -J`). mRemoteNG has no field for a jump host at all, so this name is ours and
     /// carries a prefix: the serializer writes attributes it does not recognise back out

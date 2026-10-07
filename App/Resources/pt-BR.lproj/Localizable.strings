@@ -313,3 +313,17 @@ Confiar nele memoriza este certificado exato para este host. Você será pergunt
 "Settings.CommandAsCtrl.Left" = "Só o Command esquerdo";
 "Settings.CommandAsCtrl.Right" = "Só o Command direito";
 "Settings.CommandAsCtrlNote" = "⌘C, ⌘V e afins chegam ao Windows como Ctrl+C e Ctrl+V. Com só uma tecla escolhida, a outra tecla Command fica com o Mac e não digita nada na sessão. Ctrl+Option+Delete envia Ctrl+Alt+Del.";
+"Editor.Gateway" = "Gateway de Área de Trabalho Remota";
+"Editor.Field.GatewayUsage" = "Uso";
+"Editor.Gateway.Never" = "Nunca";
+"Editor.Gateway.Always" = "Sempre";
+"Editor.Gateway.Detect" = "Detectar";
+"Editor.Field.GatewayHost" = "Gateway";
+"Editor.Field.GatewayCredentials" = "Logon";
+"Editor.Gateway.SameCredentials" = "Igual à da conexão";
+"Editor.Gateway.SeparateCredentials" = "Própria";
+"Editor.GatewayHint" = "O host pode incluir uma porta (gateway.example.com:8443); caso contrário, 443. Para que todas as conexões de uma pasta usem o mesmo gateway, configure-o na pasta e deixe as conexões herdarem.";
+"Gateway.MessageTitle" = "Mensagem do Gateway de Área de Trabalho Remota — %@";
+"Gateway.Accept" = "Aceitar";
+"Gateway.Decline" = "Recusar";
+"Gateway.OK" = "OK";

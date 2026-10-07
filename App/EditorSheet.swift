@@ -42,6 +42,7 @@ struct EditorSheet: View {
     @State private var passwordRevealed: Bool = false
     @State private var originalPasswordPlain: String = ""
     @State private var dirtyAtOpen: Bool = false
+    @State private var gatewayPasswordPlain: String = ""
 
     private let protocols = ["RDP", "SSH2", "SSH1", "Telnet", "VNC", "HTTP", "HTTPS", "IntApp"]
 
@@ -231,6 +232,95 @@ struct EditorSheet: View {
             }
         }
         Text(sharedFolderHint(node)).font(.caption).foregroundStyle(.secondary)
+        // Folders too: that is where a gateway shared by many connections is set.
+        if node.isContainer || node.protocolType == "RDP" {
+            gatewaySection(node)
+        }
+    }
+
+    /// mRemoteNG's RD Gateway attributes, every one inheritable like on Windows.
+    @ViewBuilder private func gatewaySection(_ node: MRNGNode) -> some View {
+        Divider().padding(.vertical, 4)
+        sectionTitle(t("Editor.Gateway"))
+        inheritablePicker(t("Editor.Field.GatewayUsage"), node,
+                          "RDGatewayUsageMethod", "InheritRDGatewayUsageMethod", fallback: "Never",
+                          options: [PickerOption("Never", t("Editor.Gateway.Never")),
+                                    PickerOption("Always", t("Editor.Gateway.Always")),
+                                    PickerOption("Detect", t("Editor.Gateway.Detect"))])
+        if node.gatewayUsageMethod != "Never" {
+            inheritableField(t("Editor.Field.GatewayHost"), node, "RDGatewayHostname", "InheritRDGatewayHostname")
+            inheritablePicker(t("Editor.Field.GatewayCredentials"), node,
+                              "RDGatewayUseConnectionCredentials", "InheritRDGatewayUseConnectionCredentials",
+                              fallback: "Yes",
+                              options: [PickerOption("Yes", t("Editor.Gateway.SameCredentials")),
+                                        PickerOption("No", t("Editor.Gateway.SeparateCredentials"))])
+            if node.gatewayUseConnectionCredentials != "Yes" {
+                inheritableField(t("Editor.Field.Username"), node, "RDGatewayUsername", "InheritRDGatewayUsername")
+                inheritableField(t("Editor.Field.Domain"), node, "RDGatewayDomain", "InheritRDGatewayDomain")
+                gatewayPasswordRow(node)
+            }
+        }
+        Text(t("Editor.GatewayHint")).font(.caption).foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder private func gatewayPasswordRow(_ node: MRNGNode) -> some View {
+        let inheriting = node.attributes["InheritRDGatewayPassword"] == "true"
+        HStack(spacing: 8) {
+            label(t("Editor.Field.Password"))
+            SecureField("", text: $gatewayPasswordPlain)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 320)
+                .disabled(inheriting)
+                .onChange(of: gatewayPasswordPlain) { _, newValue in
+                    // Same rules as the connection password: never write while inheriting,
+                    // and keep what is stored if encryption fails.
+                    guard node.attributes["InheritRDGatewayPassword"] != "true" else { return }
+                    guard let sealed = newValue.isEmpty ? "" : model.encrypt(newValue) else { return }
+                    node.attributes["RDGatewayPassword"] = sealed
+                    node.attributes["InheritRDGatewayPassword"] = "false"
+                    model.markDirty()
+                }
+            inheritToggle(node, "RDGatewayPassword", "InheritRDGatewayPassword") {
+                gatewayPasswordPlain = model.decryptedGatewayPassword(for: node)
+            }
+            Spacer()
+        }
+    }
+
+    struct PickerOption: Hashable {
+        let value: String
+        let label: String
+        init(_ value: String, _ label: String) { self.value = value; self.label = label }
+    }
+
+    /// A picker over an inheritable attribute: shows the inherited value, read-only, while
+    /// inheriting. A value it has no label for — written by a newer mRemoteNG — is listed as
+    /// it is rather than shown as nothing.
+    @ViewBuilder private func inheritablePicker(_ lbl: String, _ node: MRNGNode, _ key: String,
+                                                _ inheritKey: String, fallback: String,
+                                                options: [PickerOption]) -> some View {
+        let inheriting = node.attributes[inheritKey] == "true"
+        let raw = (inheriting ? node.resolved(key, inheritKey: inheritKey) : node.attributes[key]) ?? ""
+        let value = raw.isEmpty ? fallback : raw
+        let all = options.contains { $0.value == value } ? options : options + [PickerOption(value, value)]
+        HStack(spacing: 8) {
+            label(lbl)
+            Picker("", selection: Binding(
+                get: { value },
+                set: { v in
+                    node.attributes[key] = v
+                    node.attributes[inheritKey] = "false"
+                    model.markDirty()
+                })) {
+                ForEach(all, id: \.self) { Text($0.label).tag($0.value) }
+            }
+            .labelsHidden()
+            .frame(maxWidth: 260)
+            .disabled(inheriting)
+            inheritToggle(node, key, inheritKey)
+            Spacer()
+        }
     }
 
     private func isSSH(_ node: MRNGNode) -> Bool {
@@ -420,6 +510,7 @@ struct EditorSheet: View {
         snapshot = node.attributes
         passwordPlain = model.decryptedPassword(for: node)
         originalPasswordPlain = passwordPlain
+        gatewayPasswordPlain = model.decryptedGatewayPassword(for: node)
         dirtyAtOpen = model.dirty
     }
 

@@ -313,3 +313,17 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 "Settings.CommandAsCtrl.Left" = "Left Command only";
 "Settings.CommandAsCtrl.Right" = "Right Command only";
 "Settings.CommandAsCtrlNote" = "⌘C, ⌘V and the like reach Windows as Ctrl+C and Ctrl+V. With only one key chosen, the other Command key stays with the Mac and types nothing in the session. Ctrl+Option+Delete sends Ctrl+Alt+Del.";
+"Editor.Gateway" = "Remote Desktop Gateway";
+"Editor.Field.GatewayUsage" = "Use";
+"Editor.Gateway.Never" = "Never";
+"Editor.Gateway.Always" = "Always";
+"Editor.Gateway.Detect" = "Detect";
+"Editor.Field.GatewayHost" = "Gateway";
+"Editor.Field.GatewayCredentials" = "Logon";
+"Editor.Gateway.SameCredentials" = "Same as the connection";
+"Editor.Gateway.SeparateCredentials" = "Its own";
+"Editor.GatewayHint" = "The host can carry a port (gateway.example.com:8443); 443 otherwise. To send every connection in a folder through the same gateway, set it on the folder and leave the connections inheriting.";
+"Gateway.MessageTitle" = "Message from the Remote Desktop Gateway — %@";
+"Gateway.Accept" = "Accept";
+"Gateway.Decline" = "Decline";
+"Gateway.OK" = "OK";

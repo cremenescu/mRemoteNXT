@@ -598,6 +598,24 @@ static DWORD mrng_verify_changed_cert_ex(freerdp *instance, const char *host, UI
 
 // MARK: - Client entry points
 
+// A message from the RD Gateway. Without this callback FreeRDP accepts every one unseen,
+// terms of use included.
+static BOOL mrng_present_gateway_message(freerdp *instance, UINT32 type, BOOL isDisplayMandatory,
+                                         BOOL isConsentMandatory, size_t length,
+                                         const WCHAR *message) {
+    (void)type;
+    // Neither to be shown nor to be agreed to: mstsc lets these pass silently as well.
+    if (!isDisplayMandatory && !isConsentMandatory) return TRUE;
+    RDPCore *core = coreFromContext(instance->context);
+    if (!core || !core->cb.onGatewayMessage) return TRUE;
+    // length is in bytes (the gateway's own length field), not in characters.
+    char *text = (message && length) ? ConvertWCharNToUtf8Alloc(message, length / sizeof(WCHAR), NULL)
+                                     : NULL;
+    const bool ok = core->cb.onGatewayMessage(core->ctx, isConsentMandatory, text ? text : "");
+    free(text);
+    return ok ? TRUE : FALSE;
+}
+
 static void *thread_proc(void *arg) {
     RDPCore *core = (RDPCore *)arg;
     freerdp *instance = core->context->instance;
@@ -650,6 +668,7 @@ static BOOL mrng_client_new(freerdp *instance, rdpContext *context) {
     instance->PostDisconnect = mrng_post_disconnect;
     instance->VerifyCertificateEx = mrng_verify_cert_ex;
     instance->VerifyChangedCertificateEx = mrng_verify_changed_cert_ex;
+    instance->PresentGatewayMessage = mrng_present_gateway_message;
     PubSub_SubscribeChannelConnected(context->pubSub, on_channel_connected);
     PubSub_SubscribeChannelDisconnected(context->pubSub, on_channel_disconnected);
     return TRUE;
@@ -1064,7 +1083,32 @@ void rdpcore_scroll(RDPCore *core, int steps, int x, int y) {
 }
 
 void rdpcore_set_keyboard_layout(RDPCore *core, uint32_t klid) {
-    if (core) core->keyboardLayout = klid;
+    if (!core) return;
+    core->keyboardLayout = klid;
+    // Into the settings directly. rdpcore_create has already run by the time this can be
+    // called, so the copy it makes of the field always saw 0 and the layout never left.
+    if (core->context && klid)
+        freerdp_settings_set_uint32(core->context->settings, FreeRDP_KeyboardLayout, klid);
+}
+
+void rdpcore_set_gateway(RDPCore *core, const char *host, int port, int usage, bool sameCredentials,
+                         const char *user, const char *domain, const char *pass) {
+    if (!core || !core->context || !host || !host[0]) return;
+    rdpSettings *s = core->context->settings;
+    // Enables the gateway; DETECT also sets GatewayBypassLocal.
+    freerdp_set_gateway_usage_method(s, usage == 2 ? TSC_PROXY_MODE_DETECT : TSC_PROXY_MODE_DIRECT);
+    freerdp_settings_set_string(s, FreeRDP_GatewayHostname, host);
+    freerdp_settings_set_uint32(s, FreeRDP_GatewayPort, port > 0 ? (UINT32)port : 443);
+    // HTTPS first — what every current Windows gateway speaks — with RPC over HTTP as the
+    // fallback for old ones.
+    freerdp_settings_set_bool(s, FreeRDP_GatewayHttpTransport, TRUE);
+    freerdp_settings_set_bool(s, FreeRDP_GatewayRpcTransport, TRUE);
+    freerdp_settings_set_bool(s, FreeRDP_GatewayUseSameCredentials, sameCredentials ? TRUE : FALSE);
+    if (user && user[0]) freerdp_settings_set_string(s, FreeRDP_GatewayUsername, user);
+    if (domain && domain[0]) freerdp_settings_set_string(s, FreeRDP_GatewayDomain, domain);
+    if (pass && pass[0]) freerdp_settings_set_string(s, FreeRDP_GatewayPassword, pass);
+    WLog_INFO("com.mrng.core", "RD Gateway %s:%d (%s)", host, port > 0 ? port : 443,
+              usage == 2 ? "detect" : "always");
 }
 
 void rdpcore_key_unicode(RDPCore *core, uint16_t unicode, bool down) {

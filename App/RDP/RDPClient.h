@@ -40,6 +40,12 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)rdpClientDidResetCursor:(RDPClient *)client;
 /// Files were copied in the remote session. Called on the main thread.
 - (void)rdpClient:(RDPClient *)client didCopyRemoteFiles:(NSArray<RDPRemoteFile *> *)files;
+/// The RD Gateway sent a message to show. Called on the main thread; call `reply` once —
+/// YES to go on, NO to abandon the connection. When `consentRequired` is NO there is
+/// nothing to refuse and the answer is ignored. Without this method every message is
+/// accepted unseen.
+- (void)rdpClient:(RDPClient *)client gatewayMessage:(NSString *)message
+  consentRequired:(BOOL)consentRequired reply:(void (^)(BOOL accept))reply;
 @end
 
 /// Wrapper around FreeRDP3: connects on its own thread, software GDI rendering (BGRA),
@@ -68,6 +74,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Windows keyboard layout id announced to the server. Set before -start.
 - (void)setKeyboardLayout:(uint32_t)klid;
+
+/// Reach the host through an RD Gateway. Set before -start. usage: 1 = always, 2 = detect.
+/// The credentials are the ones to log on to the gateway with — the connection's own when
+/// sameCredentials is YES.
+- (void)setGatewayHost:(NSString *)host port:(int)port usage:(int)usage
+       sameCredentials:(BOOL)sameCredentials username:(NSString *)username
+                domain:(NSString *)domain password:(NSString *)password;
 
 - (void)start;
 - (void)stop;

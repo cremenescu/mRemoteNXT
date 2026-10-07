@@ -313,3 +313,17 @@ Lui faire confiance mémorise exactement ce certificat pour cet hôte. La questi
 "Settings.CommandAsCtrl.Left" = "Commande gauche uniquement";
 "Settings.CommandAsCtrl.Right" = "Commande droite uniquement";
 "Settings.CommandAsCtrlNote" = "⌘C, ⌘V et les autres arrivent sous Windows comme Ctrl+C et Ctrl+V. Si une seule touche est choisie, l'autre touche Commande reste au Mac et ne tape rien dans la session. Ctrl+Option+Supprimer envoie Ctrl+Alt+Suppr.";
+"Editor.Gateway" = "Passerelle Bureau à distance";
+"Editor.Field.GatewayUsage" = "Utiliser";
+"Editor.Gateway.Never" = "Jamais";
+"Editor.Gateway.Always" = "Toujours";
+"Editor.Gateway.Detect" = "Détecter";
+"Editor.Field.GatewayHost" = "Passerelle";
+"Editor.Field.GatewayCredentials" = "Connexion";
+"Editor.Gateway.SameCredentials" = "Identique à la connexion";
+"Editor.Gateway.SeparateCredentials" = "Distincte";
+"Editor.GatewayHint" = "L'hôte peut inclure un port (gateway.example.com:8443) ; sinon 443. Pour faire passer toutes les connexions d'un dossier par la même passerelle, réglez-la sur le dossier et laissez les connexions hériter.";
+"Gateway.MessageTitle" = "Message de la passerelle Bureau à distance — %@";
+"Gateway.Accept" = "Accepter";
+"Gateway.Decline" = "Refuser";
+"Gateway.OK" = "OK";

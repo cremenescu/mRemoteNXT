@@ -313,3 +313,17 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 "Settings.CommandAsCtrl.Left" = "Yalnızca sol Command";
 "Settings.CommandAsCtrl.Right" = "Yalnızca sağ Command";
 "Settings.CommandAsCtrlNote" = "⌘C, ⌘V ve benzerleri Windows'a Ctrl+C ve Ctrl+V olarak ulaşır. Yalnızca biri seçildiğinde diğer Command tuşu Mac'te kalır ve oturumda hiçbir şey yazmaz. Ctrl+Option+Delete, Ctrl+Alt+Del gönderir.";
+"Editor.Gateway" = "Uzak Masaüstü Ağ Geçidi";
+"Editor.Field.GatewayUsage" = "Kullanım";
+"Editor.Gateway.Never" = "Asla";
+"Editor.Gateway.Always" = "Her zaman";
+"Editor.Gateway.Detect" = "Algıla";
+"Editor.Field.GatewayHost" = "Ağ geçidi";
+"Editor.Field.GatewayCredentials" = "Oturum açma";
+"Editor.Gateway.SameCredentials" = "Bağlantıyla aynı";
+"Editor.Gateway.SeparateCredentials" = "Ayrı";
+"Editor.GatewayHint" = "Sunucu adı bir port içerebilir (gateway.example.com:8443); yoksa 443 kullanılır. Bir klasördeki tüm bağlantıları aynı ağ geçidinden geçirmek için onu klasörde ayarlayın ve bağlantıların devralmasına izin verin.";
+"Gateway.MessageTitle" = "Uzak Masaüstü Ağ Geçidinden ileti — %@";
+"Gateway.Accept" = "Kabul et";
+"Gateway.Decline" = "Reddet";
+"Gateway.OK" = "Tamam";

@@ -64,6 +64,10 @@ typedef struct {
     /// The remote hid the pointer, or asked for the plain system arrow.
     void (*onCursorHidden)(void *ctx);
     void (*onCursorDefault)(void *ctx);
+    /// The RD Gateway sent a message to show: a logon notice, or terms that have to be
+    /// accepted before it lets the connection through (consentMandatory). Called on the RDP
+    /// thread, which waits for the answer; true = go on, false = abandon the connection.
+    bool (*onGatewayMessage)(void *ctx, bool consentMandatory, const char *message);
 } RDPCoreCallbacks;
 
 // Special key codes (must match RDPSpecialKey in RDPClient.h).
@@ -86,6 +90,12 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
 // Announce a Windows keyboard layout id for the session. Must be called before
 // rdpcore_start; 0 leaves it unset and the server uses its own.
 void rdpcore_set_keyboard_layout(RDPCore *core, uint32_t klid);
+// Reach the host through an RD Gateway. Must be called before rdpcore_start. usage: 1 =
+// always, 2 = detect (TSC_PROXY_MODE_*). sameCredentials says the gateway takes the
+// session's own logon; the credentials passed here are used either way, so they must be the
+// right ones for the gateway.
+void rdpcore_set_gateway(RDPCore *core, const char *host, int port, int usage, bool sameCredentials,
+                         const char *user, const char *domain, const char *pass);
 void rdpcore_start(RDPCore *core);
 void rdpcore_stop(RDPCore *core);
 void rdpcore_free(RDPCore *core);

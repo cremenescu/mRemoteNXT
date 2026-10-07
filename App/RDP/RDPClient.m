@@ -31,11 +31,19 @@ enum { MRNG_CF_UNICODETEXT = 13, MRNG_CF_DIB = 8, MRNG_CF_DIBV5 = 17 };
     // Remote -> Mac transfers in progress, and when the last one ended. Guarded by @synchronized(self).
     NSInteger _remoteFileTransfers;
     CFAbsoluteTime _lastRemoteFileActivity;
+    // Kept until -start creates the core: these used to go straight to a core that did not
+    // exist yet, so the keyboard layout was never announced at all.
+    uint32_t _keyboardLayout;
+    NSDictionary *_gateway;
+    // Set by -stop. A thread waiting for the user's answer to a gateway message gives up on
+    // it, or freeing the core would wait for that thread forever.
+    volatile BOOL _stopping;
 }
 - (void)enqueueImage:(CGImageRef)img;
 - (void)deliverFileContents:(uint32_t)streamId ok:(BOOL)ok data:(nullable NSData *)data;
 - (void)abortRemoteFileRequests;
 - (BOOL)remoteFileTransferBusy;
+- (BOOL)isStopping;
 - (void)applyRemoteClipboardData:(NSData *)data format:(uint32_t)formatId;
 - (void)provideLocalClipboardForFormat:(uint32_t)formatId;
 - (void)provideLocalClipboardFiles;
@@ -197,6 +205,31 @@ static void core_onCursorDefault(void *ctx) {
 }
 
 // Server too old for the graphics pipeline: hand it to the delegate, which reconnects.
+static bool core_onGatewayMessage(void *ctx, bool consentMandatory, const char *message) {
+    RDPClient *self = (__bridge RDPClient *)ctx;
+    if (![self.delegate respondsToSelector:@selector(rdpClient:gatewayMessage:consentRequired:reply:)])
+        return true;
+    NSString *text = [NSString stringWithUTF8String:message ? message : ""] ?: @"";
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+    __block BOOL accepted = NO;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        id<RDPClientDelegate> delegate = self.delegate;
+        if (!delegate) { dispatch_semaphore_signal(sema); return; }
+        __block BOOL replied = NO;
+        [delegate rdpClient:self gatewayMessage:text consentRequired:consentMandatory reply:^(BOOL accept) {
+            if (replied) return;
+            replied = YES;
+            accepted = accept;
+            dispatch_semaphore_signal(sema);
+        }];
+    });
+    // No deadline: someone is reading. Only a session being torn down stops the wait.
+    while (dispatch_semaphore_wait(sema, dispatch_time(DISPATCH_TIME_NOW, 200 * NSEC_PER_MSEC)) != 0) {
+        if ([self isStopping]) return false;
+    }
+    return accepted || !consentMandatory;
+}
+
 static void core_onLegacyGraphicsSuggested(void *ctx) {
     RDPClient *self = (__bridge RDPClient *)ctx;
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -320,6 +353,7 @@ static void core_onClipboardChannelClosed(void *ctx) {
         .onCursorShape = core_onCursorShape,
         .onCursorHidden = core_onCursorHidden,
         .onCursorDefault = core_onCursorDefault,
+        .onGatewayMessage = core_onGatewayMessage,
     };
     // core holds a +1 retain on self for the lifetime of the connection
     // (released in core_onDisconnected).
@@ -330,6 +364,13 @@ static void core_onClipboardChannelClosed(void *ctx) {
                            _sharedFolder.length ? _sharedFolder.fileSystemRepresentation : NULL,
                            _useLegacyGraphics ? 1 : 0,
                            cb, ctx);
+    if (_keyboardLayout) rdpcore_set_keyboard_layout(_core, _keyboardLayout);
+    if (_gateway) {
+        NSDictionary *g = _gateway;
+        rdpcore_set_gateway(_core, [g[@"host"] UTF8String], [g[@"port"] intValue], [g[@"usage"] intValue],
+                            [g[@"same"] boolValue], [g[@"user"] UTF8String], [g[@"domain"] UTF8String],
+                            [g[@"password"] UTF8String]);
+    }
     rdpcore_start(_core);
 
     // Poll the local pasteboard; on change, announce the available formats so the
@@ -363,6 +404,7 @@ static void core_onClipboardChannelClosed(void *ctx) {
 }
 
 - (void)stop {
+    _stopping = YES;
     if (_core) rdpcore_stop(_core);
     [_clipboardTimer invalidate];
     _clipboardTimer = nil;
@@ -510,7 +552,17 @@ static NSError *mrng_fileError(NSInteger code) {
 - (void)mouseMoveToX:(int)x y:(int)y { rdpcore_mouse_move(_core, x, y); }
 - (void)mouseButton:(int)button down:(BOOL)down x:(int)x y:(int)y { rdpcore_mouse_button(_core, button, down, x, y); }
 - (void)scrollSteps:(int)steps x:(int)x y:(int)y { rdpcore_scroll(_core, steps, x, y); }
-- (void)setKeyboardLayout:(uint32_t)klid { rdpcore_set_keyboard_layout(_core, klid); }
+- (void)setKeyboardLayout:(uint32_t)klid { _keyboardLayout = klid; }
+
+- (BOOL)isStopping { return _stopping; }
+
+- (void)setGatewayHost:(NSString *)host port:(int)port usage:(int)usage
+       sameCredentials:(BOOL)sameCredentials username:(NSString *)username
+                domain:(NSString *)domain password:(NSString *)password {
+    _gateway = @{ @"host": host ?: @"", @"port": @(port), @"usage": @(usage),
+                  @"same": @(sameCredentials), @"user": username ?: @"",
+                  @"domain": domain ?: @"", @"password": password ?: @"" };
+}
 - (void)keyChar:(uint16_t)unicode down:(BOOL)down { rdpcore_key_unicode(_core, unicode, down); }
 - (void)keyScancode:(uint8_t)code extended:(BOOL)extended down:(BOOL)down {
     rdpcore_key_scancode(_core, code, extended, down);

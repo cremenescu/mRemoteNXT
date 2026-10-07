@@ -313,3 +313,17 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 "Settings.CommandAsCtrl.Left" = "Tylko lewy Command";
 "Settings.CommandAsCtrl.Right" = "Tylko prawy Command";
 "Settings.CommandAsCtrlNote" = "⌘C, ⌘V i podobne docierają do Windows jako Ctrl+C i Ctrl+V. Przy jednym wybranym klawiszu drugi Command zostaje przy Macu i nic nie wpisuje w sesji. Ctrl+Option+Delete wysyła Ctrl+Alt+Del.";
+"Editor.Gateway" = "Brama usług pulpitu zdalnego";
+"Editor.Field.GatewayUsage" = "Użycie";
+"Editor.Gateway.Never" = "Nigdy";
+"Editor.Gateway.Always" = "Zawsze";
+"Editor.Gateway.Detect" = "Wykryj";
+"Editor.Field.GatewayHost" = "Brama";
+"Editor.Field.GatewayCredentials" = "Logowanie";
+"Editor.Gateway.SameCredentials" = "Takie jak połączenia";
+"Editor.Gateway.SeparateCredentials" = "Osobne";
+"Editor.GatewayHint" = "Host może zawierać port (gateway.example.com:8443); w przeciwnym razie 443. Aby wszystkie połączenia w folderze szły przez tę samą bramę, ustaw ją na folderze i pozostaw dziedziczenie w połączeniach.";
+"Gateway.MessageTitle" = "Wiadomość od bramy usług pulpitu zdalnego — %@";
+"Gateway.Accept" = "Akceptuj";
+"Gateway.Decline" = "Odrzuć";
+"Gateway.OK" = "OK";
