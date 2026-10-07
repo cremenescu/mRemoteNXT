@@ -359,3 +359,17 @@ Confiar nele memoriza este certificado exato para este host. Você será pergunt
 "RemoteFiles.Disabled.Body" = "Os arquivos copiados numa sessão Windows chegam ao Finder por um provedor de arquivos, que o macOS mantém desligado até você permitir: Ajustes do Sistema › Geral › Itens de Início e Extensões › Provedores de Arquivos › mRemoteNXT. Depois de ligá-lo, copie os arquivos de novo no Windows e cole-os no Finder.";
 "RemoteFiles.Disabled.Open" = "Abrir Ajustes do Sistema";
 "RemoteFiles.Disabled.Later" = "Depois";
+"Editor.Display" = "Tela";
+"Editor.Field.Resolution" = "Resolução";
+"Editor.Resolution.FitToWindow" = "Ajustar à janela";
+"Editor.Resolution.SmartSize" = "Tamanho inteligente";
+"Editor.Resolution.Fullscreen" = "Tela cheia";
+"Editor.Field.AutomaticResize" = "Acompanhar a janela ao redimensionar";
+"Editor.ResolutionHint" = "Ajustar à janela: a área de trabalho assume o tamanho da aba. Tamanho inteligente: o tamanho da aba ao conectar, escalado depois. Tela cheia: a resolução da tela, escalada na aba e 1:1 em tela cheia. Um tamanho fixo é escalado na aba.";
+"Settings.OptimizeForRetina" = "Otimizar RDP para Retina";
+"Settings.OptimizeForRetinaNote" = "Ligado: a área de trabalho remota recebe cada pixel de uma tela Retina, e o Windows ajusta a escala da interface. Desligado: roda no tamanho em pontos — um quarto dos pixels a enviar, e tudo desenhado maior. Vale para sessões abertas depois.";
+"Settings.Interpolation" = "Imagem RDP escalada";
+"Settings.Interpolation.Automatic" = "Automático";
+"Settings.Interpolation.Smooth" = "Suave";
+"Settings.Interpolation.Sharp" = "Pixels nítidos";
+"Settings.InterpolationNote" = "Só importa quando a área de trabalho é desenhada em outro tamanho que o recebido — tamanho inteligente, resolução fixa ou otimização Retina desligada.";

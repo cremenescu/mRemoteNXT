@@ -67,6 +67,14 @@ final class Preferences: ObservableObject {
     @Published var rdpOptionSendsAlt: Bool = true {
         didSet { UserDefaults.standard.set(rdpOptionSendsAlt, forKey: "rdpOptionSendsAlt") }
     }
+    /// RDP desktops at Retina pixel density (the default) or at the size in points.
+    @Published var rdpOptimizeForRetina: Bool = true {
+        didSet { UserDefaults.standard.set(rdpOptimizeForRetina, forKey: "rdpOptimizeForRetina") }
+    }
+    /// How a scaled RDP image is resampled: "automatic", "smooth" or "sharp".
+    @Published var rdpInterpolation: String = "automatic" {
+        didSet { UserDefaults.standard.set(rdpInterpolation, forKey: "rdpInterpolation") }
+    }
     /// ⌘W closes the tab (the default) or, off, reaches an RDP session as Ctrl+W.
     @Published var commandWClosesTab: Bool = true {
         didSet { UserDefaults.standard.set(commandWClosesTab, forKey: "commandWClosesTab") }
@@ -149,6 +157,8 @@ final class Preferences: ObservableObject {
         if let v = d.object(forKey: "rdpScancodeTyping") as? Bool { rdpScancodeTyping = v }
         if let v = d.object(forKey: "rdpOptionSendsAlt") as? Bool { rdpOptionSendsAlt = v }
         if let v = d.object(forKey: "commandWClosesTab") as? Bool { commandWClosesTab = v }
+        if let v = d.object(forKey: "rdpOptimizeForRetina") as? Bool { rdpOptimizeForRetina = v }
+        if let v = d.string(forKey: "rdpInterpolation") { rdpInterpolation = v }
         if let v = d.string(forKey: "fullScreenMenuBar"), let m = FullScreenMenuBarMode(rawValue: v) { fullScreenMenuBar = m }
         if let v = d.string(forKey: "rdpCommandAsCtrl"), let c = CommandAsCtrl(rawValue: v) { rdpCommandAsCtrl = c }
         if let v = d.object(forKey: "showWhatsNewAfterUpdate") as? Bool { showWhatsNewAfterUpdate = v }

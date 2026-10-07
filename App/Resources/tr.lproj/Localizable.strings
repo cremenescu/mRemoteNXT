@@ -359,3 +359,17 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 "RemoteFiles.Disabled.Body" = "Bir Windows oturumunda kopyalanan dosyalar Finder'a bir dosya sağlayıcı aracılığıyla ulaşır; macOS siz izin verene kadar onu kapalı tutar: Sistem Ayarları › Genel › Giriş Öğeleri ve Uzantılar › Dosya Sağlayıcılar › mRemoteNXT. Açıldıktan sonra dosyaları Windows'ta yeniden kopyalayıp Finder'a yapıştırın.";
 "RemoteFiles.Disabled.Open" = "Sistem Ayarları'nı aç";
 "RemoteFiles.Disabled.Later" = "Daha sonra";
+"Editor.Display" = "Görüntü";
+"Editor.Field.Resolution" = "Çözünürlük";
+"Editor.Resolution.FitToWindow" = "Pencereye sığdır";
+"Editor.Resolution.SmartSize" = "Akıllı boyut";
+"Editor.Resolution.Fullscreen" = "Tam ekran";
+"Editor.Field.AutomaticResize" = "Pencere yeniden boyutlandırıldığında onu izle";
+"Editor.ResolutionHint" = "Pencereye sığdır: masaüstü sekmenin boyutunu alır. Akıllı boyut: bağlanırken sekmenin boyutu, sonra ölçeklenir. Tam ekran: ekranın çözünürlüğü, sekmede ölçeklenir ve tam ekranda 1:1 olur. Sabit bir boyut sekmeye ölçeklenir.";
+"Settings.OptimizeForRetina" = "RDP'yi Retina için optimize et";
+"Settings.OptimizeForRetinaNote" = "Açık: uzak masaüstü Retina ekranın her pikselini alır ve Windows arayüzünü buna göre ölçekler. Kapalı: nokta boyutunda çalışır — gönderilecek piksellerin dörtte biri, her şey daha büyük çizilir. Daha sonra açılan oturumlara uygulanır.";
+"Settings.Interpolation" = "Ölçeklenmiş RDP görüntüsü";
+"Settings.Interpolation.Automatic" = "Otomatik";
+"Settings.Interpolation.Smooth" = "Yumuşak";
+"Settings.Interpolation.Sharp" = "Keskin pikseller";
+"Settings.InterpolationNote" = "Yalnızca masaüstü geldiğinden farklı bir boyutta çizildiğinde önemlidir — akıllı boyut, sabit çözünürlük veya Retina optimizasyonu kapalıyken.";

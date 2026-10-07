@@ -223,9 +223,50 @@ final class RDPNSView: NSView, RDPClientDelegate {
         }
     }
 
-    /// Desired RDP desktop size in pixels (Retina-aware), based on current bounds.
+    /// How the remote desktop is sized, from the connection's Resolution attribute.
+    private enum Sizing {
+        /// The tab's size, followed as the window changes when `follows`.
+        case fit(follows: Bool)
+        /// A size settled at connect time and kept; the image is scaled into the tab.
+        case fixed(w: Int, h: Int)
+        /// The tab's size at connect time, kept and scaled afterwards (mRemoteNG's SmartSize).
+        case smart
+    }
+
+    private lazy var sizing: Sizing = {
+        let r = session.node.resolution
+        switch r {
+        case "SmartSize":
+            return .smart
+        case "Fullscreen":
+            // What mstsc would take for the whole screen: the screen's pixels. Shown scaled in
+            // a tab, 1:1 once the window is in full screen.
+            let screen = window?.screen ?? NSScreen.main
+            let s = screen?.backingScaleFactor ?? 2
+            let f = screen?.frame.size ?? CGSize(width: 1920, height: 1080)
+            return .fixed(w: Int(f.width * s), h: Int(f.height * s))
+        default:
+            if r.hasPrefix("Res"), let x = r.firstIndex(of: "x"),
+               let w = Int(r[r.index(r.startIndex, offsetBy: 3)..<x]),
+               let h = Int(r[r.index(after: x)...]) {
+                return .fixed(w: w, h: h)
+            }
+            return .fit(follows: session.node.automaticResize)
+        }
+    }()
+
+    /// Off: the session runs at the tab's size in points rather than in Retina pixels —
+    /// half the pixels to send, with everything on the remote drawn larger.
+    static var optimizeForRetina: Bool {
+        UserDefaults.standard.object(forKey: "rdpOptimizeForRetina") as? Bool ?? true
+    }
+
+    /// Desired RDP desktop size in pixels, based on current bounds and the sizing.
     private func targetPixels() -> (w: Int, h: Int, scalePct: Int) {
-        let scale = window?.backingScaleFactor ?? 2.0
+        if case .fixed(let fw, let fh) = sizing {
+            return (max(640, min(8192, fw - fw % 2)), max(480, min(8192, fh - fh % 2)), 100)
+        }
+        let scale = Self.optimizeForRetina ? (window?.backingScaleFactor ?? 2.0) : 1.0
         var w = Int((bounds.width * scale).rounded())
         var h = Int((bounds.height * scale).rounded())
         w -= w % 2; h -= h % 2
@@ -234,9 +275,26 @@ final class RDPNSView: NSView, RDPClientDelegate {
         return (w, h, Int(scale * 100))
     }
 
+    /// How the image is resampled when it is drawn at another size than it arrived in.
+    static func applyInterpolation(to layer: CALayer?) {
+        let mode = UserDefaults.standard.string(forKey: "rdpInterpolation") ?? "automatic"
+        switch mode {
+        case "sharp":
+            layer?.magnificationFilter = .nearest
+            layer?.minificationFilter = .nearest
+        case "smooth":
+            layer?.magnificationFilter = .linear
+            layer?.minificationFilter = .trilinear
+        default:
+            layer?.magnificationFilter = .linear
+            layer?.minificationFilter = .linear
+        }
+    }
+
     private func startIfNeeded() {
         guard !didStart, window != nil, bounds.width > 100, bounds.height > 100 else { return }
         didStart = true
+        Self.applyInterpolation(to: layer)
 
         let t = targetPixels()
         desktop = CGSize(width: t.w, height: t.h)
@@ -326,6 +384,8 @@ final class RDPNSView: NSView, RDPClientDelegate {
 
     /// Sends a new resolution to the server (debounced) when the window resizes.
     private func scheduleResize() {
+        // Only a desktop that follows the window is resized; the others are scaled.
+        guard case .fit(follows: true) = sizing else { return }
         guard didStart, window != nil, bounds.width > 100, bounds.height > 100 else { return }
         let t = targetPixels()
         guard t.w != Int(desktop.width) || t.h != Int(desktop.height) else { return }

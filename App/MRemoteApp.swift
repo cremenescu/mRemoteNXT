@@ -293,6 +293,22 @@ struct AppearanceSettings: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 VStack(alignment: .leading, spacing: 4) {
+                    Toggle(t("Settings.OptimizeForRetina"), isOn: $prefs.rdpOptimizeForRetina)
+                    Text(t("Settings.OptimizeForRetinaNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Picker(t("Settings.Interpolation"), selection: $prefs.rdpInterpolation) {
+                        Text(t("Settings.Interpolation.Automatic")).tag("automatic")
+                        Text(t("Settings.Interpolation.Smooth")).tag("smooth")
+                        Text(t("Settings.Interpolation.Sharp")).tag("sharp")
+                    }
+                    Text(t("Settings.InterpolationNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 4) {
                     Toggle(t("Settings.CommandWClosesTab"), isOn: $prefs.commandWClosesTab)
                     Text(t("Settings.CommandWClosesTabNote"))
                         .font(.caption).foregroundStyle(.secondary)

@@ -232,11 +232,43 @@ struct EditorSheet: View {
             }
         }
         Text(sharedFolderHint(node)).font(.caption).foregroundStyle(.secondary)
-        // Folders too: that is where a gateway shared by many connections is set.
+        // Folders too: that is where settings shared by many connections are set.
         if node.isContainer || node.protocolType == "RDP" {
+            displaySection(node)
             gatewaySection(node)
         }
     }
+
+    /// mRemoteNG's own Resolution and AutomaticResize, inheritable.
+    @ViewBuilder private func displaySection(_ node: MRNGNode) -> some View {
+        Divider().padding(.vertical, 4)
+        sectionTitle(t("Editor.Display"))
+        inheritablePicker(t("Editor.Field.Resolution"), node, "Resolution", "InheritResolution",
+                          fallback: "FitToWindow",
+                          options: [PickerOption("FitToWindow", t("Editor.Resolution.FitToWindow")),
+                                    PickerOption("SmartSize", t("Editor.Resolution.SmartSize")),
+                                    PickerOption("Fullscreen", t("Editor.Resolution.Fullscreen"))]
+                            + Self.fixedResolutions.map { PickerOption("Res\($0)", $0.replacingOccurrences(of: "x", with: " × ")) })
+        if node.resolution == "FitToWindow" {
+            HStack(spacing: 8) {
+                label("")
+                Toggle(t("Editor.Field.AutomaticResize"),
+                       isOn: boolAttr(node, "AutomaticResize", inherit: "InheritAutomaticResize"))
+                    .disabled(node.attributes["InheritAutomaticResize"] == "true")
+                inheritToggle(node, "AutomaticResize", "InheritAutomaticResize")
+                Spacer()
+            }
+        }
+        Text(t("Editor.ResolutionHint")).font(.caption).foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// The fixed sizes mRemoteNG offers (its RDPResolutions enum, without the "Res").
+    private static let fixedResolutions = [
+        "800x600", "1024x768", "1152x864", "1280x800", "1280x1024", "1366x768", "1440x900",
+        "1600x900", "1600x1200", "1680x1050", "1920x1080", "1920x1200", "2048x1536",
+        "2560x1440", "2560x1600", "2560x2048", "3840x2160",
+    ]
 
     /// mRemoteNG's RD Gateway attributes, every one inheritable like on Windows.
     @ViewBuilder private func gatewaySection(_ node: MRNGNode) -> some View {

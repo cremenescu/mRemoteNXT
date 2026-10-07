@@ -359,3 +359,17 @@ Lui faire confiance mémorise exactement ce certificat pour cet hôte. La questi
 "RemoteFiles.Disabled.Body" = "Les fichiers copiés dans une session Windows arrivent dans le Finder par un fournisseur de fichiers, que macOS garde désactivé tant que vous ne l'autorisez pas : Réglages Système › Général › Ouverture et extensions › Fournisseurs de fichiers › mRemoteNXT. Une fois activé, copiez de nouveau les fichiers sous Windows et collez-les dans le Finder.";
 "RemoteFiles.Disabled.Open" = "Ouvrir les Réglages Système";
 "RemoteFiles.Disabled.Later" = "Plus tard";
+"Editor.Display" = "Affichage";
+"Editor.Field.Resolution" = "Résolution";
+"Editor.Resolution.FitToWindow" = "Ajuster à la fenêtre";
+"Editor.Resolution.SmartSize" = "Taille intelligente";
+"Editor.Resolution.Fullscreen" = "Plein écran";
+"Editor.Field.AutomaticResize" = "Suivre la fenêtre quand elle est redimensionnée";
+"Editor.ResolutionHint" = "Ajuster à la fenêtre : le bureau prend la taille de l'onglet. Taille intelligente : la taille de l'onglet à la connexion, mise à l'échelle ensuite. Plein écran : la résolution de l'écran, mise à l'échelle dans l'onglet et 1:1 en plein écran. Une taille fixe est mise à l'échelle dans l'onglet.";
+"Settings.OptimizeForRetina" = "Optimiser RDP pour Retina";
+"Settings.OptimizeForRetinaNote" = "Activé : le bureau distant reçoit chaque pixel d'un écran Retina et Windows met son interface à l'échelle. Désactivé : il tourne à la taille en points — quatre fois moins de pixels à envoyer, et tout y est dessiné plus grand. S'applique aux sessions ouvertes ensuite.";
+"Settings.Interpolation" = "Image RDP mise à l'échelle";
+"Settings.Interpolation.Automatic" = "Automatique";
+"Settings.Interpolation.Smooth" = "Lisse";
+"Settings.Interpolation.Sharp" = "Pixels nets";
+"Settings.InterpolationNote" = "Ne compte que lorsque le bureau est dessiné à une autre taille que celle reçue — taille intelligente, résolution fixe ou optimisation Retina désactivée.";

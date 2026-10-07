@@ -192,6 +192,15 @@ public final class MRNGNode: Identifiable, Hashable {
     public var redirectDiskDrivesCustom: String {
         resolved("RedirectDiskDrivesCustom", inheritKey: "InheritRedirectDiskDrivesCustom") ?? ""
     }
+    /// mRemoteNG's RDPResolutions: FitToWindow, Fullscreen, SmartSize or Res<W>x<H>.
+    public var resolution: String {
+        resolved("Resolution", inheritKey: "InheritResolution") ?? "FitToWindow"
+    }
+    /// With FitToWindow: follow the window as it is resized, rather than keep the size the
+    /// session started with.
+    public var automaticResize: Bool {
+        (resolved("AutomaticResize", inheritKey: "InheritAutomaticResize") ?? "true") != "false"
+    }
     // RD Gateway: mRemoteNG's own attributes, all inheritable, so a gateway set once on a
     // folder serves every connection under it.
     /// "Never", "Always" or "Detect".

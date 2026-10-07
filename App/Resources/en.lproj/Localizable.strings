@@ -359,3 +359,17 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 "RemoteFiles.Disabled.Body" = "Files copied in a Windows session reach the Finder through a file provider, which macOS keeps switched off until you allow it: System Settings › General › Login Items & Extensions › File Providers › mRemoteNXT. Once it is on, copy the files again in Windows and paste them in the Finder.";
 "RemoteFiles.Disabled.Open" = "Open System Settings";
 "RemoteFiles.Disabled.Later" = "Later";
+"Editor.Display" = "Display";
+"Editor.Field.Resolution" = "Resolution";
+"Editor.Resolution.FitToWindow" = "Fit to window";
+"Editor.Resolution.SmartSize" = "Smart size";
+"Editor.Resolution.Fullscreen" = "Full screen";
+"Editor.Field.AutomaticResize" = "Follow the window as it is resized";
+"Editor.ResolutionHint" = "Fit to window: the desktop takes the tab's size. Smart size: the tab's size at connect time, scaled afterwards. Full screen: the screen's resolution, scaled into the tab and 1:1 in full screen. A fixed size is scaled into the tab.";
+"Settings.OptimizeForRetina" = "Optimize RDP for Retina";
+"Settings.OptimizeForRetinaNote" = "On: the remote desktop gets every pixel of a Retina display, and Windows scales its interface to match. Off: it runs at the size in points — a quarter of the pixels to send, and everything on it drawn larger. Applies to sessions opened afterwards.";
+"Settings.Interpolation" = "Scaled RDP image";
+"Settings.Interpolation.Automatic" = "Automatic";
+"Settings.Interpolation.Smooth" = "Smooth";
+"Settings.Interpolation.Sharp" = "Sharp pixels";
+"Settings.InterpolationNote" = "Only matters when the desktop is drawn at another size than it arrives in — smart size, a fixed resolution, or Retina optimization off.";

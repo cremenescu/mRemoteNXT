@@ -361,3 +361,17 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 "RemoteFiles.Disabled.Body" = "Fisierele copiate intr-o sesiune Windows ajung in Finder printr-un file provider, pe care macOS il tine oprit pana il permiti: System Settings › General › Login Items & Extensions › File Providers › mRemoteNXT. Dupa ce e pornit, copiaza din nou fisierele in Windows si lipeste-le in Finder.";
 "RemoteFiles.Disabled.Open" = "Deschide System Settings";
 "RemoteFiles.Disabled.Later" = "Mai tarziu";
+"Editor.Display" = "Afisare";
+"Editor.Field.Resolution" = "Rezolutie";
+"Editor.Resolution.FitToWindow" = "Potrivit ferestrei";
+"Editor.Resolution.SmartSize" = "Smart size";
+"Editor.Resolution.Fullscreen" = "Ecran complet";
+"Editor.Field.AutomaticResize" = "Urmeaza fereastra cand e redimensionata";
+"Editor.ResolutionHint" = "Potrivit ferestrei: desktopul ia marimea tabului. Smart size: marimea tabului la conectare, scalata dupa aceea. Ecran complet: rezolutia ecranului, scalata in tab si 1:1 in full screen. O marime fixa se scaleaza in tab.";
+"Settings.OptimizeForRetina" = "Optimizeaza RDP pentru Retina";
+"Settings.OptimizeForRetinaNote" = "Pornit: desktopul remote primeste fiecare pixel al unui ecran Retina, iar Windows isi scaleaza interfata pe masura. Oprit: ruleaza la marimea in puncte — un sfert din pixeli de trimis si totul desenat mai mare. Se aplica sesiunilor deschise de acum incolo.";
+"Settings.Interpolation" = "Imaginea RDP scalata";
+"Settings.Interpolation.Automatic" = "Automat";
+"Settings.Interpolation.Smooth" = "Fina";
+"Settings.Interpolation.Sharp" = "Pixeli exacti";
+"Settings.InterpolationNote" = "Conteaza doar cand desktopul e desenat la alta marime decat soseste — smart size, o rezolutie fixa sau optimizarea Retina oprita.";
