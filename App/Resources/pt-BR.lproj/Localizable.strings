@@ -304,7 +304,7 @@ Confiar nele memoriza este certificado exato para este host. Você será pergunt
 "RemoteFiles.Error.SessionGone" = "A sessão de onde o arquivo foi copiado está fechada.";
 "RemoteFiles.Error.Timeout" = "O computador remoto parou de responder.";
 "RemoteFiles.Error.IO" = "Não foi possível gravar o arquivo neste Mac.";
-"Keyboard.Closest" = "Teclado: “%@” não tem equivalente exato no Windows, então o layout mais próximo está em uso — alguns símbolos podem sair diferentes.";
+"Keyboard.Closest" = "Teclado: “%@” não tem equivalente exato no Windows, então a digitação é casada caractere por caractere no layout mais próximo — os poucos caracteres que faltam são enviados como caracteres simples.";
 "Keyboard.Unknown" = "Teclado: “%@” não foi reconhecido, então a digitação é enviada como caracteres — programas de console como o PowerShell os ignoram. ABC ou U.S. funcionam em todo lugar.";
 "Settings.OptionSendsAlt" = "A tecla Option envia Alt (RDP)";
 "Settings.OptionSendsAltNote" = "Os caracteres que o layout do Mac digita com Option, como @ ou [, sempre chegam como esses caracteres. Desative se nunca quiser que o Option chegue ao Windows como Alt.";

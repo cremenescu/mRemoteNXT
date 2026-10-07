@@ -304,7 +304,7 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 "RemoteFiles.Error.SessionGone" = "Sesja, z której skopiowano plik, jest zamknięta.";
 "RemoteFiles.Error.Timeout" = "Komputer zdalny przestał odpowiadać.";
 "RemoteFiles.Error.IO" = "Nie udało się zapisać pliku na tym Macu.";
-"Keyboard.Closest" = "Klawiatura: „%@” nie ma dokładnego odpowiednika w Windows, więc użyto najbliższego układu — kilka symboli może wyjść inaczej.";
+"Keyboard.Closest" = "Klawiatura: „%@” nie ma dokładnego odpowiednika w Windows, więc tekst jest dopasowywany znak po znaku do najbliższego układu — nieliczne brakujące znaki są wysyłane jako zwykłe znaki.";
 "Keyboard.Unknown" = "Klawiatura: „%@” nie została rozpoznana, więc tekst jest wysyłany jako znaki — programy konsolowe, takie jak PowerShell, je ignorują. ABC lub U.S. działają wszędzie.";
 "Settings.OptionSendsAlt" = "Klawisz Option wysyła Alt (RDP)";
 "Settings.OptionSendsAltNote" = "Znaki, które układ Maca wpisuje z Option, takie jak @ czy [, i tak docierają jako te znaki. Wyłącz, jeśli Option nigdy nie ma docierać do Windows jako Alt.";
