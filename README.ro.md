@@ -49,10 +49,17 @@ cu tab-uri si paneluri.
 - **Paneluri** — gruparea conexiunilor in tab-uri de top, ca pe Windows.
 - **Cautare / filtru** pe nume, host, protocol, descriere.
 - **SSH** + **Telnet** embedat in tab (PTY peste `ssh`/`telnet` de sistem,
-  prin SwiftTerm). Copy-on-select, click-dreapta = paste (stil PuTTY).
+  prin SwiftTerm). Copy-on-select, click-dreapta = paste (stil PuTTY). Jump
+  host: un server se atinge prin alta conexiune SSH din arbore (`ssh -J`).
 - **SFTP** in terminal (click-dreapta pe conexiune SSH → "Transfer fisiere").
 - **RDP** embedat prin **FreeRDP** (canalele GFX/disp/cliprdr cablate manual,
-  resize live, scaling DPI corect pe Retina, Ctrl+Alt+Del prin meniu).
+  resize live, scaling DPI corect pe Retina, Ctrl+Alt+Del prin meniu sau
+  Ctrl+Option+Delete). Fisiere copiate in ambele sensuri intre Finder si
+  Explorer, layout-ul tastaturii Mac anuntat Windows-ului, Remote Desktop Gateway
+  din setarile per conexiune ale mRemoteNG si full screen care ii da sesiunii
+  tot ecranul.
+- **Fisiere `.rdp`**: File › Importa fisiere RDP le adauga in arbore; deschise
+  din Finder sau ca link `rdp://`, se conecteaza direct.
 - **HTTP / HTTPS** embedat in `WKWebView` cu autofill pentru user + parola din
   arbore (util pentru web-UI de routere / iLO / switch-uri).
 - **External Tools** cu macro-uri (`%Host% %Username% %Port% %Password%
@@ -64,16 +71,26 @@ cu tab-uri si paneluri.
   fiecare scriere (fisierul tau original nu se pierde niciodata).
 - **Teme terminal** (Implicit, Solarized, Dracula, etc.), font reglabil
   live, zoom Cmd+/Cmd-.
-- **Interfata in engleza, franceza, poloneza si romana**, comutabila din
-  Setari fara restart (sau dupa limba sistemului).
+- **Interfata in engleza, franceza, poloneza, portugheza braziliana, romana si
+  turca**, comutabila din Setari fara restart (sau dupa limba sistemului).
+
+### Copierea fisierelor din Windows pe Mac
+
+Fisierele copiate in Explorer se lipesc in Finder cu ⌘V; nimic nu se transfera
+pana nu dai paste, iar o fereastra arata progresul. Ajung in Finder printr-un
+file provider macOS, pe care macOS il tine oprit pana il permiti o data:
+**System Settings › General › Login Items & Extensions › File Providers ›
+mRemoteNXT**. Prima copiere care il gaseste oprit iti spune asta:
+
+<img src="examples/screenshots/file-provider-prompt.png" width="279" alt="Dialogul afisat cand file provider-ul e oprit, cu un buton care deschide System Settings">
 
 ## Ce NU merge inca
 
 - `FullFileEncryption="true"` (intregul XML criptat) — neimplementat.
 - Schema `ConfVersion > 2.6` — netestat.
 - Tab inheritance pentru `Panel` peste niveluri multiple — partial.
-- RDP: redirect clipboard imagine, redirect drive / sunet, cursor remote
-  vizibil (pointer set/new callbacks).
+- RDP: redirect sunet; redirectarea de drive-uri e un singur folder partajat,
+  nu drive-uri intregi.
 - VNC (planificat).
 - Aplicatii externe (`IntApp` nodes) — lansare neimplementata.
 - Quick Connect (URL `ssh://user@host:port`) din CLI.

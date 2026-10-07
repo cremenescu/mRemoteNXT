@@ -64,10 +64,17 @@ ranges, no real hosts.
 - **Panels** — group connections into top-level tabs like on Windows.
 - **Search / filter** by name, host, protocol, description.
 - **SSH** + **Telnet** embedded in tabs (PTY over system `ssh`/`telnet`
-  via SwiftTerm). PuTTY-style copy-on-select + right-click paste.
+  via SwiftTerm). PuTTY-style copy-on-select + right-click paste. Jump hosts:
+  reach a server through another SSH connection in the tree (`ssh -J`).
 - **SFTP** in terminal (right-click an SSH connection → "Transfer files").
 - **RDP** embedded via **FreeRDP** (GFX/disp/cliprdr channels wired by hand,
-  live resize, correct DPI scaling on Retina, Ctrl+Alt+Del via menu).
+  live resize, correct DPI scaling on Retina, Ctrl+Alt+Del via menu or
+  Ctrl+Option+Delete). Files copied in either direction between the Finder and
+  Explorer, the Mac keyboard layout announced to Windows, Remote Desktop Gateway
+  from mRemoteNG's own per-connection settings, and full screen that gives the
+  session the whole screen.
+- **`.rdp` files**: File › Import RDP Files adds them to the tree; opened from
+  the Finder or as an `rdp://` link, they connect straight away.
 - **HTTP / HTTPS** embedded in `WKWebView` with auto-fill of username +
   password from the tree (handy for router / iLO / switch web UIs).
 - **External Tools** with macros (`%Host% %Username% %Port% %Password%
@@ -79,16 +86,27 @@ ranges, no real hosts.
   write (your original file is never lost).
 - **Terminal themes** (Default, Solarized, Dracula, etc.), live-adjustable
   font size, zoom Cmd+/Cmd-.
-- **Interface in English, French, Polish and Romanian**, switchable in
-  Settings without a restart (or following the system language).
+- **Interface in English, French, Polish, Brazilian Portuguese, Romanian and
+  Turkish**, switchable in Settings without a restart (or following the system
+  language).
+
+### Copying files from Windows to the Mac
+
+Files copied in Explorer paste into the Finder with ⌘V; nothing is transferred
+until you paste, and a window shows the progress. They reach the Finder through
+a macOS file provider, which macOS keeps switched off until you allow it once:
+**System Settings › General › Login Items & Extensions › File Providers ›
+mRemoteNXT**. The first copy that finds it off says so:
+
+<img src="examples/screenshots/file-provider-prompt.png" width="279" alt="The prompt shown when the file provider is switched off, with a button that opens System Settings">
 
 ## Known limitations
 
 - `FullFileEncryption="true"` (whole XML encrypted) — not implemented.
 - Schema `ConfVersion > 2.6` — untested.
 - `Panel` inheritance across multiple levels — partial.
-- RDP: image-clipboard redirect, drive / sound redirect, remote cursor
-  visibility (pointer set/new callbacks).
+- RDP: sound redirect; drive redirection is one shared folder rather than
+  whole drives.
 - VNC (planned).
 - External applications (`IntApp` nodes) — launching not implemented.
 - Quick Connect (URL `ssh://user@host:port`) from CLI.
