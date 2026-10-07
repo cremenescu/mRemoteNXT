@@ -34,7 +34,12 @@ typedef struct {
     void (*onConnected)(void *ctx, int width, int height);
     // bgra = live buffer (valid only during the callback); the consumer copies synchronously.
     void (*onImage)(void *ctx, const uint8_t *bgra, int width, int height, int stride);
-    void (*onDisconnected)(void *ctx, const char *error); // error == NULL => normal
+    // error == NULL => closed by the user. reasonKey, when known, names a localized
+    // explanation of why ("RDP.Reason.*"); error is FreeRDP's own wording, the fallback.
+    void (*onDisconnected)(void *ctx, const char *error, const char *reasonKey);
+    // The connection dropped and is being re-established: attempt counts from 1. Fired
+    // before each try; the next onConnected means it worked, onDisconnected that it gave up.
+    void (*onReconnecting)(void *ctx, int attempt);
     // Clipboard (cliprdr). Buffers are valid only during the callback — copy synchronously.
     void (*onClipboardRemoteFormats)(void *ctx, bool hasText, bool hasImage); // remote copied something
     void (*onClipboardRemoteData)(void *ctx, uint32_t formatId, const uint8_t *data, uint32_t size);

@@ -408,9 +408,12 @@ final class RDPNSView: NSView, RDPClientDelegate {
         tl.foregroundColor = NSColor.white.cgColor
         tl.backgroundColor = NSColor.black.withAlphaComponent(0.65).cgColor
         tl.alignmentMode = .center
+        tl.isWrapped = true
         tl.contentsScale = window?.backingScaleFactor ?? 2
         tl.zPosition = 100
-        let h: CGFloat = 30
+        // Room for a reason and FreeRDP's code under it.
+        let lines = max(1, text.components(separatedBy: "\n").count) + (text.count > 90 ? 1 : 0)
+        let h: CGFloat = CGFloat(lines) * 19 + 12
         tl.frame = CGRect(x: 0, y: bounds.midY - h / 2, width: max(1, bounds.width), height: h)
         if statusLayer == nil { layer?.addSublayer(tl); statusLayer = tl }
     }
@@ -534,8 +537,19 @@ final class RDPNSView: NSView, RDPClientDelegate {
         onNeedsReconnect?()
     }
 
-    func rdpClient(_ client: RDPClient, didDisconnectWithError error: String?) {
-        showStatus(error ?? "Disconnected.")
+    func rdpClient(_ client: RDPClient, isReconnectingAttempt attempt: Int32) {
+        let host = session.node.hostname
+        showStatus(attempt == 0 ? String(format: t("RDP.Reconnecting"), host)
+                                : String(format: t("RDP.ReconnectingAttempt"), host, Int(attempt), 10))
+    }
+
+    func rdpClient(_ client: RDPClient, didDisconnectWithError error: String?, reason: String?) {
+        // The explanation first; FreeRDP's own wording, which names the exact code, under it.
+        if let reason {
+            showStatus(t(reason) + (error.map { "\n" + $0 } ?? ""))
+        } else {
+            showStatus(error ?? t("RDP.Disconnected"))
+        }
         onEnded?()
         if didConnectOnce { onDisconnect?() }
     }

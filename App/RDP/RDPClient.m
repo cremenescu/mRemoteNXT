@@ -96,14 +96,23 @@ static void core_onImage(void *ctx, const uint8_t *bgra, int w, int h, int strid
     CGImageRelease(img);
 }
 
-static void core_onDisconnected(void *ctx, const char *err) {
+static void core_onReconnecting(void *ctx, int attempt) {
+    RDPClient *self = (__bridge RDPClient *)ctx;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if ([self.delegate respondsToSelector:@selector(rdpClient:isReconnectingAttempt:)])
+            [self.delegate rdpClient:self isReconnectingAttempt:attempt];
+    });
+}
+
+static void core_onDisconnected(void *ctx, const char *err, const char *reasonKey) {
     NSString *msg = err ? [NSString stringWithUTF8String:err] : nil;
+    NSString *reason = reasonKey ? [NSString stringWithUTF8String:reasonKey] : nil;
     // Transfer the +1 retain held by core back to ARC: after this callback the
     // client can be safely deallocated (the thread is done).
     RDPClient *self = (__bridge_transfer RDPClient *)ctx;
     [self abortRemoteFileRequests]; // a paste waiting on this session gets its answer now
     dispatch_async(dispatch_get_main_queue(), ^{
-        [self.delegate rdpClient:self didDisconnectWithError:msg];
+        [self.delegate rdpClient:self didDisconnectWithError:msg reason:reason];
     });
 }
 
@@ -343,6 +352,7 @@ static void core_onClipboardChannelClosed(void *ctx) {
         .onConnected = core_onConnected,
         .onImage = core_onImage,
         .onDisconnected = core_onDisconnected,
+        .onReconnecting = core_onReconnecting,
         .onClipboardRemoteData = core_onClipboardRemoteData,
         .onClipboardDataRequested = core_onClipboardDataRequested,
         .onClipboardFilesRequested = core_onClipboardFilesRequested,

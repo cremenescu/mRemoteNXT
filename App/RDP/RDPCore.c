@@ -143,6 +143,7 @@ struct RDPCore {
     UINT32 nextClipDataId;
     UINT32 remoteClipDataId;   // the lock covering the latest remote file list, 0 = none
     int gfxNegotiated;             // this session advertised the graphics pipeline
+    int reconnectAttempt;          // tries so far in the current automatic reconnect
     const void *lastPointer;       // last shape handed up, to skip repeats
 
     RDPCoreCallbacks cb;
@@ -159,8 +160,55 @@ static RDPCore *coreFromCliprdr(CliprdrClientContext *cliprdr) {
     return (RDPCore *)cliprdr_file_context_get_context((CliprdrFileContext *)cliprdr->custom);
 }
 
-static void notifyDisconnected(RDPCore *core, const char *err) {
-    if (core->cb.onDisconnected) core->cb.onDisconnected(core->ctx, err);
+static void notifyDisconnected(RDPCore *core, const char *err, const char *reasonKey) {
+    if (core->cb.onDisconnected) core->cb.onDisconnected(core->ctx, err, reasonKey);
+}
+
+// Why a session ended, as a key the app has a sentence for. Codes without one fall back to
+// FreeRDP's own name for them, which at least can be searched for.
+static const char *mrng_reason_key(UINT32 err) {
+    switch (err) {
+    case FREERDP_ERROR_RPC_INITIATED_DISCONNECT: return "RDP.Reason.ByAdmin";
+    case FREERDP_ERROR_RPC_INITIATED_LOGOFF: return "RDP.Reason.LoggedOffByAdmin";
+    case FREERDP_ERROR_IDLE_TIMEOUT: return "RDP.Reason.IdleTimeout";
+    case FREERDP_ERROR_LOGON_TIMEOUT: return "RDP.Reason.LogonTimeout";
+    case FREERDP_ERROR_DISCONNECTED_BY_OTHER_CONNECTION: return "RDP.Reason.TakenOver";
+    case FREERDP_ERROR_SERVER_DENIED_CONNECTION: return "RDP.Reason.Denied";
+    case FREERDP_ERROR_SERVER_INSUFFICIENT_PRIVILEGES: return "RDP.Reason.NoRights";
+    case FREERDP_ERROR_SERVER_FRESH_CREDENTIALS_REQUIRED: return "RDP.Reason.FreshCredentials";
+    case FREERDP_ERROR_RPC_INITIATED_DISCONNECT_BY_USER: return "RDP.Reason.DisconnectedInside";
+    case FREERDP_ERROR_LOGOFF_BY_USER: return "RDP.Reason.SignedOut";
+    case FREERDP_ERROR_AUTHENTICATION_FAILED:
+    case FREERDP_ERROR_CONNECT_LOGON_FAILURE:
+    case FREERDP_ERROR_CONNECT_WRONG_PASSWORD: return "RDP.Reason.BadCredentials";
+    case FREERDP_ERROR_CONNECT_PASSWORD_EXPIRED:
+    case FREERDP_ERROR_CONNECT_PASSWORD_MUST_CHANGE: return "RDP.Reason.PasswordExpired";
+    case FREERDP_ERROR_CONNECT_ACCOUNT_DISABLED:
+    case FREERDP_ERROR_CONNECT_ACCOUNT_RESTRICTION:
+    case FREERDP_ERROR_CONNECT_ACCOUNT_LOCKED_OUT: return "RDP.Reason.AccountBlocked";
+    case FREERDP_ERROR_DNS_NAME_NOT_FOUND: return "RDP.Reason.HostNotFound";
+    // Despite the name, a connect "failure" is the TCP connect timing out on every address.
+    case FREERDP_ERROR_CONNECT_FAILED:
+    case FREERDP_ERROR_CONNECT_TRANSPORT_FAILED: return "RDP.Reason.Unreachable";
+    case FREERDP_ERROR_TLS_CONNECT_FAILED: return "RDP.Reason.TLS";
+    default: return NULL;
+    }
+}
+
+// Between reconnect attempts: tell the app which one is next, and stop when the tab closes.
+static SSIZE_T mrng_retry_dialog(freerdp *instance, const char *what, size_t current, void *userarg) {
+    (void)what; (void)userarg;
+    RDPCore *core = coreFromContext(instance->context);
+    if (!core || core->stopRequested) return -1;
+    (void)current; // counted here: FreeRDP versions disagree on whether it starts at 0 or 1
+    core->reconnectAttempt++;
+    if (core->cb.onReconnecting) core->cb.onReconnecting(core->ctx, core->reconnectAttempt);
+    return 2000; // ms before this attempt
+}
+
+static BOOL mrng_window_events(freerdp *instance) {
+    RDPCore *core = coreFromContext(instance->context);
+    return core && !core->stopRequested;
 }
 
 // MARK: - Update / graphics
@@ -625,36 +673,51 @@ static void *thread_proc(void *arg) {
         const char *name = freerdp_get_last_error_name(err);
         char msg[256];
         snprintf(msg, sizeof(msg), "Connection failed: %s", name ? name : "unknown");
-        notifyDisconnected(core, msg);
+        notifyDisconnected(core, msg, mrng_reason_key(err));
         return NULL;
     }
 
     rdpContext *context = core->context;
-    while (!core->stopRequested && !freerdp_shall_disconnect_context(context)) {
-        HANDLE handles[64];
-        DWORD n = freerdp_get_event_handles(context, handles, 64);
-        if (n == 0) break;
-        DWORD st = WaitForMultipleObjects(n, handles, FALSE, 200);
-        if (st == WAIT_FAILED) break;
-        if (!freerdp_check_event_handles(context)) break;
+    for (;;) {
+        while (!core->stopRequested && !freerdp_shall_disconnect_context(context)) {
+            HANDLE handles[64];
+            DWORD n = freerdp_get_event_handles(context, handles, 64);
+            if (n == 0) break;
+            DWORD st = WaitForMultipleObjects(n, handles, FALSE, 200);
+            if (st == WAIT_FAILED) break;
+            if (!freerdp_check_event_handles(context)) break;
+        }
+        if (core->stopRequested) break;
+        // A dropped network is worth another try; anything the server said on purpose —
+        // logoff, taken over, idle limit — is not, and client_auto_reconnect_ex tells them
+        // apart by the error info the server sent.
+        const UINT32 info = freerdp_error_info(instance);
+        if (info != ERRINFO_SUCCESS && info != ERRINFO_GRAPHICS_SUBSYSTEM_FAILED) break;
+        core->reconnectAttempt = 0;
+        if (core->cb.onReconnecting) core->cb.onReconnecting(core->ctx, 0);
+        if (!client_auto_reconnect_ex(instance, mrng_window_events)) break;
+        WLog_INFO("com.mrng.core", "reconnected");
     }
 
     freerdp_disconnect(instance);
 
-    // Report the reason: nothing if the user closed it, otherwise the last error / "closed by server".
+    // Report the reason: nothing if the user closed it, otherwise why it ended.
     const char *msg = NULL;
+    const char *key = NULL;
     char buf[256];
     if (!core->stopRequested) {
         UINT32 err = freerdp_get_last_error(core->context);
+        key = mrng_reason_key(err);
         if (err != FREERDP_ERROR_SUCCESS) {
             const char *name = freerdp_get_last_error_name(err);
             snprintf(buf, sizeof(buf), "Disconnected: %s", name ? name : "unknown");
             msg = buf;
         } else {
             msg = "Session closed (possibly taken over by another connection).";
+            key = "RDP.Reason.Closed";
         }
     }
-    notifyDisconnected(core, msg);
+    notifyDisconnected(core, msg, key);
     return NULL;
 }
 
@@ -669,6 +732,7 @@ static BOOL mrng_client_new(freerdp *instance, rdpContext *context) {
     instance->VerifyCertificateEx = mrng_verify_cert_ex;
     instance->VerifyChangedCertificateEx = mrng_verify_changed_cert_ex;
     instance->PresentGatewayMessage = mrng_present_gateway_message;
+    instance->RetryDialog = mrng_retry_dialog;
     PubSub_SubscribeChannelConnected(context->pubSub, on_channel_connected);
     PubSub_SubscribeChannelDisconnected(context->pubSub, on_channel_disconnected);
     return TRUE;
@@ -818,6 +882,10 @@ RDPCore *rdpcore_create(const char *host, int port, const char *user,
     freerdp_settings_set_bool(s, FreeRDP_GfxH264, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_GfxAVC444v2, TRUE);
     freerdp_settings_set_bool(s, FreeRDP_NetworkAutoDetect, TRUE);
+    // Come back by itself after a network blip, as mstsc does: up to ten tries, two seconds
+    // apart (mrng_retry_dialog), each one shown over the session.
+    freerdp_settings_set_bool(s, FreeRDP_AutoReconnectionEnabled, TRUE);
+    freerdp_settings_set_uint32(s, FreeRDP_AutoReconnectMaxRetries, 10);
     // TCP keepalive. FreeRDP's defaults are 5s idle then 3 probes 2s apart, and on macOS
     // they really are applied per socket (tcp.c defines TCP_KEEPIDLE as TCP_KEEPALIVE on
     // Apple, so the system's 2h idle default is overridden). Eleven seconds of silence is

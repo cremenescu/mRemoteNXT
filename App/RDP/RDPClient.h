@@ -28,8 +28,13 @@ NS_ASSUME_NONNULL_BEGIN
 @protocol RDPClientDelegate <NSObject>
 - (void)rdpClient:(RDPClient *)client didConnectWithWidth:(int)width height:(int)height;
 - (void)rdpClient:(RDPClient *)client didUpdateImage:(CGImageRef)image;
-- (void)rdpClient:(RDPClient *)client didDisconnectWithError:(nullable NSString *)error;
+/// `reason` is a localization key ("RDP.Reason.*") when the cause is known; `error` is
+/// FreeRDP's wording. Both nil = the user closed it.
+- (void)rdpClient:(RDPClient *)client didDisconnectWithError:(nullable NSString *)error
+           reason:(nullable NSString *)reason;
 @optional
+/// The connection dropped and is being re-established; attempt 0 = it just dropped.
+- (void)rdpClient:(RDPClient *)client isReconnectingAttempt:(int)attempt;
 /// The server is too old for the graphics pipeline. Remember the host and reconnect
 /// with useLegacyGraphics — this connection can no longer be changed.
 - (void)rdpClientNeedsLegacyGraphics:(RDPClient *)client;
