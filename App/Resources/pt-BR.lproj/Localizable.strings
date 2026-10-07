@@ -344,3 +344,14 @@ Confiar nele memoriza este certificado exato para este host. Você será pergunt
 "RDPOpen.FailedTitle" = "Não é possível abrir esta conexão";
 "RDPOpen.Unreadable" = "Não foi possível ler “%@”.";
 "RDPOpen.NoAddress" = "“%@” não diz a qual computador conectar.";
+"Menu.HideTabBars" = "Ocultar barras de abas";
+"Menu.ShowTabBars" = "Mostrar barras de abas";
+"Menu.NextTab" = "Mostrar próxima aba";
+"Menu.PreviousTab" = "Mostrar aba anterior";
+"Settings.CommandWClosesTab" = "⌘W fecha a aba";
+"Settings.CommandWClosesTabNote" = "Desligado: numa sessão RDP, ⌘W chega ao Windows como Ctrl+W, e a aba fecha pelo próprio botão ou pelo menu Arquivo.";
+"Settings.FullScreenMenuBar" = "Barra de menus em tela cheia";
+"Settings.FullScreenMenuBar.System" = "Como o macOS mostra";
+"Settings.FullScreenMenuBar.Delayed" = "Após 3 segundos na borda superior";
+"Settings.FullScreenMenuBar.Immersive" = "Nunca (⌃⌘F sai da tela cheia)";
+"Settings.FullScreenMenuBarNote" = "Em tela cheia, a barra lateral, a barra de ferramentas e as barras de abas dão lugar à sessão; ⇧⌘] e ⇧⌘[ passam de uma aba para outra, ⌥⌘T traz as barras de abas de volta. Segurar a barra de menus permite alcançar o topo da área de trabalho remota sem que ela desça.";

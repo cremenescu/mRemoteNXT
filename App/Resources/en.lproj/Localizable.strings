@@ -344,3 +344,14 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 "RDPOpen.FailedTitle" = "This connection can't be opened";
 "RDPOpen.Unreadable" = "“%@” could not be read.";
 "RDPOpen.NoAddress" = "“%@” doesn't say which computer to connect to.";
+"Menu.HideTabBars" = "Hide Tab Bars";
+"Menu.ShowTabBars" = "Show Tab Bars";
+"Menu.NextTab" = "Show Next Tab";
+"Menu.PreviousTab" = "Show Previous Tab";
+"Settings.CommandWClosesTab" = "⌘W closes the tab";
+"Settings.CommandWClosesTabNote" = "Off: in an RDP session ⌘W reaches Windows as Ctrl+W, and the tab closes from its own button or the File menu.";
+"Settings.FullScreenMenuBar" = "Menu bar in full screen";
+"Settings.FullScreenMenuBar.System" = "As macOS shows it";
+"Settings.FullScreenMenuBar.Delayed" = "After 3 seconds at the top edge";
+"Settings.FullScreenMenuBar.Immersive" = "Never (⌃⌘F leaves full screen)";
+"Settings.FullScreenMenuBarNote" = "In full screen the sidebar, the toolbar and the tab bars make way for the session; ⇧⌘] and ⇧⌘[ move between tabs, ⌥⌘T brings the tab bars back. Holding the menu bar back lets the top of the remote desktop be reached without it sliding down.";

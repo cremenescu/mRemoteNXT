@@ -115,6 +115,27 @@ final class WindowRegistry: ObservableObject {
         entry.window = window
         entry.closeGuard = guardDelegate
 
+        // Full screen: the model puts the sidebar and tab bars away, the menu bar controller
+        // holds the menu bar back if asked to.
+        entry.observers.append(NotificationCenter.default.addObserver(
+            forName: NSWindow.willEnterFullScreenNotification, object: window, queue: .main
+        ) { [weak model] _ in
+            MainActor.assumeIsolated { model?.willEnterFullScreen() }
+        })
+        entry.observers.append(NotificationCenter.default.addObserver(
+            forName: NSWindow.didEnterFullScreenNotification, object: window, queue: .main
+        ) { [weak window] _ in
+            MainActor.assumeIsolated { if let window { FullScreenMenuBar.shared.didEnter(window) } }
+        })
+        entry.observers.append(NotificationCenter.default.addObserver(
+            forName: NSWindow.willExitFullScreenNotification, object: window, queue: .main
+        ) { [weak model, weak window] _ in
+            MainActor.assumeIsolated {
+                model?.willExitFullScreen()
+                if let window { FullScreenMenuBar.shared.didExit(window) }
+            }
+        })
+
         entry.observers.append(NotificationCenter.default.addObserver(
             forName: NSWindow.didBecomeKeyNotification, object: window, queue: .main
         ) { [weak model, weak window] _ in
@@ -340,6 +361,15 @@ final class WindowCloseGuard: NSObject, NSWindowDelegate {
         default:
             return false
         }
+    }
+
+    /// What full screen hides. SwiftUI's own delegate is asked first, then the menu bar
+    /// setting has the last word.
+    func window(_ window: NSWindow,
+                willUseFullScreenPresentationOptions proposedOptions: NSApplication.PresentationOptions = [])
+        -> NSApplication.PresentationOptions {
+        let base = next?.window?(window, willUseFullScreenPresentationOptions: proposedOptions) ?? proposedOptions
+        return MainActor.assumeIsolated { FullScreenMenuBar.shared.options(proposed: base) }
     }
 
     // Forward everything else to SwiftUI's own delegate.

@@ -344,3 +344,14 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 "RDPOpen.FailedTitle" = "Bu bağlantı açılamıyor";
 "RDPOpen.Unreadable" = "“%@” okunamadı.";
 "RDPOpen.NoAddress" = "“%@” hangi bilgisayara bağlanılacağını belirtmiyor.";
+"Menu.HideTabBars" = "Sekme çubuklarını gizle";
+"Menu.ShowTabBars" = "Sekme çubuklarını göster";
+"Menu.NextTab" = "Sonraki sekmeyi göster";
+"Menu.PreviousTab" = "Önceki sekmeyi göster";
+"Settings.CommandWClosesTab" = "⌘W sekmeyi kapatır";
+"Settings.CommandWClosesTabNote" = "Kapalı: bir RDP oturumunda ⌘W Windows'a Ctrl+W olarak ulaşır; sekme kendi düğmesinden veya Dosya menüsünden kapatılır.";
+"Settings.FullScreenMenuBar" = "Tam ekranda menü çubuğu";
+"Settings.FullScreenMenuBar.System" = "macOS'un gösterdiği gibi";
+"Settings.FullScreenMenuBar.Delayed" = "Üst kenarda 3 saniye sonra";
+"Settings.FullScreenMenuBar.Immersive" = "Asla (⌃⌘F tam ekrandan çıkar)";
+"Settings.FullScreenMenuBarNote" = "Tam ekranda kenar çubuğu, araç çubuğu ve sekme çubukları oturuma yer açar; ⇧⌘] ve ⇧⌘[ sekmeler arasında geçer, ⌥⌘T sekme çubuklarını geri getirir. Menü çubuğunu geri tutmak, uzak masaüstünün üst kenarına onun inmesine yol açmadan ulaşmayı sağlar.";

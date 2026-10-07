@@ -180,6 +180,12 @@ final class AppModel: ObservableObject {
     /// editor open reopened it on an empty selection — a blank sheet with no buttons and
     /// no way out.
     @Published var editorVisible: Bool = false
+    /// The panel switcher and the tab strip, hidden to give the session their room.
+    @Published var tabBarsHidden = false
+    /// Bound to the split view, so full screen can put the sidebar away and bring it back.
+    @Published var sidebarVisibility: NavigationSplitViewVisibility = .automatic
+    /// What full screen put away, to restore on the way out. nil = not in full screen.
+    private var beforeFullScreen: (sidebar: NavigationSplitViewVisibility, tabBarsHidden: Bool)?
 
     // MARK: - Application preferences
 
@@ -972,6 +978,35 @@ final class AppModel: ObservableObject {
 
     func sessions(inPanel panel: String?) -> [Session] {
         sessions.filter { $0.panel == panel }
+    }
+
+    // MARK: - Full screen
+
+    /// Full screen is for the session: the sidebar and the tab bars go, and come back as
+    /// they were on the way out. Either can still be brought back while in full screen.
+    func willEnterFullScreen() {
+        guard beforeFullScreen == nil else { return }
+        beforeFullScreen = (sidebarVisibility, tabBarsHidden)
+        sidebarVisibility = .detailOnly
+        tabBarsHidden = true
+    }
+
+    func willExitFullScreen() {
+        guard let saved = beforeFullScreen else { return }
+        beforeFullScreen = nil
+        sidebarVisibility = saved.sidebar
+        tabBarsHidden = saved.tabBarsHidden
+    }
+
+    /// The next or previous tab, in the order the tab bars show them, panels included —
+    /// the way across when the bars are hidden.
+    func selectAdjacentSession(_ delta: Int) {
+        let ordered = panels().flatMap { sessions(inPanel: $0) }
+        guard !ordered.isEmpty else { return }
+        let current = ordered.firstIndex { $0.id == selectedSessionID } ?? (delta > 0 ? -1 : 0)
+        let next = ordered[((current + delta) % ordered.count + ordered.count) % ordered.count]
+        selectedPanel = next.panel
+        selectedSessionID = next.id
     }
 
     func selectPanel(_ panel: String) {

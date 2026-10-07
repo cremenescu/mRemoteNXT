@@ -344,3 +344,14 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 "RDPOpen.FailedTitle" = "Nie można otworzyć tego połączenia";
 "RDPOpen.Unreadable" = "Nie można odczytać „%@”.";
 "RDPOpen.NoAddress" = "„%@” nie wskazuje, z którym komputerem się połączyć.";
+"Menu.HideTabBars" = "Ukryj paski kart";
+"Menu.ShowTabBars" = "Pokaż paski kart";
+"Menu.NextTab" = "Pokaż następną kartę";
+"Menu.PreviousTab" = "Pokaż poprzednią kartę";
+"Settings.CommandWClosesTab" = "⌘W zamyka kartę";
+"Settings.CommandWClosesTabNote" = "Wyłączone: w sesji RDP ⌘W dociera do Windows jako Ctrl+W, a kartę zamyka się jej przyciskiem lub z menu Plik.";
+"Settings.FullScreenMenuBar" = "Pasek menu na pełnym ekranie";
+"Settings.FullScreenMenuBar.System" = "Tak jak pokazuje macOS";
+"Settings.FullScreenMenuBar.Delayed" = "Po 3 sekundach przy górnej krawędzi";
+"Settings.FullScreenMenuBar.Immersive" = "Nigdy (⌃⌘F wychodzi z pełnego ekranu)";
+"Settings.FullScreenMenuBarNote" = "Na pełnym ekranie pasek boczny, pasek narzędzi i paski kart ustępują miejsca sesji; ⇧⌘] i ⇧⌘[ przełączają karty, ⌥⌘T przywraca paski kart. Wstrzymanie paska menu pozwala sięgnąć górnej krawędzi zdalnego pulpitu, bez jego zsuwania się.";

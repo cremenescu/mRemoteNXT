@@ -248,7 +248,7 @@ struct ContentView: View {
     @EnvironmentObject var lang: LanguageManager
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $model.sidebarVisibility) {
             sidebar
                 .frame(minWidth: 280)
         } detail: {
@@ -404,7 +404,7 @@ struct ContentView: View {
 
     @ViewBuilder private var detail: some View {
         VStack(spacing: 0) {
-            if !model.sessions.isEmpty {
+            if !model.sessions.isEmpty && !model.tabBarsHidden {
                 // The panel switcher is where you are, not a tool, so it lives in the
                 // content and not in the toolbar. It used to sit in the toolbar's principal
                 // slot, and macOS folded it into the overflow chevron as soon as the other

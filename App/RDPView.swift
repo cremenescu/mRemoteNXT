@@ -199,6 +199,11 @@ final class RDPNSView: NSView, RDPClientDelegate {
         UserDefaults.standard.object(forKey: "rdpOptionSendsAlt") as? Bool ?? true
     }
 
+    /// Off: ⌘W in a session is Ctrl+W for Windows rather than the menu's Close Tab.
+    static var commandWClosesTab: Bool {
+        UserDefaults.standard.object(forKey: "commandWClosesTab") as? Bool ?? true
+    }
+
     /// Which Command key stands in for Ctrl. Read per event, so a change applies at once.
     static var commandAsCtrl: CommandAsCtrl {
         CommandAsCtrl(rawValue: UserDefaults.standard.string(forKey: "rdpCommandAsCtrl") ?? "") ?? .both
@@ -526,6 +531,22 @@ final class RDPNSView: NSView, RDPClientDelegate {
     }
 
     // MARK: - Keyboard
+
+    /// Key equivalents reach the view before the menu bar. Only ⌘W is claimed here, and only
+    /// when Settings gives it to the session: everything else stays with the menus.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if !Self.commandWClosesTab, event.type == .keyDown, window?.firstResponder === self,
+           event.modifierFlags.intersection([.command, .control, .option, .shift]) == .command,
+           event.charactersIgnoringModifiers?.lowercased() == "w",
+           Self.redirectedCommandHeld(event.modifierFlags),
+           let code = Self.scancode(for: event.keyCode) {
+            // Ctrl is already down on the server: flagsChanged pressed it with Command.
+            client?.keyScancode(code, extended: false, down: true)
+            client?.keyScancode(code, extended: false, down: false)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
 
     override func keyDown(with e: NSEvent) { handleKey(e, down: true) }
     override func keyUp(with e: NSEvent)   { handleKey(e, down: false) }

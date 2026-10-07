@@ -88,6 +88,8 @@ struct DocumentWindow: View {
             .background(WindowChrome(fileURL: model.fileURL, model: model))
             // Publishes this window's model to the menu bar while it is frontmost.
             .focusedSceneValue(\.appModel, model)
+            // Observed, unlike the value above: menu titles that follow the model's state.
+            .focusedSceneObject(model)
             .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
             .onOpenURL { url in RDPLaunch.open([url], preferring: model) }
             .onAppear {
@@ -109,6 +111,7 @@ struct MRNGCommands: Commands {
     let language: LanguageManager.Choice
 
     @FocusedValue(\.appModel) private var model: AppModel?
+    @FocusedObject private var observedModel: AppModel?
 
     var body: some Commands {
         CommandGroup(replacing: .appInfo) {
@@ -166,6 +169,22 @@ struct MRNGCommands: Commands {
                 .keyboardShortcut("=", modifiers: .command)
             Button(t("Menu.ZoomOut")) { model?.zoomTerminal(-1) }
                 .keyboardShortcut("-", modifiers: .command)
+            Divider()
+            // ⌥⌘ rather than ⇧⌘: in an RDP session Command stands in for Ctrl, and these
+            // menu shortcuts are taken before the session sees them — ⇧⌘T would be the
+            // remote browser's Ctrl+Shift+T.
+            Button(observedModel?.tabBarsHidden == true ? t("Menu.ShowTabBars") : t("Menu.HideTabBars")) {
+                observedModel?.tabBarsHidden.toggle()
+            }
+            .keyboardShortcut("t", modifiers: [.command, .option])
+            .disabled(observedModel == nil)
+            // Not ⌃Tab: Windows applications use Ctrl+Tab themselves.
+            Button(t("Menu.NextTab")) { model?.selectAdjacentSession(+1) }
+                .keyboardShortcut("]", modifiers: [.command, .shift])
+                .disabled(observedModel?.sessions.isEmpty != false)
+            Button(t("Menu.PreviousTab")) { model?.selectAdjacentSession(-1) }
+                .keyboardShortcut("[", modifiers: [.command, .shift])
+                .disabled(observedModel?.sessions.isEmpty != false)
         }
     }
 
@@ -270,6 +289,22 @@ struct AppearanceSettings: View {
                         Text(t("Settings.CommandAsCtrl.Right")).tag(CommandAsCtrl.right)
                     }
                     Text(t("Settings.CommandAsCtrlNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle(t("Settings.CommandWClosesTab"), isOn: $prefs.commandWClosesTab)
+                    Text(t("Settings.CommandWClosesTabNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Picker(t("Settings.FullScreenMenuBar"), selection: $prefs.fullScreenMenuBar) {
+                        Text(t("Settings.FullScreenMenuBar.System")).tag(FullScreenMenuBarMode.system)
+                        Text(t("Settings.FullScreenMenuBar.Delayed")).tag(FullScreenMenuBarMode.delayed)
+                        Text(t("Settings.FullScreenMenuBar.Immersive")).tag(FullScreenMenuBarMode.immersive)
+                    }
+                    Text(t("Settings.FullScreenMenuBarNote"))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

@@ -67,6 +67,14 @@ final class Preferences: ObservableObject {
     @Published var rdpOptionSendsAlt: Bool = true {
         didSet { UserDefaults.standard.set(rdpOptionSendsAlt, forKey: "rdpOptionSendsAlt") }
     }
+    /// ⌘W closes the tab (the default) or, off, reaches an RDP session as Ctrl+W.
+    @Published var commandWClosesTab: Bool = true {
+        didSet { UserDefaults.standard.set(commandWClosesTab, forKey: "commandWClosesTab") }
+    }
+    /// When the menu bar may come down over a window in full screen.
+    @Published var fullScreenMenuBar: FullScreenMenuBarMode = .system {
+        didSet { UserDefaults.standard.set(fullScreenMenuBar.rawValue, forKey: "fullScreenMenuBar") }
+    }
     /// Which Command key stands in for Ctrl in RDP sessions.
     @Published var rdpCommandAsCtrl: CommandAsCtrl = .both {
         didSet { UserDefaults.standard.set(rdpCommandAsCtrl.rawValue, forKey: "rdpCommandAsCtrl") }
@@ -140,6 +148,8 @@ final class Preferences: ObservableObject {
         if let v = d.object(forKey: "optionAsMetaKey") as? Bool { optionAsMetaKey = v }
         if let v = d.object(forKey: "rdpScancodeTyping") as? Bool { rdpScancodeTyping = v }
         if let v = d.object(forKey: "rdpOptionSendsAlt") as? Bool { rdpOptionSendsAlt = v }
+        if let v = d.object(forKey: "commandWClosesTab") as? Bool { commandWClosesTab = v }
+        if let v = d.string(forKey: "fullScreenMenuBar"), let m = FullScreenMenuBarMode(rawValue: v) { fullScreenMenuBar = m }
         if let v = d.string(forKey: "rdpCommandAsCtrl"), let c = CommandAsCtrl(rawValue: v) { rdpCommandAsCtrl = c }
         if let v = d.object(forKey: "showWhatsNewAfterUpdate") as? Bool { showWhatsNewAfterUpdate = v }
         if let v = d.string(forKey: "lastWhatsNewBuild") { lastWhatsNewBuild = v }

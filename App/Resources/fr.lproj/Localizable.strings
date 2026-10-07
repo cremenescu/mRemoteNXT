@@ -344,3 +344,14 @@ Lui faire confiance mémorise exactement ce certificat pour cet hôte. La questi
 "RDPOpen.FailedTitle" = "Impossible d'ouvrir cette connexion";
 "RDPOpen.Unreadable" = "« %@ » n'a pas pu être lu.";
 "RDPOpen.NoAddress" = "« %@ » n'indique pas à quel ordinateur se connecter.";
+"Menu.HideTabBars" = "Masquer les barres d'onglets";
+"Menu.ShowTabBars" = "Afficher les barres d'onglets";
+"Menu.NextTab" = "Afficher l'onglet suivant";
+"Menu.PreviousTab" = "Afficher l'onglet précédent";
+"Settings.CommandWClosesTab" = "⌘W ferme l'onglet";
+"Settings.CommandWClosesTabNote" = "Désactivé : dans une session RDP, ⌘W arrive sous Windows comme Ctrl+W, et l'onglet se ferme par son propre bouton ou le menu Fichier.";
+"Settings.FullScreenMenuBar" = "Barre des menus en plein écran";
+"Settings.FullScreenMenuBar.System" = "Comme macOS l'affiche";
+"Settings.FullScreenMenuBar.Delayed" = "Après 3 secondes en haut de l'écran";
+"Settings.FullScreenMenuBar.Immersive" = "Jamais (⌃⌘F quitte le plein écran)";
+"Settings.FullScreenMenuBarNote" = "En plein écran, la barre latérale, la barre d'outils et les barres d'onglets laissent la place à la session ; ⇧⌘] et ⇧⌘[ passent d'un onglet à l'autre, ⌥⌘T réaffiche les barres d'onglets. Retenir la barre des menus permet d'atteindre le haut du bureau distant sans qu'elle descende.";
