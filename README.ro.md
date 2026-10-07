@@ -42,7 +42,7 @@ cu tab-uri si paneluri.
 
 ## Ce merge
 
-- **Import direct** `confCons.xml` (schemele 2.5-2.8, passphrase-ul implicit al mRemoteNG
+- **Import direct** `confCons.xml` (schemele 2.6-2.8, passphrase-ul implicit al mRemoteNG
   sau propriu, inclusiv fisiere criptate integral; salvat inapoi cum il scrie aceeasi
   versiune de mRemoteNG). Crypto validat byte-exact (PBKDF2-HMAC-SHA1 + AES-256-GCM).
 - **Arbore de conexiuni** cu foldere, mostenire de atribute, drag&drop reorder,
@@ -87,8 +87,8 @@ mRemoteNXT**. Prima copiere care il gaseste oprit iti spune asta:
 
 ## Ce NU merge inca
 
-- `FullFileEncryption="true"` din schema 2.5 si mai vechi (alta schema de criptare,
-  veche) — nesuportat; de la 2.6 in sus merge.
+- Schema 2.5 si mai vechi (mRemoteNG inainte de 1.76): criptarea lor veche nu e citita,
+  deci parolele salvate si criptarea integrala din acele fisiere nu se deschid.
 - Tab inheritance pentru `Panel` peste niveluri multiple — partial.
 - RDP: redirect sunet; redirectarea de drive-uri e un singur folder partajat,
   nu drive-uri intregi.

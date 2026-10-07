@@ -56,7 +56,7 @@ ranges, no real hosts.
 
 ## Features
 
-- **Direct `confCons.xml` import** (schemas 2.5 to 2.8, with mRemoteNG's default
+- **Direct `confCons.xml` import** (schemas 2.6 to 2.8, with mRemoteNG's default
   passphrase or a custom one, files encrypted as a whole included; saved back the way the
   same mRemoteNG version writes them). Crypto validated byte-exact against real files
   (PBKDF2-HMAC-SHA1 + AES-256-GCM).
@@ -103,8 +103,8 @@ mRemoteNXT**. The first copy that finds it off says so:
 
 ## Known limitations
 
-- `FullFileEncryption="true"` from schema 2.5 and older (a different, legacy scheme) —
-  not supported; from 2.6 on it is.
+- Schema 2.5 and older (mRemoteNG before 1.76): their legacy encryption is not read, so
+  saved passwords and whole-file encryption from those files do not open.
 - `Panel` inheritance across multiple levels — partial.
 - RDP: sound redirect; drive redirection is one shared folder rather than
   whole drives.
