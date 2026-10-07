@@ -419,3 +419,8 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 "Info.ConnectedFor" = "Conectat de";
 "Preview.Nothing" = "Nimic de aratat inca";
 "Error.FileLocked" = "Fisierul e criptat in intregime. Introdu parola master ca sa-l deschizi.";
+"Error.ExternalAppNone" = "Conexiunea de tip aplicatie externa nu numeste niciun tool. Alege unul in setarile conexiunii (Conexiune › Aplicatie externa).";
+"Error.ExternalAppMissing" = "Nu exista niciun tool extern numit „%@”. Adauga unul cu acest nume in Setari › Unelte externe sau alege altul in setarile conexiunii.";
+"Editor.Field.ExternalApp" = "Aplicatie externa";
+"Editor.ExternalAppNone" = "Niciuna";
+"Editor.ExternalAppHint" = "Ruleaza acel tool extern (Setari › Unelte externe) cu host-ul, userul, portul si parola conexiunii, intr-un tab de terminal. Numele se potriveste ca in mRemoteNG, deci un fisier de pe Windows merge din nou de indata ce exista aici un tool cu acelasi nume.";

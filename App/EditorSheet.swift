@@ -173,6 +173,14 @@ struct EditorSheet: View {
             Spacer()
         }
         field(t("Editor.Field.Host"), attr(node, "Hostname"))
+        if node.protocolType == "IntApp" {
+            // mRemoteNG's ExtApp: the External Tool (Settings › Tools) to run, by name.
+            inheritablePicker(t("Editor.Field.ExternalApp"), node, "ExtApp", "InheritExtApp", fallback: "",
+                              options: [PickerOption("", t("Editor.ExternalAppNone"))]
+                                + model.externalTools.map { PickerOption($0.name, $0.name) })
+            Text(t("Editor.ExternalAppHint")).font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
         if isSSH(node) {
             HStack(spacing: 8) {
                 label(t("Editor.Field.JumpHost"))

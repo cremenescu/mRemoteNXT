@@ -929,7 +929,10 @@ struct SessionView: View {
             HTTPContainer(session: session)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .externalApp:
-            unsupported(t("Error.ExternalAppPending"))
+            // Only reached when the tool cannot be run: none named, or none by that name.
+            unsupported(session.node.externalApp.isEmpty
+                        ? t("Error.ExternalAppNone")
+                        : String(format: t("Error.ExternalAppMissing"), session.node.externalApp))
         case .unsupported:
             unsupported(String(format: t("Error.NotImplemented"), session.node.protocolType))
         }

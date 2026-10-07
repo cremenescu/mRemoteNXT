@@ -417,3 +417,8 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 "Info.ConnectedFor" = "Bağlantı süresi";
 "Preview.Nothing" = "Henüz gösterilecek bir şey yok";
 "Error.FileLocked" = "Bu dosya bütünüyle şifrelenmiş. Açmak için ana parolasını girin.";
+"Error.ExternalAppNone" = "Bu harici uygulama bağlantısı bir araç belirtmiyor. Bağlantının ayarlarında bir araç seçin (Bağlantı › Harici uygulama).";
+"Error.ExternalAppMissing" = "“%@” adında bir harici araç yok. Ayarlar › Araçlar'da bu adla bir tane ekleyin ya da bağlantının ayarlarında başka birini seçin.";
+"Editor.Field.ExternalApp" = "Harici uygulama";
+"Editor.ExternalAppNone" = "Yok";
+"Editor.ExternalAppHint" = "O harici aracı (Ayarlar › Araçlar) bağlantının sunucu, kullanıcı, port ve parolasıyla bir terminal sekmesinde çalıştırır. Ad mRemoteNG'deki gibi eşleştirilir; Windows'tan gelen bir dosya, burada aynı adlı bir araç olduğunda çalışır.";

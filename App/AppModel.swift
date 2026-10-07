@@ -999,6 +999,13 @@ final class AppModel: ObservableObject {
 
     func connect(_ node: MRNGNode) {
         guard !node.isContainer else { return }
+        // mRemoteNG's "external application": run the External Tool the connection names,
+        // with the connection's macros. On Windows it may be docked into the tab; here it runs
+        // in a terminal tab, like every external tool.
+        if node.protocolType == "IntApp", let tool = externalTool(named: node.externalApp) {
+            runTool(tool, on: node, title: node.name)
+            return
+        }
         // A tab of this connection that has died is brought back where it is, rather than
         // opening a second one beside it. A live tab is left alone: opening again while one
         // is connected still means another session.
@@ -1216,11 +1223,19 @@ final class AppModel: ObservableObject {
         return s
     }
 
+    /// The External Tool an IntApp connection names (its ExtApp), as mRemoteNG matches it:
+    /// by display name, ignoring case.
+    func externalTool(named name: String) -> ExternalTool? {
+        let wanted = name.trimmingCharacters(in: .whitespaces)
+        guard !wanted.isEmpty else { return nil }
+        return externalTools.first { $0.name.caseInsensitiveCompare(wanted) == .orderedSame }
+    }
+
     /// Run an external tool in a terminal tab (via /bin/sh -lc).
-    func runTool(_ tool: ExternalTool, on node: MRNGNode) {
+    func runTool(_ tool: ExternalTool, on node: MRNGNode, title: String? = nil) {
         let cmd = substituteMacros(tool.commandLine, node: node)
         let session = Session(
-            title: "\(tool.name): \(node.name)",
+            title: title ?? "\(tool.name): \(node.name)",
             kind: .externalTool,
             node: node,
             password: tool.commandLine.contains("%Password%") ? decryptedPassword(for: node) : "",

@@ -417,3 +417,8 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 "Info.ConnectedFor" = "Connected for";
 "Preview.Nothing" = "Nothing to show yet";
 "Error.FileLocked" = "This file is encrypted as a whole. Enter its master password to open it.";
+"Error.ExternalAppNone" = "This external application connection doesn't name a tool. Choose one in the connection's settings (Connection › External application).";
+"Error.ExternalAppMissing" = "There is no external tool named “%@”. Add one with that name in Settings › External tools, or pick another in the connection's settings.";
+"Editor.Field.ExternalApp" = "External application";
+"Editor.ExternalAppNone" = "None";
+"Editor.ExternalAppHint" = "Runs that External Tool (Settings › External tools) with this connection's host, user, port and password, in a terminal tab. The name is matched as in mRemoteNG, so a file from Windows keeps working once a tool with the same name exists here.";
