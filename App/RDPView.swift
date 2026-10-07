@@ -60,6 +60,13 @@ final class RDPNSView: NSView, RDPClientDelegate, SessionPreviewing {
     /// True when the session was told which keyboard layout we use, which is the only
     /// condition under which sending key positions instead of characters is safe.
     private var layoutAnnounced = false
+    /// The Windows layout announced, and whether the Mac layout matches it key for key.
+    /// When it only comes close, typing goes by character rather than by position.
+    private var announcedKLID: UInt32?
+    private var layoutExact = false
+    /// Keys whose press already went out as a complete keystroke (see typeOnWindowsLayout);
+    /// their release has nothing left to send.
+    private var tappedKeys = Set<UInt16>()
     /// For the connection info window.
     private(set) var framesShown = 0
     private(set) var connectedAt: Date?
@@ -348,6 +355,8 @@ final class RDPNSView: NSView, RDPClientDelegate, SessionPreviewing {
             if let klid = layout.klid {
                 c.setKeyboardLayout(klid)
                 layoutAnnounced = true
+                announcedKLID = klid
+                layoutExact = layout.match == .exact
                 layoutSummary = layout.name + " → " + String(format: "0x%08X", klid)
             }
             keyboardNotice = Self.notice(for: layout)
@@ -706,12 +715,20 @@ final class RDPNSView: NSView, RDPClientDelegate, SessionPreviewing {
         // that carry no virtual key code, which is exactly what a character-only event is;
         // cmd.exe reads in line mode and takes the character, which is why the two disagree.
         //
-        // Option is left out on purpose. macOS composes with Option where Windows composes
-        // with AltGr, and sending Alt plus a position would arrive as a menu accelerator —
-        // the characters that Option produces keep the path that was fixed for them in 0.8.9.
+        // Option is left out of the position path on purpose. macOS composes with Option where
+        // Windows composes with AltGr, and Alt plus a position would arrive as a menu
+        // accelerator; what Option composes goes by character instead, just below.
         let optionComposes = e.modifierFlags.contains(.option)
             && e.characters != e.charactersIgnoringModifiers
-        if layoutAnnounced, !optionComposes, let code = Self.scancode(for: e.keyCode) {
+        if !down, tappedKeys.remove(e.keyCode) != nil { return }
+        // A character the Mac composed with Option, or any character when the layouts only
+        // come close: send the keystroke that types it on the Windows layout — AltGr and Shift
+        // included — so console programs get a real key rather than a bare character.
+        if down, optionComposes || !layoutExact, typeOnWindowsLayout(e) {
+            tappedKeys.insert(e.keyCode)
+            return
+        }
+        if layoutAnnounced, layoutExact, !optionComposes, let code = Self.scancode(for: e.keyCode) {
             client?.keyScancode(code, extended: false, down: down)
             return
         }
@@ -736,6 +753,31 @@ final class RDPNSView: NSView, RDPClientDelegate, SessionPreviewing {
             sentAlt = false
         }
         client?.keyChar(UInt16(scalar.value & 0xFFFF), down: down)
+    }
+
+    /// Types the event's character as the key that produces it on the announced Windows
+    /// layout. false = no layout, no single character, or the layout has no key for it; the
+    /// caller then falls back to sending the character itself.
+    private func typeOnWindowsLayout(_ e: NSEvent) -> Bool {
+        guard let klid = announcedKLID, let client,
+              let chars = e.characters, chars.count == 1, let ch = chars.first,
+              let key = WindowsLayouts.key(for: ch, klid: klid) else { return false }
+        let shift = RDPSpecialKey.keyShift.rawValue
+        let alt = RDPSpecialKey.keyAlt.rawValue
+        // Option may be holding Alt down on the server; AltGr is the right Alt, and a left
+        // Alt held with it would turn the keystroke into a menu accelerator.
+        if sentAlt {
+            client.keySpecial(alt, down: false)
+            sentAlt = false
+        }
+        let flipShift = key.shift != sentShift
+        if flipShift { client.keySpecial(shift, down: key.shift) }
+        if key.altGr { client.keyScancode(0x38, extended: true, down: true) }
+        client.keyScancode(key.scancode, extended: false, down: true)
+        client.keyScancode(key.scancode, extended: false, down: false)
+        if key.altGr { client.keyScancode(0x38, extended: true, down: false) }
+        if flipShift { client.keySpecial(shift, down: sentShift) }
+        return true
     }
 
     /// macOS virtual keycode -> PC set-1 scancode for the main typing block, by physical
