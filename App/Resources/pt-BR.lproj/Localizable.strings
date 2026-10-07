@@ -422,3 +422,5 @@ Confiar nele memoriza este certificado exato para este host. Você será pergunt
 "Editor.Field.ExternalApp" = "Aplicativo externo";
 "Editor.ExternalAppNone" = "Nenhum";
 "Editor.ExternalAppHint" = "Executa essa ferramenta externa (Ajustes › Ferramentas externas) com o host, o usuário, a porta e a senha da conexão, numa aba de terminal. O nome é comparado como no mRemoteNG, então um arquivo do Windows volta a funcionar assim que existir aqui uma ferramenta com o mesmo nome.";
+"Settings.TabHoverPreview" = "Pré-visualização ao vivo quando o ponteiro para sobre uma aba";
+"Settings.TabHoverPreviewNote" = "Mostra uma pequena imagem ao vivo de uma aba que não está na tela, depois que o ponteiro para sobre ela por um instante. Nunca toma o teclado nem um clique.";

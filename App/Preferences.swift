@@ -67,6 +67,10 @@ final class Preferences: ObservableObject {
     @Published var rdpOptionSendsAlt: Bool = true {
         didSet { UserDefaults.standard.set(rdpOptionSendsAlt, forKey: "rdpOptionSendsAlt") }
     }
+    /// A live picture of a tab when the pointer rests on it. Off by default.
+    @Published var tabHoverPreview: Bool = false {
+        didSet { UserDefaults.standard.set(tabHoverPreview, forKey: "tabHoverPreview") }
+    }
     /// RDP desktops at Retina pixel density (the default) or at the size in points.
     @Published var rdpOptimizeForRetina: Bool = true {
         didSet { UserDefaults.standard.set(rdpOptimizeForRetina, forKey: "rdpOptimizeForRetina") }
@@ -158,6 +162,7 @@ final class Preferences: ObservableObject {
         if let v = d.object(forKey: "rdpOptionSendsAlt") as? Bool { rdpOptionSendsAlt = v }
         if let v = d.object(forKey: "commandWClosesTab") as? Bool { commandWClosesTab = v }
         if let v = d.object(forKey: "rdpOptimizeForRetina") as? Bool { rdpOptimizeForRetina = v }
+        if let v = d.object(forKey: "tabHoverPreview") as? Bool { tabHoverPreview = v }
         if let v = d.string(forKey: "rdpInterpolation") { rdpInterpolation = v }
         if let v = d.string(forKey: "fullScreenMenuBar"), let m = FullScreenMenuBarMode(rawValue: v) { fullScreenMenuBar = m }
         if let v = d.string(forKey: "rdpCommandAsCtrl"), let c = CommandAsCtrl(rawValue: v) { rdpCommandAsCtrl = c }

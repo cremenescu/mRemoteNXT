@@ -92,6 +92,9 @@ final class AppModel: ObservableObject {
     }
     @Published var selectedSessionID: UUID? {
         didSet {
+            // Whatever changed the tab — a click, a shortcut, a closed tab — the preview of
+            // another one has no business staying up.
+            if tabPreview != nil { hideTabPreview() }
             // Each panel remembers the tab it was left on, so coming back to it lands
             // there and not on whichever tab happens to be first.
             if let id = selectedSessionID, let s = sessions.first(where: { $0.id == id }) {
@@ -229,6 +232,37 @@ final class AppModel: ObservableObject {
     }
     var closeTabOnDisconnect: Bool {
         get { prefs.closeTabOnDisconnect } set { prefs.closeTabOnDisconnect = newValue }
+    }
+    var tabHoverPreview: Bool { prefs.tabHoverPreview }
+
+    /// The tab whose live preview is showing, and where the tab sits in the window.
+    struct TabPreview: Equatable {
+        let id: UUID
+        let anchor: CGRect
+    }
+    @Published private(set) var tabPreview: TabPreview?
+    private var tabPreviewWork: DispatchWorkItem?
+
+    /// The pointer entered or left a tab. The preview follows after a short rest, only for a
+    /// tab that is not the one on screen, and never mid-drag.
+    func hoverTab(_ id: UUID, inside: Bool, anchor: CGRect) {
+        tabPreviewWork?.cancel()
+        guard inside else {
+            if tabPreview?.id == id { tabPreview = nil }
+            return
+        }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.tabHoverPreview, id != self.selectedSessionID,
+                  self.draggingSessionID == nil else { return }
+            self.tabPreview = TabPreview(id: id, anchor: anchor)
+        }
+        tabPreviewWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
+    }
+
+    func hideTabPreview() {
+        tabPreviewWork?.cancel()
+        if tabPreview != nil { tabPreview = nil }
     }
     var restoreSessions: Bool {
         get { prefs.restoreSessions } set { prefs.restoreSessions = newValue }

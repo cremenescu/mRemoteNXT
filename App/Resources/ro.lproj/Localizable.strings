@@ -424,3 +424,5 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 "Editor.Field.ExternalApp" = "Aplicatie externa";
 "Editor.ExternalAppNone" = "Niciuna";
 "Editor.ExternalAppHint" = "Ruleaza acel tool extern (Setari › Unelte externe) cu host-ul, userul, portul si parola conexiunii, intr-un tab de terminal. Numele se potriveste ca in mRemoteNG, deci un fisier de pe Windows merge din nou de indata ce exista aici un tool cu acelasi nume.";
+"Settings.TabHoverPreview" = "Preview live cand cursorul sta pe un tab";
+"Settings.TabHoverPreviewNote" = "Arata o imagine mica, live, a unui tab care nu e pe ecran, dupa ce cursorul sta putin pe el. Nu ia niciodata tastatura sau click-ul.";

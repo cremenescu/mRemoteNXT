@@ -335,6 +335,12 @@ struct AppearanceSettings: View {
                     Slider(value: $prefs.rowHeight, in: 16...44, step: 1)
                 }
                 Toggle(t("Settings.ShowProtocol"), isOn: $prefs.showProtocol)
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle(t("Settings.TabHoverPreview"), isOn: $prefs.tabHoverPreview)
+                    Text(t("Settings.TabHoverPreviewNote"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Toggle(t("Settings.CloseTabOnDisconnect"), isOn: $prefs.closeTabOnDisconnect)
                 Toggle(t("Settings.RestoreSessions"), isOn: $prefs.restoreSessions)
                 VStack(alignment: .leading, spacing: 4) {

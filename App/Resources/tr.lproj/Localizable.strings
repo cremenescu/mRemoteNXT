@@ -422,3 +422,5 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 "Editor.Field.ExternalApp" = "Harici uygulama";
 "Editor.ExternalAppNone" = "Yok";
 "Editor.ExternalAppHint" = "O harici aracı (Ayarlar › Harici araçlar) bağlantının sunucu, kullanıcı, port ve parolasıyla bir terminal sekmesinde çalıştırır. Ad mRemoteNG'deki gibi eşleştirilir; Windows'tan gelen bir dosya, burada aynı adlı bir araç olduğunda çalışır.";
+"Settings.TabHoverPreview" = "İşaretçi bir sekmede durduğunda canlı önizleme";
+"Settings.TabHoverPreviewNote" = "İşaretçi kısa bir süre üzerinde durduğunda ekranda olmayan bir sekmenin küçük canlı görüntüsünü gösterir. Klavyeyi veya tıklamayı asla almaz.";

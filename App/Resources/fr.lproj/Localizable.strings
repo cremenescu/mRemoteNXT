@@ -422,3 +422,5 @@ Lui faire confiance mémorise exactement ce certificat pour cet hôte. La questi
 "Editor.Field.ExternalApp" = "Application externe";
 "Editor.ExternalAppNone" = "Aucune";
 "Editor.ExternalAppHint" = "Lance cet outil externe (Réglages › Outils externes) avec l'hôte, l'utilisateur, le port et le mot de passe de la connexion, dans un onglet de terminal. Le nom est comparé comme dans mRemoteNG : un fichier venu de Windows fonctionne dès qu'un outil du même nom existe ici.";
+"Settings.TabHoverPreview" = "Aperçu en direct quand le pointeur reste sur un onglet";
+"Settings.TabHoverPreviewNote" = "Affiche une petite image en direct d'un onglet qui n'est pas à l'écran, après un court arrêt du pointeur dessus. Ne prend jamais le clavier ni un clic.";

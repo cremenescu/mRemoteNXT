@@ -140,7 +140,8 @@ struct SessionPreviewView: View {
     let sessionID: UUID
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.5)) { _ in
+        // Once a second: a terminal's picture is the whole terminal redrawn off screen.
+        TimelineView(.periodic(from: .now, by: 1)) { _ in
             if let image = SessionViews.shared.view(for: sessionID)?.previewImage() {
                 Image(decorative: image, scale: 1)
                     .resizable()

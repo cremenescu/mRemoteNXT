@@ -422,3 +422,5 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 "Editor.Field.ExternalApp" = "Aplikacja zewnętrzna";
 "Editor.ExternalAppNone" = "Brak";
 "Editor.ExternalAppHint" = "Uruchamia to narzędzie zewnętrzne (Ustawienia › Narzędzia zewnętrzne) z hostem, użytkownikiem, portem i hasłem połączenia, w karcie terminala. Nazwa jest dopasowywana jak w mRemoteNG, więc plik z Windows zadziała, gdy tylko istnieje tu narzędzie o tej samej nazwie.";
+"Settings.TabHoverPreview" = "Podgląd na żywo, gdy wskaźnik zatrzyma się na karcie";
+"Settings.TabHoverPreviewNote" = "Pokazuje mały podgląd na żywo karty, która nie jest na ekranie, gdy wskaźnik chwilę na niej postoi. Nigdy nie przejmuje klawiatury ani kliknięcia.";

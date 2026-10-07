@@ -254,6 +254,20 @@ struct ContentView: View {
         } detail: {
             detail
         }
+        // The tab preview is drawn into this window rather than in a popover. A popover is a
+        // window of its own that becomes key: the next click on a tab only brought this
+        // window back, and the session lost the keyboard while it was open.
+        .coordinateSpace(name: TabHoverPreview.space)
+        .overlay(alignment: .topLeading) {
+            if let preview = model.tabPreview {
+                SessionPreviewView(sessionID: preview.id)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+                    .shadow(radius: 8, y: 2)
+                    .offset(x: max(8, preview.anchor.minX), y: preview.anchor.maxY + 6)
+                    .allowsHitTesting(false)
+            }
+        }
         // Customizable: every item carries a stable id, so macOS offers View > Customize
         // Toolbar and remembers what was put where, per window. The default layout is the
         // one that was hardcoded before, so nothing moves until it is moved on purpose.
@@ -794,9 +808,6 @@ struct SessionTabView: View {
     @State private var dragX: CGFloat = 0
 
     private var isDragging: Bool { model.draggingSessionID == session.id }
-    /// A live picture of a tab that is not the one on screen, after the pointer rests on it.
-    @State private var previewShown = false
-    @State private var hoverWork: DispatchWorkItem?
     private var showsMarker: Bool { model.tabDropTargetID == session.id && !isDragging }
 
     var body: some View {
@@ -837,21 +848,9 @@ struct SessionTabView: View {
         .offset(x: isDragging ? dragX : 0)
         .opacity(isDragging ? 0.75 : 1)
         .zIndex(isDragging ? 1 : 0)
-        .onHover { inside in
-            hoverWork?.cancel()
-            guard inside else { previewShown = false; return }
-            let work = DispatchWorkItem {
-                guard session.id != model.selectedSessionID, model.draggingSessionID == nil else { return }
-                previewShown = true
-            }
-            hoverWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
-        }
-        .popover(isPresented: $previewShown, arrowEdge: .bottom) {
-            SessionPreviewView(sessionID: session.id)
-        }
+        .modifier(TabHoverPreview(sessionID: session.id, enabled: model.tabHoverPreview))
         .onTapGesture {
-            previewShown = false
+            model.hideTabPreview()
             model.selectedSessionID = session.id
         }
         .gesture(
@@ -945,5 +944,32 @@ struct SessionView: View {
             Text(msg).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// Rests on a tab for a moment and asks the model to show that tab's live preview. Only
+/// attached when the preview is on in Settings, so with it off the tabs carry no hover
+/// tracking at all.
+struct TabHoverPreview: ViewModifier {
+    static let space = "mrngWindow"
+    @EnvironmentObject var model: AppModel
+    let sessionID: UUID
+    let enabled: Bool
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.background(
+                GeometryReader { geo in
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onHover { inside in
+                            model.hoverTab(sessionID, inside: inside,
+                                           anchor: geo.frame(in: .named(Self.space)))
+                        }
+                }
+            )
+        } else {
+            content
+        }
     }
 }
