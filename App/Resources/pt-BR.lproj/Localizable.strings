@@ -418,7 +418,7 @@ Confiar nele memoriza este certificado exato para este host. Você será pergunt
 "Preview.Nothing" = "Nada para mostrar ainda";
 "Error.FileLocked" = "Este arquivo está criptografado por inteiro. Digite a senha mestra para abri-lo.";
 "Error.ExternalAppNone" = "Esta conexão de aplicativo externo não indica nenhuma ferramenta. Escolha uma nas configurações da conexão (Conexão › Aplicativo externo).";
-"Error.ExternalAppMissing" = "Não há ferramenta externa chamada “%@”. Adicione uma com esse nome em Ajustes › Ferramentas, ou escolha outra nas configurações da conexão.";
+"Error.ExternalAppMissing" = "Não há ferramenta externa chamada “%@”. Adicione uma com esse nome em Ajustes › Ferramentas externas, ou escolha outra nas configurações da conexão.";
 "Editor.Field.ExternalApp" = "Aplicativo externo";
 "Editor.ExternalAppNone" = "Nenhum";
-"Editor.ExternalAppHint" = "Executa essa ferramenta externa (Ajustes › Ferramentas) com o host, o usuário, a porta e a senha da conexão, numa aba de terminal. O nome é comparado como no mRemoteNG, então um arquivo do Windows volta a funcionar assim que existir aqui uma ferramenta com o mesmo nome.";
+"Editor.ExternalAppHint" = "Executa essa ferramenta externa (Ajustes › Ferramentas externas) com o host, o usuário, a porta e a senha da conexão, numa aba de terminal. O nome é comparado como no mRemoteNG, então um arquivo do Windows volta a funcionar assim que existir aqui uma ferramenta com o mesmo nome.";

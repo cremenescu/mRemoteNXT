@@ -109,7 +109,8 @@ mRemoteNXT**. The first copy that finds it off says so:
 - RDP: sound redirect; drive redirection is one shared folder rather than
   whole drives.
 - VNC (planned).
-- External applications (`IntApp` nodes) — launching not implemented.
+- External applications (`IntApp` nodes) run their External Tool in a terminal tab; a
+  graphical program opens in its own window rather than docked into the tab.
 - Quick Connect (URL `ssh://user@host:port`) from CLI.
 
 ## System requirements

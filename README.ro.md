@@ -93,7 +93,8 @@ mRemoteNXT**. Prima copiere care il gaseste oprit iti spune asta:
 - RDP: redirect sunet; redirectarea de drive-uri e un singur folder partajat,
   nu drive-uri intregi.
 - VNC (planificat).
-- Aplicatii externe (`IntApp` nodes) — lansare neimplementata.
+- Aplicatiile externe (noduri `IntApp`) ruleaza tool-ul extern intr-un tab de terminal; un
+  program grafic se deschide in fereastra lui, nu andocat in tab.
 - Quick Connect (URL `ssh://user@host:port`) din CLI.
 
 ## Cerinte sistem

@@ -418,7 +418,7 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 "Preview.Nothing" = "Na razie nic do pokazania";
 "Error.FileLocked" = "Ten plik jest zaszyfrowany w całości. Podaj jego hasło główne, aby go otworzyć.";
 "Error.ExternalAppNone" = "To połączenie aplikacji zewnętrznej nie wskazuje narzędzia. Wybierz je w ustawieniach połączenia (Połączenie › Aplikacja zewnętrzna).";
-"Error.ExternalAppMissing" = "Nie ma narzędzia zewnętrznego o nazwie „%@”. Dodaj je pod tą nazwą w Ustawieniach › Narzędzia albo wybierz inne w ustawieniach połączenia.";
+"Error.ExternalAppMissing" = "Nie ma narzędzia zewnętrznego o nazwie „%@”. Dodaj je pod tą nazwą w Ustawieniach › Narzędzia zewnętrzne albo wybierz inne w ustawieniach połączenia.";
 "Editor.Field.ExternalApp" = "Aplikacja zewnętrzna";
 "Editor.ExternalAppNone" = "Brak";
-"Editor.ExternalAppHint" = "Uruchamia to narzędzie zewnętrzne (Ustawienia › Narzędzia) z hostem, użytkownikiem, portem i hasłem połączenia, w karcie terminala. Nazwa jest dopasowywana jak w mRemoteNG, więc plik z Windows zadziała, gdy tylko istnieje tu narzędzie o tej samej nazwie.";
+"Editor.ExternalAppHint" = "Uruchamia to narzędzie zewnętrzne (Ustawienia › Narzędzia zewnętrzne) z hostem, użytkownikiem, portem i hasłem połączenia, w karcie terminala. Nazwa jest dopasowywana jak w mRemoteNG, więc plik z Windows zadziała, gdy tylko istnieje tu narzędzie o tej samej nazwie.";
