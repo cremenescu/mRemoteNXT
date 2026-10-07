@@ -355,3 +355,7 @@ Lui faire confiance mémorise exactement ce certificat pour cet hôte. La questi
 "Settings.FullScreenMenuBar.Delayed" = "Après 3 secondes en haut de l'écran";
 "Settings.FullScreenMenuBar.Immersive" = "Jamais (⌃⌘F quitte le plein écran)";
 "Settings.FullScreenMenuBarNote" = "En plein écran, la barre latérale, la barre d'outils et les barres d'onglets laissent la place à la session ; ⇧⌘] et ⇧⌘[ passent d'un onglet à l'autre, ⌥⌘T réaffiche les barres d'onglets. Retenir la barre des menus permet d'atteindre le haut du bureau distant sans qu'elle descende.";
+"RemoteFiles.Disabled.Title" = "Autoriser mRemoteNXT à coller des fichiers dans le Finder";
+"RemoteFiles.Disabled.Body" = "Les fichiers copiés dans une session Windows arrivent dans le Finder par un fournisseur de fichiers, que macOS garde désactivé tant que vous ne l'autorisez pas : Réglages Système › Général › Ouverture et extensions › Fournisseurs de fichiers › mRemoteNXT. Une fois activé, copiez de nouveau les fichiers sous Windows et collez-les dans le Finder.";
+"RemoteFiles.Disabled.Open" = "Ouvrir les Réglages Système";
+"RemoteFiles.Disabled.Later" = "Plus tard";

@@ -355,3 +355,7 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 "Settings.FullScreenMenuBar.Delayed" = "After 3 seconds at the top edge";
 "Settings.FullScreenMenuBar.Immersive" = "Never (⌃⌘F leaves full screen)";
 "Settings.FullScreenMenuBarNote" = "In full screen the sidebar, the toolbar and the tab bars make way for the session; ⇧⌘] and ⇧⌘[ move between tabs, ⌥⌘T brings the tab bars back. Holding the menu bar back lets the top of the remote desktop be reached without it sliding down.";
+"RemoteFiles.Disabled.Title" = "Allow mRemoteNXT to paste files into the Finder";
+"RemoteFiles.Disabled.Body" = "Files copied in a Windows session reach the Finder through a file provider, which macOS keeps switched off until you allow it: System Settings › General › Login Items & Extensions › File Providers › mRemoteNXT. Once it is on, copy the files again in Windows and paste them in the Finder.";
+"RemoteFiles.Disabled.Open" = "Open System Settings";
+"RemoteFiles.Disabled.Later" = "Later";

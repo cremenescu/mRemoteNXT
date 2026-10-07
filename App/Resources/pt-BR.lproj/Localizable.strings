@@ -355,3 +355,7 @@ Confiar nele memoriza este certificado exato para este host. Você será pergunt
 "Settings.FullScreenMenuBar.Delayed" = "Após 3 segundos na borda superior";
 "Settings.FullScreenMenuBar.Immersive" = "Nunca (⌃⌘F sai da tela cheia)";
 "Settings.FullScreenMenuBarNote" = "Em tela cheia, a barra lateral, a barra de ferramentas e as barras de abas dão lugar à sessão; ⇧⌘] e ⇧⌘[ passam de uma aba para outra, ⌥⌘T traz as barras de abas de volta. Segurar a barra de menus permite alcançar o topo da área de trabalho remota sem que ela desça.";
+"RemoteFiles.Disabled.Title" = "Permita que o mRemoteNXT cole arquivos no Finder";
+"RemoteFiles.Disabled.Body" = "Os arquivos copiados numa sessão Windows chegam ao Finder por um provedor de arquivos, que o macOS mantém desligado até você permitir: Ajustes do Sistema › Geral › Itens de Início e Extensões › Provedores de Arquivos › mRemoteNXT. Depois de ligá-lo, copie os arquivos de novo no Windows e cole-os no Finder.";
+"RemoteFiles.Disabled.Open" = "Abrir Ajustes do Sistema";
+"RemoteFiles.Disabled.Later" = "Depois";

@@ -355,3 +355,7 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 "Settings.FullScreenMenuBar.Delayed" = "Üst kenarda 3 saniye sonra";
 "Settings.FullScreenMenuBar.Immersive" = "Asla (⌃⌘F tam ekrandan çıkar)";
 "Settings.FullScreenMenuBarNote" = "Tam ekranda kenar çubuğu, araç çubuğu ve sekme çubukları oturuma yer açar; ⇧⌘] ve ⇧⌘[ sekmeler arasında geçer, ⌥⌘T sekme çubuklarını geri getirir. Menü çubuğunu geri tutmak, uzak masaüstünün üst kenarına onun inmesine yol açmadan ulaşmayı sağlar.";
+"RemoteFiles.Disabled.Title" = "mRemoteNXT'nin Finder'a dosya yapıştırmasına izin verin";
+"RemoteFiles.Disabled.Body" = "Bir Windows oturumunda kopyalanan dosyalar Finder'a bir dosya sağlayıcı aracılığıyla ulaşır; macOS siz izin verene kadar onu kapalı tutar: Sistem Ayarları › Genel › Giriş Öğeleri ve Uzantılar › Dosya Sağlayıcılar › mRemoteNXT. Açıldıktan sonra dosyaları Windows'ta yeniden kopyalayıp Finder'a yapıştırın.";
+"RemoteFiles.Disabled.Open" = "Sistem Ayarları'nı aç";
+"RemoteFiles.Disabled.Later" = "Daha sonra";

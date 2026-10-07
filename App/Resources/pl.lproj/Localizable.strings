@@ -355,3 +355,7 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 "Settings.FullScreenMenuBar.Delayed" = "Po 3 sekundach przy górnej krawędzi";
 "Settings.FullScreenMenuBar.Immersive" = "Nigdy (⌃⌘F wychodzi z pełnego ekranu)";
 "Settings.FullScreenMenuBarNote" = "Na pełnym ekranie pasek boczny, pasek narzędzi i paski kart ustępują miejsca sesji; ⇧⌘] i ⇧⌘[ przełączają karty, ⌥⌘T przywraca paski kart. Wstrzymanie paska menu pozwala sięgnąć górnej krawędzi zdalnego pulpitu, bez jego zsuwania się.";
+"RemoteFiles.Disabled.Title" = "Pozwól mRemoteNXT wklejać pliki w Finderze";
+"RemoteFiles.Disabled.Body" = "Pliki skopiowane w sesji Windows trafiają do Findera przez dostawcę plików, którego macOS trzyma wyłączonego, dopóki na to nie pozwolisz: Ustawienia systemowe › Ogólne › Rzeczy otwierane podczas logowania i rozszerzenia › Dostawcy plików › mRemoteNXT. Po włączeniu skopiuj pliki ponownie w Windows i wklej je w Finderze.";
+"RemoteFiles.Disabled.Open" = "Otwórz Ustawienia systemowe";
+"RemoteFiles.Disabled.Later" = "Później";

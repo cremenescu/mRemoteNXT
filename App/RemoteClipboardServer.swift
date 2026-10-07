@@ -115,7 +115,49 @@ final class RemoteClipboardServer {
     // MARK: Offering a copy
 
     /// Explorer copied files. Called on the main thread.
+    ///
+    /// macOS starts a new file provider switched off, and only the user can switch it on.
+    /// Until then the placeholders never appear and Paste stays unavailable with no word as
+    /// to why — so the provider's state is checked first, and a copy that finds it off says
+    /// where the switch is instead of emptying the pasteboard for nothing.
     func offer(_ files: [RDPRemoteFile], from client: RDPClient) {
+        let id = domain.identifier
+        NSFileProviderManager.getDomainsWithCompletionHandler { [weak self, weak client] domains, _ in
+            let enabled = domains.first { $0.identifier == id }?.userEnabled ?? false
+            DispatchQueue.main.async {
+                guard let self, let client else { return }
+                if enabled {
+                    self.publishOffer(files, from: client)
+                } else {
+                    RemoteClipboard.log("offer: provider is switched off, \(files.count) files not offered")
+                    // Nothing will be read: let the remote drop its lock right away.
+                    if let lock = files.first?.clipDataId, lock != 0 { client.unlockRemoteClipboard(lock) }
+                    self.explainDisabled()
+                }
+            }
+        }
+    }
+
+    /// Once per launch: a copy made every few minutes should not bring the same sheet back
+    /// each time.
+    private var explainedDisabled = false
+
+    private func explainDisabled() {
+        guard !explainedDisabled else { return }
+        explainedDisabled = true
+        let alert = NSAlert()
+        alert.messageText = t("RemoteFiles.Disabled.Title")
+        alert.informativeText = t("RemoteFiles.Disabled.Body")
+        alert.addButton(withTitle: t("RemoteFiles.Disabled.Open"))
+        alert.addButton(withTitle: t("RemoteFiles.Disabled.Later"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        // Login Items & Extensions; File Providers is a row in its Extensions part.
+        if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func publishOffer(_ files: [RDPRemoteFile], from client: RDPClient) {
         var entries: [RemoteClipboard.Entry] = []
         for f in files {
             guard let parts = Self.safeComponents(f.remotePath) else {

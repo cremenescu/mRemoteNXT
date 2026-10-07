@@ -357,3 +357,7 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 "Settings.FullScreenMenuBar.Delayed" = "Dupa 3 secunde la marginea de sus";
 "Settings.FullScreenMenuBar.Immersive" = "Niciodata (⌃⌘F iese din full screen)";
 "Settings.FullScreenMenuBarNote" = "In full screen, sidebar-ul, toolbar-ul si barele de taburi fac loc sesiunii; ⇧⌘] si ⇧⌘[ trec de la un tab la altul, ⌥⌘T aduce barele de taburi inapoi. Cu bara de meniu tinuta deoparte, partea de sus a desktopului remote se poate folosi fara ca ea sa coboare peste.";
+"RemoteFiles.Disabled.Title" = "Permite-i lui mRemoteNXT sa lipeasca fisiere in Finder";
+"RemoteFiles.Disabled.Body" = "Fisierele copiate intr-o sesiune Windows ajung in Finder printr-un file provider, pe care macOS il tine oprit pana il permiti: System Settings › General › Login Items & Extensions › File Providers › mRemoteNXT. Dupa ce e pornit, copiaza din nou fisierele in Windows si lipeste-le in Finder.";
+"RemoteFiles.Disabled.Open" = "Deschide System Settings";
+"RemoteFiles.Disabled.Later" = "Mai tarziu";
