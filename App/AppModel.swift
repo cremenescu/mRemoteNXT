@@ -953,8 +953,24 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Tabs whose connection has stopped — closed by the server, failed to connect, or the
+    /// ssh process gone. Kept so opening the connection again revives its tab in place.
+    private var endedSessions = Set<UUID>()
+
+    func sessionEnded(_ id: UUID) {
+        endedSessions.insert(id)
+    }
+
     func connect(_ node: MRNGNode) {
         guard !node.isContainer else { return }
+        // A tab of this connection that has died is brought back where it is, rather than
+        // opening a second one beside it. A live tab is left alone: opening again while one
+        // is connected still means another session.
+        let wanted = kind(for: node)
+        if let dead = sessions.first(where: { $0.node === node && $0.kind == wanted && endedSessions.contains($0.id) }) {
+            reconnect(dead)
+            return
+        }
         let session = Session(
             title: node.name,
             kind: kind(for: node),
@@ -1021,6 +1037,7 @@ final class AppModel: ObservableObject {
     }
 
     func closeSession(_ id: UUID) {
+        endedSessions.remove(id)
         sessions.removeAll { $0.id == id }
         if selectedSessionID == id {
             // Prefer a session in the current panel; otherwise the last session.
@@ -1048,6 +1065,7 @@ final class AppModel: ObservableObject {
                                                                : decryptedGatewayPassword(for: session.node),
                             temporary: session.temporary,
                             hops: hops(for: session.node))
+        endedSessions.remove(session.id)
         sessions[idx] = fresh
         selectedSessionID = fresh.id
         selectedPanel = fresh.panel

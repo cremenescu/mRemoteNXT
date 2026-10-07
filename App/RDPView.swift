@@ -49,6 +49,8 @@ final class RDPNSView: NSView, RDPClientDelegate {
     private var cadObserver: NSObjectProtocol?
     /// Called on disconnect AFTER a successful connection (not on connect failure).
     var onDisconnect: (() -> Void)?
+    /// Called whenever the session stops, failed connections included: the tab is dead.
+    var onEnded: (() -> Void)?
     /// Asks the app layer to reconnect this tab (used after learning that the server
     /// needs the legacy graphics path).
     var onNeedsReconnect: (() -> Void)?
@@ -474,6 +476,7 @@ final class RDPNSView: NSView, RDPClientDelegate {
 
     func rdpClient(_ client: RDPClient, didDisconnectWithError error: String?) {
         showStatus(error ?? "Disconnected.")
+        onEnded?()
         if didConnectOnce { onDisconnect?() }
     }
 
@@ -729,11 +732,13 @@ struct RDPContainer: NSViewRepresentable {
     let session: Session
     let isActive: Bool
     var onDisconnect: () -> Void = {}
+    var onEnded: () -> Void = {}
     var onNeedsReconnect: () -> Void = {}
 
     func makeNSView(context: Context) -> SessionHostView<RDPNSView> {
         let view = RDPNSView(session: session)
         view.onDisconnect = onDisconnect
+        view.onEnded = onEnded
         view.onNeedsReconnect = onNeedsReconnect
         view.isActiveTab = isActive
         let host = SessionHostView(content: view, hiddenSizing: .whenSettled)

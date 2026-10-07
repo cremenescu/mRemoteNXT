@@ -511,6 +511,8 @@ struct TerminalContainer: NSViewRepresentable {
     /// Called when the underlying terminal reports a new title via OSC 0/1/2.
     /// AppModel uses it to rename the SwiftUI tab live (e.g. `user@host:cwd`).
     var onTitleChange: (String) -> Void = { _ in }
+    /// The ssh/telnet/sftp process ended: the tab is dead until reconnected.
+    var onEnded: () -> Void = {}
 
     func makeCoordinator() -> TerminalCoordinator { TerminalCoordinator() }
 
@@ -519,6 +521,7 @@ struct TerminalContainer: NSViewRepresentable {
         term.font = NSFont.monospacedSystemFont(ofSize: CGFloat(fontSize), weight: .regular)
         TerminalThemes.apply(theme, to: term)
         context.coordinator.onTitleChange = onTitleChange
+        context.coordinator.onProcessExit = { _ in onEnded() }
         term.processDelegate = context.coordinator
         // changeScrollback() is the supported way to resize the buffer: it updates
         // Buffer.scrollback and lines.maxLength in place and keeps existing content.

@@ -892,12 +892,15 @@ struct SessionView: View {
                 scrollbackLines: model.scrollbackLines,
                 onTitleChange: { newTitle in
                     model.updateTitleFromTerminal(session.id, newTitle)
-                }
+                },
+                onEnded: { model.sessionEnded(session.id) }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .rdp:
             RDPContainer(session: session, isActive: isActive, onDisconnect: {
                 if model.closeTabOnDisconnect { model.closeSession(session.id) }
+            }, onEnded: {
+                model.sessionEnded(session.id)
             }, onNeedsReconnect: {
                 model.reconnect(session)
             })
