@@ -593,6 +593,8 @@ static NSError *mrng_fileError(NSInteger code) {
     if (formatId == MRNG_CF_UNICODETEXT) {
         NSString *str = [[NSString alloc] initWithData:data encoding:NSUTF16LittleEndianStringEncoding];
         str = [str stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"\0"]];
+        // Windows text ends its lines with CR LF; the Mac's with LF.
+        str = [str stringByReplacingOccurrencesOfString:@"\r\n" withString:@"\n"];
         if (str) {
             [pb clearContents];
             [pb setString:str forType:NSPasteboardTypeString];
@@ -615,6 +617,13 @@ static NSError *mrng_fileError(NSInteger code) {
     if (formatId == MRNG_CF_UNICODETEXT) {
         NSString *str = [pb stringForType:NSPasteboardTypeString];
         if (str) {
+            // CF_UNICODETEXT ends lines with CR LF. A Mac text has bare LFs, and a console
+            // reads a pasted LF as nothing at all: in cmd.exe a multi-line paste ran its lines
+            // together into one command. Anything that already has CR LF, or old-style CR,
+            // comes out the same.
+            str = [[str stringByReplacingOccurrencesOfString:@"\r\n" withString:@"\n"]
+                       stringByReplacingOccurrencesOfString:@"\r" withString:@"\n"];
+            str = [str stringByReplacingOccurrencesOfString:@"\n" withString:@"\r\n"];
             NSMutableData *d = [[str dataUsingEncoding:NSUTF16LittleEndianStringEncoding] mutableCopy];
             uint16_t nul = 0; [d appendBytes:&nul length:2]; // CF_UNICODETEXT is NUL-terminated
             out = d;
