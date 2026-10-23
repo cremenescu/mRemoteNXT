@@ -141,8 +141,17 @@ public enum ConfConsSerializer {
         "InheritUseRestrictedAdmin", "InheritUseRedirectionServerName",
     ]
 
+    /// Schema 2.9 (mRemoteNG development builds from October 2026): XmlConnectionNodeSerializer29
+    /// writes everything 2.8 does, then its own attributes after the 2.8 ones and its own
+    /// inheritance flags after the 2.8 flags. Color is the one the upstream fix adds there.
+    private static let order29: [String] = {
+        let firstFlag = order28.firstIndex { $0.hasPrefix("Inherit") } ?? order28.count
+        return Array(order28[..<firstFlag]) + ["TerminalBackend", "Color"]
+            + Array(order28[firstFlag...]) + ["InheritTerminalBackend", "InheritColor"]
+    }()
+
     /// How one schema writes a node: the attribute order, and whether an inheritance flag
-    /// that is off is written at all. 2.6 writes every flag; 2.7 and 2.8 only the ones on.
+    /// that is off is written at all. 2.6 writes every flag; 2.7 and later only the ones on.
     private struct Schema {
         let order: [String]
         let writesOffInheritance: Bool
@@ -152,6 +161,7 @@ public enum ConfConsSerializer {
         switch version {
         case "2.7": return Schema(order: order27, writesOffInheritance: false)
         case "2.8": return Schema(order: order28, writesOffInheritance: false)
+        case "2.9": return Schema(order: order29, writesOffInheritance: false)
         default: return Schema(order: order, writesOffInheritance: true)
         }
     }
@@ -200,7 +210,7 @@ public enum ConfConsSerializer {
     private static func attributeString(_ all: [String: String], schema: Schema) -> String {
         var attrs = all
         if !schema.writesOffInheritance {
-            // Absent means off to 2.7 and 2.8, and that is how they write it.
+            // Absent means off from 2.7 on, and that is how those schemas write it.
             for (k, v) in all where k.hasPrefix("Inherit") && v != "true" { attrs[k] = nil }
         }
         var parts: [String] = []
