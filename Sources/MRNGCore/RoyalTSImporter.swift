@@ -11,21 +11,19 @@ import Foundation
 /// elements, not attributes. A `.rtsz` file is either that XML directly, or a zip with the
 /// XML inside as `Document.rtsz`.
 ///
-/// Passwords: a Royal document saved without a document password keeps
-/// `CredentialPassword` in plain text, so those come across. One saved *with* a document
-/// password has them encrypted with Royal's own scheme, which this does not implement —
-/// those connections import without a password rather than with a wrong one.
+/// Passwords are never imported. Royal saves every secret encrypted with the document's
+/// key (a base64 blob even for a short password, with or without a document password), so
+/// taking `CredentialPassword` as it is would store that blob as the password. The result
+/// says how many were left out.
 public enum RoyalTSImporter {
     public enum ImportError: Error, LocalizedError {
         case unreadable
         case notARoyalDocument
-        case encryptedDocument
 
         public var errorDescription: String? {
             switch self {
             case .unreadable:         return "The file could not be read."
             case .notARoyalDocument:  return "This is not a Royal TS document (no RTSZDocument root)."
-            case .encryptedDocument:  return "This Royal document is encrypted with a document password, which is not supported."
             }
         }
     }
@@ -34,22 +32,41 @@ public enum RoyalTSImporter {
         public let roots: [MRNGNode]
         public let documentName: String
         public let connections: Int
-        public let withPassword: Int
+        /// Passwords the document held, on connections or shared credentials, left out.
+        public let passwordsNotImported: Int
         /// Royal object types that were skipped because mRemoteNG has no equivalent.
         public let skipped: [String: Int]
     }
 
     private static let folderTag = "RoyalFolder"
+    private static let credentialTag = "RoyalCredential"
     private static let innerName = "Document.rtsz"
 
-    /// `encrypt` turns a plaintext password into the document's encrypted form; the
-    /// importer never decides how passwords are stored. It returns nil if the password
-    /// could not be encrypted, in which case the connection is imported without one
-    /// rather than with an empty attribute that would read as "no password set".
-    public static func load(fileURL: URL, encrypt: (String) -> String?) throws -> Result {
+    /// CredentialMode 2 is "a username and password on the connection itself"; the other
+    /// modes point at a shared RoyalCredential, by CredentialId or CredentialName.
+    private static let credentialModeSpecified = "2"
+
+    /// Usernames of the document's shared credentials, by ID and by name.
+    private struct SharedCredentials {
+        var byID: [String: String] = [:]
+        var byName: [String: String] = [:]
+    }
+
+    public static func load(fileURL: URL) throws -> Result {
         let xml = try readXML(at: fileURL)
         guard let root = xml.rootElement(), root.name == "RTSZDocument" else {
             throw ImportError.notARoyalDocument
+        }
+        let elements = root.children?.compactMap({ $0 as? XMLElement }) ?? []
+
+        var shared = SharedCredentials()
+        var passwordsNotImported = 0
+        for element in elements where element.name == credentialTag {
+            let user = text(element, "UserName")
+            let id = text(element, "ID"), name = text(element, "Name")
+            if !id.isEmpty, shared.byID[id] == nil { shared.byID[id] = user }
+            if !name.isEmpty, shared.byName[name] == nil { shared.byName[name] = user }
+            if !text(element, "Password").isEmpty { passwordsNotImported += 1 }
         }
 
         var nodes: [String: MRNGNode] = [:]
@@ -59,9 +76,8 @@ public enum RoyalTSImporter {
         var documentName = "Royal TS"
         var trash = Set<String>()
         var skipped: [String: Int] = [:]
-        var withPassword = 0
 
-        for element in root.children?.compactMap({ $0 as? XMLElement }) ?? [] {
+        for element in elements {
             let tag = element.name ?? ""
             let id = text(element, "ID")
 
@@ -73,12 +89,14 @@ public enum RoyalTSImporter {
             // Royal keeps deleted objects in the document under RoyalTrash; skip that
             // subtree, otherwise deleted connections reappear on import.
             if tag == "RoyalTrash" { trash.insert(id); continue }
+            if tag == credentialTag { continue }   // read above
             guard !id.isEmpty else { continue }
 
-            guard let node = makeNode(tag: tag, element: element, encrypt: encrypt, countedPassword: &withPassword) else {
+            guard let node = makeNode(tag: tag, element: element, shared: shared) else {
                 skipped[tag, default: 0] += 1
                 continue
             }
+            if !text(element, "CredentialPassword").isEmpty { passwordsNotImported += 1 }
             nodes[id] = node
             parentOf[id] = text(element, "ParentID")
             positionOf[id] = Int(text(element, "PositionNr")) ?? 0
@@ -99,21 +117,20 @@ public enum RoyalTSImporter {
         }
 
         let connections = roots.flatMap { $0.selfAndDescendants() }.filter { !$0.isContainer }.count
-        return Result(roots: roots, documentName: documentName,
-                      connections: connections, withPassword: withPassword, skipped: skipped)
+        return Result(roots: roots, documentName: documentName, connections: connections,
+                      passwordsNotImported: passwordsNotImported, skipped: skipped)
     }
 
     // MARK: - One object
 
     private static func makeNode(tag: String, element: XMLElement,
-                                 encrypt: (String) -> String?,
-                                 countedPassword: inout Int) -> MRNGNode? {
+                                 shared: SharedCredentials) -> MRNGNode? {
         let name = text(element, "Name")
 
         if tag == folderTag {
             let node = MRNGNode.makeContainer(name: name.isEmpty ? "Folder" : name)
             node.attributes["Expanded"] = text(element, "IsExpanded", default: "True") == "True" ? "true" : "false"
-            applyCommon(node, element, encrypt: encrypt, countedPassword: &countedPassword)
+            applyCommon(node, element, shared: shared)
             return node
         }
 
@@ -138,13 +155,12 @@ public enum RoyalTSImporter {
                                            hostname: hostname(from: text(element, "URI"), proto: proto))
         let port = text(element, portField)
         if let p = Int(port), p > 0 { node.attributes["Port"] = String(p) }
-        applyCommon(node, element, encrypt: encrypt, countedPassword: &countedPassword)
+        applyCommon(node, element, shared: shared)
         return node
     }
 
     private static func applyCommon(_ node: MRNGNode, _ element: XMLElement,
-                                    encrypt: (String) -> String?,
-                                    countedPassword: inout Int) {
+                                    shared: SharedCredentials) {
         let descr = text(element, "Description")
         if !descr.isEmpty { node.attributes["Descr"] = descr }
 
@@ -158,18 +174,17 @@ public enum RoyalTSImporter {
         }
 
         var user = text(element, "CredentialUsername")
+        if text(element, "CredentialMode") != credentialModeSpecified,
+           let sharedUser = shared.byID[text(element, "CredentialId")]
+                ?? shared.byName[text(element, "CredentialName")] {
+            user = sharedUser
+        }
         // A DOMAIN\user in one field becomes the two fields mRemoteNG keeps separately.
         if let slash = user.firstIndex(of: "\\") {
             node.attributes["Domain"] = String(user[user.startIndex..<slash])
             user = String(user[user.index(after: slash)...])
         }
         if !user.isEmpty { node.attributes["Username"] = user }
-
-        let password = text(element, "CredentialPassword")
-        if !password.isEmpty, let sealed = encrypt(password) {
-            node.attributes["Password"] = sealed
-            countedPassword += 1
-        }
     }
 
     /// Royal's URI can carry a scheme and a path for web connections; mRemoteNG's Hostname

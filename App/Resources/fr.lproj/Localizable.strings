@@ -26,8 +26,8 @@
 "Menu.ImportRoyalTS" = "Importer un document Royal TS...";
 "Import.RoyalPrompt" = "Choisissez un document Royal TS (.rtsz)";
 "Import.DoneTitle" = "Importation terminée";
-"Import.DoneBody" = "%1$d connexion(s) importée(s) depuis « %3$@ », dont %2$d avec un mot de passe.";
-"Import.NoPasswordNote" = "Les connexions sans mot de passe proviennent d'un document Royal qui les conserve chiffrés, ou n'en avaient aucun d'enregistré.";
+"Import.DoneBody" = "%1$d connexion(s) importée(s) depuis « %2$@ ».";
+"Import.NoPasswordNote" = "%d mot(s) de passe non importé(s) : Royal TS les conserve chiffrés avec la clé du document.";
 "Import.SkippedNote" = "Ignorés, sans équivalent mRemoteNG : %@.";
 "Import.FailedTitle" = "Échec de l'importation";
 "Menu.Save" = "Enregistrer";

@@ -20,8 +20,8 @@
 "Menu.ImportRoyalTS" = "Importa document Royal TS...";
 "Import.RoyalPrompt" = "Alege un document Royal TS (.rtsz)";
 "Import.DoneTitle" = "Import terminat";
-"Import.DoneBody" = "Am importat %1$d conexiune(i) din \"%3$@\", dintre care %2$d cu parola.";
-"Import.NoPasswordNote" = "Conexiunile fara parola vin dintr-un document Royal care le tine criptate, sau nu aveau parola salvata.";
+"Import.DoneBody" = "Am importat %1$d conexiune(i) din \"%2$@\".";
+"Import.NoPasswordNote" = "%d parola(e) nu au fost importate: Royal TS le tine criptate cu cheia documentului.";
 "Import.SkippedNote" = "Sarite, fara echivalent in mRemoteNG: %@.";
 "Import.FailedTitle" = "Importul a esuat";
 "Menu.Save" = "Salveaza";

@@ -26,8 +26,8 @@
 "Menu.ImportRoyalTS" = "Royal TS belgesini içe aktar...";
 "Import.RoyalPrompt" = "Bir Royal TS belgesi seçin (.rtsz)";
 "Import.DoneTitle" = "İçe aktarma tamamlandı";
-"Import.DoneBody" = "\"%3$@\" konumundan %1$d bağlantı içe aktarıldı, bunlardan %2$d tanesi parolalı.";
-"Import.NoPasswordNote" = "Parolasız bağlantılar, parolaları şifrelenmiş olarak saklayan bir Royal belgesinden geldi veya kayıtlı parolası yoktu.";
+"Import.DoneBody" = "\"%2$@\" konumundan %1$d bağlantı içe aktarıldı.";
+"Import.NoPasswordNote" = "%d parola içe aktarılmadı: Royal TS bunları belgenin anahtarıyla şifrelenmiş olarak saklar.";
 "Import.SkippedNote" = "Atlandı, mRemoteNG karşılığı yok: %@.";
 "Import.FailedTitle" = "İçe aktarma başarısız";
 "Menu.Save" = "Kaydet";

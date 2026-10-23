@@ -380,9 +380,7 @@ final class AppModel: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
         do {
-            let result = try RoyalTSImporter.load(fileURL: url) { [weak self] plain in
-                self?.encrypt(plain) ?? nil
-            }
+            let result = try RoyalTSImporter.load(fileURL: url)
             guard var d = doc else { return }
             for root in result.roots {
                 root.parent = nil
@@ -394,10 +392,9 @@ final class AppModel: ObservableObject {
 
             let alert = NSAlert()
             alert.messageText = t("Import.DoneTitle")
-            var body = String(format: t("Import.DoneBody"),
-                              result.connections, result.withPassword, result.documentName)
-            if result.connections > result.withPassword {
-                body += "\n\n" + t("Import.NoPasswordNote")
+            var body = String(format: t("Import.DoneBody"), result.connections, result.documentName)
+            if result.passwordsNotImported > 0 {
+                body += "\n\n" + String(format: t("Import.NoPasswordNote"), result.passwordsNotImported)
             }
             if !result.skipped.isEmpty {
                 let list = result.skipped.sorted { $0.key < $1.key }

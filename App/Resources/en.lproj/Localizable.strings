@@ -26,8 +26,8 @@
 "Menu.ImportRoyalTS" = "Import Royal TS document...";
 "Import.RoyalPrompt" = "Choose a Royal TS document (.rtsz)";
 "Import.DoneTitle" = "Import finished";
-"Import.DoneBody" = "Imported %1$d connection(s) from \"%3$@\", %2$d of them with a password.";
-"Import.NoPasswordNote" = "Connections without a password came from a Royal document that keeps them encrypted, or had none stored.";
+"Import.DoneBody" = "Imported %1$d connection(s) from \"%2$@\".";
+"Import.NoPasswordNote" = "%d password(s) were not imported: Royal TS keeps them encrypted with the document's key.";
 "Import.SkippedNote" = "Skipped, no mRemoteNG equivalent: %@.";
 "Import.FailedTitle" = "Import failed";
 "Menu.Save" = "Save";
