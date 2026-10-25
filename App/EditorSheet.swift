@@ -693,6 +693,15 @@ struct ConnectionStatusBar: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                // Where the title row used to show it, at the panel's top right.
+                .overlay(alignment: .topTrailing) {
+                    if let f = flash {
+                        Text(f).font(.caption2).foregroundStyle(.green)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(.bar, in: Capsule())
+                            .padding(.top, 4).padding(.trailing, 8)
+                    }
+                }
                 .background(.bar)
         }
         .onChange(of: model.selectedNodeID) { _, _ in loadPassword() }
@@ -712,14 +721,7 @@ struct ConnectionStatusBar: View {
     @ViewBuilder private var content: some View {
         if let node = model.node(byID: model.selectedNodeID), !node.isContainer {
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    NodeIconView(node: node).frame(width: 14, height: 14)
-                    Text(node.name).font(.callout).lineLimit(1)
-                    Spacer()
-                    if let f = flash {
-                        Text(f).font(.caption2).foregroundStyle(.green)
-                    }
-                }
+                nameRow(node)
                 hostRow(node)
                 editRow("person", t("StatusBar.User"), node,
                         key: "Username", inheritKey: "InheritUsername")
@@ -734,19 +736,40 @@ struct ConnectionStatusBar: View {
                 passwordRow(node)
             }
         } else if let node = model.node(byID: model.selectedNodeID), node.isContainer {
-            HStack(spacing: 6) {
-                Image(systemName: "folder.fill").foregroundStyle(Color.accentColor)
-                Text(node.name).lineLimit(1)
-                Spacer()
-                Text(String(format: t("StatusBar.Elements"), node.children.count))
-                    .font(.caption).foregroundStyle(.secondary)
-            }
+            nameRow(node, trailing: String(format: t("StatusBar.Elements"), node.children.count))
         } else {
             HStack {
                 Image(systemName: "rectangle.dashed").foregroundStyle(.secondary)
                 Text(t("StatusBar.NoSelection")).foregroundStyle(.secondary).font(.callout)
                 Spacer()
             }
+        }
+    }
+
+    /// The name, editable like the rows under it. The node's own icon stands in for the row
+    /// symbol, so the panel still shows what kind of connection it is now that the title is gone.
+    @ViewBuilder private func nameRow(_ node: MRNGNode, trailing: String? = nil) -> some View {
+        HStack(spacing: 6) {
+            HStack(spacing: 4) {
+                NodeIconView(node: node).frame(width: 13, height: 13)
+                Text(t("Editor.Field.Name")).font(.caption).foregroundStyle(.secondary)
+                    .frame(width: 46, alignment: .leading)
+            }
+            TextField("", text: Binding(
+                get: { node.attributes["Name"] ?? "" },
+                set: { v in
+                    // A single line, as in the editor sheet: a pasted line break means nothing here.
+                    node.attributes["Name"] = v.contains(where: \.isNewline)
+                        ? v.components(separatedBy: .newlines).joined()
+                        : v
+                    model.markDirty()
+                }))
+                .textFieldStyle(.roundedBorder)
+                .font(.callout)
+            if let trailing {
+                Text(trailing).font(.caption).foregroundStyle(.secondary).fixedSize()
+            }
+            copyButton(t("Editor.Field.Name"), node.attributes["Name"] ?? "")
         }
     }
 
