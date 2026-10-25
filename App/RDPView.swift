@@ -76,7 +76,9 @@ final class RDPNSView: NSView, RDPClientDelegate, SessionPreviewing {
     func connectionStats() -> [String: NSNumber]? { client?.connectionStats() }
 
     func previewImage() -> CGImage? {
-        guard let contents = layer?.contents else { return nil }
+        // Only ever a frame set in didUpdate, but the layer is AppKit's: check before casting.
+        guard let contents = layer?.contents,
+              CFGetTypeID(contents as CFTypeRef) == CGImage.typeID else { return nil }
         return (contents as! CGImage)
     }
 

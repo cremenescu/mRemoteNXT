@@ -42,7 +42,7 @@ cu tab-uri si paneluri.
 
 ## Ce merge
 
-- **Import direct** `confCons.xml` (schemele 2.6-2.8, passphrase-ul implicit al mRemoteNG
+- **Import direct** `confCons.xml` (schemele 2.6-2.9, passphrase-ul implicit al mRemoteNG
   sau propriu, inclusiv fisiere criptate integral; salvat inapoi cum il scrie aceeasi
   versiune de mRemoteNG). Crypto validat byte-exact (PBKDF2-HMAC-SHA1 + AES-256-GCM).
 - **Arbore de conexiuni** cu foldere, mostenire de atribute, drag&drop reorder,

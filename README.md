@@ -56,7 +56,7 @@ ranges, no real hosts.
 
 ## Features
 
-- **Direct `confCons.xml` import** (schemas 2.6 to 2.8, with mRemoteNG's default
+- **Direct `confCons.xml` import** (schemas 2.6 to 2.9, with mRemoteNG's default
   passphrase or a custom one, files encrypted as a whole included; saved back the way the
   same mRemoteNG version writes them). Crypto validated byte-exact against real files
   (PBKDF2-HMAC-SHA1 + AES-256-GCM).
