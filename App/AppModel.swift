@@ -27,6 +27,16 @@ struct Session: Identifiable {
     /// Jump hosts to reach this one through, outermost first. Empty for a direct
     /// connection and for every protocol that does not go out over ssh.
     var hops: [Hop] = []
+    /// What stands before and after the connection's name in the title, so the tab follows
+    /// when the connection is renamed. nil when the title is not the name's (renamed by
+    /// hand or by the terminal).
+    var nameInTitle: NameInTitle? = nil
+
+    struct NameInTitle {
+        var prefix = ""
+        var suffix = ""
+        static let plain = NameInTitle()
+    }
 
     /// One machine on the way to the target: what `ssh -J` needs in order to dial it,
     /// and the password to answer with should it ask for one.
@@ -723,7 +733,16 @@ final class AppModel: ObservableObject {
 
     // MARK: - Editing / saving
 
-    func markDirty() { dirty = true; treeVersion &+= 1 }
+    func markDirty() { dirty = true; treeVersion &+= 1; retitleRenamedConnections() }
+
+    /// A tab named after its connection follows a rename as you type, as the sidebar row does.
+    private func retitleRenamedConnections() {
+        for i in sessions.indices {
+            guard let around = sessions[i].nameInTitle else { continue }
+            let title = around.prefix + sessions[i].node.name + around.suffix
+            if sessions[i].title != title { sessions[i].title = title }
+        }
+    }
 
     /// Reveal a node in the sidebar: expand every ancestor so the row exists, select it,
     /// and ask the list to scroll to it. The search filter is cleared first — an active
@@ -1054,6 +1073,13 @@ final class AppModel: ObservableObject {
             gatewayPassword: decryptedGatewayPassword(for: node),
             hops: hops(for: node)
         )
+        open(session, nameInTitle: .plain)
+    }
+
+    /// Adds the tab and brings it forward.
+    private func open(_ session: Session, nameInTitle: Session.NameInTitle?) {
+        var session = session
+        session.nameInTitle = nameInTitle
         sessions.append(session)
         selectedSessionID = session.id
         selectedPanel = session.panel
@@ -1132,13 +1158,14 @@ final class AppModel: ObservableObject {
         // change was closing the tab and opening it again from the sidebar. Everything else
         // (host, user, domain) is already read live from the node at connect time.
         // A temporary session has nothing stored to re-read: it keeps what it was given.
-        let fresh = Session(title: session.title, kind: session.kind, node: session.node,
+        var fresh = Session(title: session.title, kind: session.kind, node: session.node,
                             password: session.temporary ? session.password : decryptedPassword(for: session.node),
                             panel: session.panel,
                             gatewayPassword: session.temporary ? session.gatewayPassword
                                                                : decryptedGatewayPassword(for: session.node),
                             temporary: session.temporary,
                             hops: hops(for: session.node))
+        fresh.nameInTitle = session.nameInTitle
         endedSessions.remove(session.id)
         sessions[idx] = fresh
         selectedSessionID = fresh.id
@@ -1158,9 +1185,7 @@ final class AppModel: ObservableObject {
         let session = Session(title: node.name, kind: .rdp, node: node, password: password,
                               panel: node.panel.isEmpty ? "General" : node.panel,
                               temporary: true)
-        sessions.append(session)
-        selectedSessionID = session.id
-        selectedPanel = session.panel
+        open(session, nameInTitle: .plain)
     }
 
     // MARK: - Session restore (remember open connections across launches)
@@ -1273,9 +1298,12 @@ final class AppModel: ObservableObject {
             panel: node.panel.isEmpty ? "General" : node.panel,
             command: cmd
         )
-        sessions.append(session)
-        selectedSessionID = session.id
-        selectedPanel = session.panel
+        let around: Session.NameInTitle? = switch title {
+        case nil: Session.NameInTitle(prefix: "\(tool.name): ")
+        case node.name: .plain
+        default: nil
+        }
+        open(session, nameInTitle: around)
     }
 
     /// Open an SFTP tab (a terminal running sftp) for an SSH connection.
@@ -1289,14 +1317,13 @@ final class AppModel: ObservableObject {
             panel: node.panel.isEmpty ? "General" : node.panel,
             hops: hops(for: node)
         )
-        sessions.append(session)
-        selectedSessionID = session.id
-        selectedPanel = session.panel
+        open(session, nameInTitle: Session.NameInTitle(suffix: " (SFTP)"))
     }
 
     func renameSession(_ id: UUID, to title: String) {
         guard let idx = sessions.firstIndex(where: { $0.id == id }), !title.isEmpty else { return }
         sessions[idx].title = title
+        sessions[idx].nameInTitle = nil
     }
 
     /// Called by the terminal coordinator when the remote shell emits an OSC
