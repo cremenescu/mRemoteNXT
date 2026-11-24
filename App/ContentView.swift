@@ -35,7 +35,9 @@ extension MRNGNode {
         }
     }
 
-    private var protocolIcon: (symbol: String, color: Color) {
+    private var protocolIcon: (symbol: String, color: Color) { Self.icon(forProtocol: protocolType) }
+
+    static func icon(forProtocol protocolType: String) -> (symbol: String, color: Color) {
         switch protocolType {
         case "SSH1", "SSH2": return ("terminal", .green)
         case "Telnet":       return ("terminal", .orange)
@@ -243,6 +245,28 @@ struct FolderDestinationMenu: View {
     }
 }
 
+/// The connection types to create, one menu item each, with the icon they get in the sidebar.
+struct NewConnectionTypeItems: View {
+    let create: (String) -> Void
+
+    var body: some View {
+        ForEach(AppModel.newConnectionTypes, id: \.self) { type in
+            Button { create(type) } label: {
+                Label { Text(type) } icon: { Image(nsImage: Self.icon(type)) }
+            }
+        }
+    }
+
+    /// Drawn in its color beforehand: a menu shows a plain symbol in the text color.
+    private static func icon(_ type: String) -> NSImage {
+        let info = MRNGNode.icon(forProtocol: type)
+        let image = NSImage(systemSymbolName: info.symbol, accessibilityDescription: nil)?
+            .withSymbolConfiguration(.init(paletteColors: [NSColor(info.color)])) ?? NSImage()
+        image.isTemplate = false
+        return image
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var lang: LanguageManager
@@ -273,8 +297,13 @@ struct ContentView: View {
         // one that was hardcoded before, so nothing moves until it is moved on purpose.
         .toolbar(id: "main") {
             ToolbarItem(id: "newConnection", placement: .navigation) {
-                Button { model.addConnection() } label: {
+                // A click makes an RDP connection, as it always has; the arrow has the rest.
+                Menu {
+                    NewConnectionTypeItems { model.addConnection(type: $0) }
+                } label: {
                     Label(t("Toolbar.NewConnection"), systemImage: "plus.rectangle")
+                } primaryAction: {
+                    model.addConnection()
                 }
                 .help(t("Toolbar.NewConnection"))
             }
@@ -345,7 +374,7 @@ struct ContentView: View {
         .sheet(item: $model.needsMasterPassword) { url in
             UnlockSheet(fileURL: url).environmentObject(model)
         }
-        .sheet(isPresented: $model.editorVisible) {
+        .sheet(isPresented: $model.editorVisible, onDismiss: { model.editorDismissed() }) {
             if let id = model.selectedNodeID, model.node(byID: id) != nil {
                 EditorSheet(nodeID: id).environmentObject(model)
             } else {
@@ -386,9 +415,11 @@ struct ContentView: View {
                 }
                 .searchable(text: $model.searchText, placement: .sidebar, prompt: Text(t("Search.Placeholder")))
                 .contextMenu {
-                    Button(t("Toolbar.NewConnection")) {
-                        model.selectedNodeID = nil
-                        model.addConnection()
+                    Menu(t("Toolbar.NewConnection")) {
+                        NewConnectionTypeItems { type in
+                            model.selectedNodeID = nil
+                            model.addConnection(type: type)
+                        }
                     }
                     Button(t("Toolbar.NewFolder")) {
                         model.selectedNodeID = nil
@@ -556,7 +587,12 @@ struct TreeRow: View {
                 FolderDestinationMenu(node: node, folder: nil, isCopy: true)
             }
             Divider()
-            Button(t("Context.NewConnectionHere")) { model.selectedNodeID = node.id; model.addConnection() }
+            Menu(t("Context.NewConnectionHere")) {
+                NewConnectionTypeItems { type in
+                    model.selectedNodeID = node.id
+                    model.addConnection(type: type)
+                }
+            }
             Button(t("Context.NewFolderHere")) { model.selectedNodeID = node.id; model.addFolder() }
             Button(t("Context.Duplicate")) { model.duplicateNode(node) }
             Divider()

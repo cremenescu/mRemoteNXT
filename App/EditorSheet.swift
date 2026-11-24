@@ -555,6 +555,10 @@ struct EditorSheet: View {
     }
 
     private func discard() {
+        if model.discardNewConnection(nodeID) {
+            model.editorVisible = false
+            return
+        }
         if let node {
             node.attributes = snapshot
             // Don't forcibly clear dirty if the doc was already dirty before we opened.

@@ -767,9 +767,39 @@ final class AppModel: ObservableObject {
         return nil
     }
 
-    func addConnection() {
-        let node = MRNGNode.makeConnection(name: t("Connection.NewConnectionName"))
+    /// The types offered for a new connection: the ones that open. The editor's own list is
+    /// longer, for files that already have the others.
+    static let newConnectionTypes = ["RDP", "SSH2", "Telnet", "HTTP", "HTTPS", "IntApp"]
+
+    /// A connection just created, until its editor is closed. Discarding the editor takes
+    /// the connection away again and leaves everything as it was before.
+    private var newConnection: (id: String, dirtyBefore: Bool, selectedBefore: String?, discarded: Bool)?
+
+    /// Adds a connection to the selected folder and opens its editor.
+    func addConnection(type: String = "RDP") {
+        let before = (dirty, selectedNodeID)
+        let node = MRNGNode.makeConnection(name: t("Connection.NewConnectionName"), protocolType: type)
         insertNew(node)
+        newConnection = (node.id, before.0, before.1, false)
+        editorVisible = true
+    }
+
+    /// Discard in the editor. False unless the connection only exists because of it.
+    func discardNewConnection(_ nodeID: String) -> Bool {
+        guard newConnection?.id == nodeID else { return false }
+        newConnection?.discarded = true
+        return true
+    }
+
+    /// Once the editor is off the screen, not while it is closing: it shows the selected
+    /// node, and removing that under it would leave it showing another one on the way out.
+    func editorDismissed() {
+        guard let new = newConnection else { return }
+        newConnection = nil
+        guard new.discarded, let node = node(byID: new.id) else { return }
+        deleteNode(node)
+        dirty = new.dirtyBefore
+        selectedNodeID = new.selectedBefore
     }
 
     func addFolder() {
