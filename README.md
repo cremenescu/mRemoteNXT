@@ -80,6 +80,12 @@ ranges, no real hosts.
   password from the tree (handy for router / iLO / switch web UIs).
 - **External Tools** with macros (`%Host% %Username% %Port% %Password%
   %Domain% %Name%`) — executed in a terminal tab.
+- **Credentials from 1Password**, with mRemoteNG's own attributes: a connection,
+  a folder or a Remote Desktop Gateway names an item (`op://vault/item`), and the
+  1Password command line tool reads it when the connection opens. Nothing read is
+  kept or written to the file. SSH keys work through the 1Password agent. Needs
+  [`op`](https://developer.1password.com/docs/cli/get-started/) and "Integrate
+  with 1Password CLI" turned on in 1Password.
 - **Connection editor** modal in Royal TSX style (categories: General /
   Connection / Credentials / Appearance / Advanced) + a bottom status bar
   with host / user / password click-to-copy.
@@ -103,6 +109,8 @@ mRemoteNXT**. The first copy that finds it off says so:
 
 ## Known limitations
 
+- 1Password settings in a schema 2.6 file: mRemoteNG 1.76 does not know them and drops
+  them when it saves.
 - Schema 2.5 and older (mRemoteNG before 1.76): their legacy encryption is not read, so
   saved passwords and whole-file encryption from those files do not open.
 - `Panel` inheritance across multiple levels — partial.

@@ -65,6 +65,12 @@ cu tab-uri si paneluri.
   arbore (util pentru web-UI de routere / iLO / switch-uri).
 - **External Tools** cu macro-uri (`%Host% %Username% %Port% %Password%
   %Domain% %Name%`) — rulate intr-un tab terminal.
+- **Credentiale din 1Password**, cu atributele mRemoteNG: o conexiune, un folder
+  sau un Remote Desktop Gateway arata spre un item (`op://vault/item`), iar unealta
+  de linie de comanda 1Password il citeste cand se deschide conexiunea. Nimic din ce
+  se citeste nu se tine minte si nu se scrie in fisier. Cheile SSH merg prin agentul
+  1Password. Cere [`op`](https://developer.1password.com/docs/cli/get-started/) si
+  „Integrate with 1Password CLI" activat in 1Password.
 - **Editor de conexiune** stil Royal TSX (modal cu categorii: General /
   Conexiune / Credentiale / Aspect / Avansat) + status bar in josul
   sidebar-ului cu host / user / parola click-to-copy.
@@ -87,6 +93,8 @@ mRemoteNXT**. Prima copiere care il gaseste oprit iti spune asta:
 
 ## Ce NU merge inca
 
+- Setarile 1Password intr-un fisier cu schema 2.6: mRemoteNG 1.76 nu le cunoaste si le
+  pierde cand salveaza.
 - Schema 2.5 si mai vechi (mRemoteNG inainte de 1.76): criptarea lor veche nu e citita,
   deci parolele salvate si criptarea integrala din acele fisiere nu se deschid.
 - Tab inheritance pentru `Panel` peste niveluri multiple — partial.
