@@ -245,7 +245,7 @@ struct HTTPContainer: NSViewRepresentable {
     func makeNSView(context: Context) -> HTTPSWebView {
         let config = WKWebViewConfiguration()
         let webView = HTTPSWebView(frame: .zero, configuration: config)
-        webView.autofillUser = session.node.username
+        webView.autofillUser = session.username
         webView.autofillPass = session.password
         webView.expectedHost = session.node.hostname
         webView.navigationDelegate = webView
@@ -257,7 +257,7 @@ struct HTTPContainer: NSViewRepresentable {
 
     func updateNSView(_ nsView: HTTPSWebView, context: Context) {
         // Pick up credentials if they changed in the editor while the tab was open.
-        nsView.autofillUser = session.node.username
+        nsView.autofillUser = session.username
         nsView.autofillPass = session.password
         nsView.expectedHost = session.node.hostname
     }

@@ -921,7 +921,7 @@ struct SessionTabView: View {
             }
             Button(t("Context.RenameTab")) { model.promptAndRename(session) }
             Button(t("Context.DuplicateTab")) { model.duplicate(session) }
-            if !session.password.isEmpty {
+            if !session.password.isEmpty || (!session.temporary && session.node.usesOnePassword) {
                 Divider()
                 Button(t("Context.CopyPassword")) { model.copyPassword(session) }
             }
@@ -935,6 +935,14 @@ struct SessionView: View {
     var isActive: Bool = false
     var fontSize: Double = 13
     var body: some View {
+        switch session.logonState {
+        case .ready: content
+        case .reading: LogonWaitingView(session: session)
+        case .failed(let failure): LogonFailedView(session: session, failure: failure)
+        }
+    }
+
+    @ViewBuilder private var content: some View {
         switch session.kind {
         case .ssh, .telnet, .sftp, .externalTool:
             TerminalContainer(
@@ -957,7 +965,7 @@ struct SessionView: View {
             }, onEnded: {
                 model.sessionEnded(session.id)
             }, onNeedsReconnect: {
-                model.reconnect(session)
+                model.reconnect(session, fromFile: session.fromFile)
             })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .http:

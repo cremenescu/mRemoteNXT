@@ -15,18 +15,43 @@ struct Session: Identifiable {
     var title: String
     let kind: Kind
     let node: MRNGNode
-    let password: String
     let panel: String
-    var command: String? = nil // for .externalTool: the resolved command line
-    /// RD Gateway password, decrypted like `password`. Empty when the gateway takes the
-    /// connection's own logon, or when there is no gateway.
-    var gatewayPassword: String = ""
+    /// For .externalTool: its command line, and the same with the macros replaced.
+    var template: String? = nil
+    var command: String? = nil
+    /// The connection's password in the file, decrypted. Empty while the connection logs on
+    /// from 1Password.
+    var filePassword: String = ""
+    /// The RD Gateway's. Empty when the gateway takes the connection's own logon, or when
+    /// there is no gateway.
+    var fileGatewayPassword: String = ""
     /// Opened from an .rdp file or an rdp:// link: the node is not in the configuration,
     /// so the session is never remembered for restore and keeps the password it was given.
     var temporary = false
     /// Jump hosts to reach this one through, outermost first. Empty for a direct
     /// connection and for every protocol that does not go out over ssh.
     var hops: [Hop] = []
+    /// What was read from 1Password for this session (see SessionLogons).
+    var read: [LogonPart: Logon] = [:]
+    var logonState: LogonState = .ready
+    /// Logons that would come from 1Password, taken from the file because the user said so.
+    var fromFile: Set<LogonPart> = []
+
+    enum LogonState: Equatable {
+        case ready
+        case reading(LogonPart)
+        case failed(LogonFailure)
+    }
+
+    var username: String { read[.connection]?.username ?? node.username }
+    var domain: String { read[.connection]?.domain ?? node.domain }
+    var password: String { read[.connection]?.password ?? filePassword }
+    /// Set when the logon is an SSH key kept in 1Password.
+    var publicKey: String { read[.connection]?.publicKey ?? "" }
+    var gatewayUsername: String { read[.gateway]?.username ?? node.gatewayUsername }
+    var gatewayDomain: String { read[.gateway]?.domain ?? node.gatewayDomain }
+    var gatewayPassword: String { read[.gateway]?.password ?? fileGatewayPassword }
+
     /// What stands before and after the connection's name in the title, so the tab follows
     /// when the connection is renamed. nil when the title is not the name's (renamed by
     /// hand or by the terminal).
@@ -45,6 +70,8 @@ struct Session: Identifiable {
         let host: String
         let port: Int
         let password: String
+        /// Set when this machine is logged on to with an SSH key kept in 1Password.
+        var publicKey: String = ""
 
         /// `ssh -J` reads hops as `[user@]host[:port]`. The port is left off when it is
         /// the default, because a chain reads better without `:22` on every link.
@@ -601,19 +628,13 @@ final class AppModel: ObservableObject {
         return doc.allNodes().first { $0.id == id }
     }
 
-    /// The jump hosts standing between this Mac and `node`, resolved to what ssh needs.
-    ///
-    /// Lives here rather than in the terminal view because it takes both halves the view
-    /// does not have: the document, to look an id up, and the master password, to read
-    /// each hop's own saved password.
-    func hops(for node: MRNGNode) -> [Session.Hop] {
+    /// The jump hosts standing between this Mac and `node`, outermost first.
+    func hopNodes(for node: MRNGNode) -> [MRNGNode] {
         // Jump hosts are an ssh idea, and `-J` is the only place they are spent. Gating it
         // here rather than at each call site keeps a connection of another protocol that
-        // somehow carries the attribute from resolving and decrypting hops it cannot use.
+        // somehow carries the attribute from resolving hops it cannot use.
         guard node.protocolType == "SSH1" || node.protocolType == "SSH2" else { return [] }
         return node.jumpChain(resolve: { self.node(byID: $0) })
-            .map { Session.Hop(user: $0.username, host: $0.hostname, port: $0.port,
-                               password: decryptedPassword(for: $0)) }
     }
 
     func decryptedPassword(for node: MRNGNode) -> String {
@@ -1072,6 +1093,8 @@ final class AppModel: ObservableObject {
     /// Tabs whose connection has stopped — closed by the server, failed to connect, or the
     /// ssh process gone. Kept so opening the connection again revives its tab in place.
     private var endedSessions = Set<UUID>()
+    /// Reads from 1Password under way, by session (see SessionLogons).
+    var logonTasks: [UUID: Task<Void, Never>] = [:]
 
     func sessionEnded(_ id: UUID) {
         endedSessions.insert(id)
@@ -1094,15 +1117,8 @@ final class AppModel: ObservableObject {
             reconnect(dead)
             return
         }
-        let session = Session(
-            title: node.name,
-            kind: kind(for: node),
-            node: node,
-            password: decryptedPassword(for: node),
-            panel: node.panel.isEmpty ? "General" : node.panel,
-            gatewayPassword: decryptedGatewayPassword(for: node),
-            hops: hops(for: node)
-        )
+        let session = Session(title: node.name, kind: wanted, node: node,
+                              panel: node.panel.isEmpty ? "General" : node.panel)
         open(session, nameInTitle: .plain)
     }
 
@@ -1110,9 +1126,11 @@ final class AppModel: ObservableObject {
     private func open(_ session: Session, nameInTitle: Session.NameInTitle?) {
         var session = session
         session.nameInTitle = nameInTitle
+        prepare(&session)
         sessions.append(session)
         selectedSessionID = session.id
         selectedPanel = session.panel
+        startReading(session)
     }
 
     /// Distinct panels (in first-seen order) among the currently open sessions.
@@ -1167,6 +1185,7 @@ final class AppModel: ObservableObject {
     }
 
     func closeSession(_ id: UUID) {
+        stopReading(id)
         endedSessions.remove(id)
         sessions.removeAll { $0.id == id }
         if selectedSessionID == id {
@@ -1180,26 +1199,30 @@ final class AppModel: ObservableObject {
 
     /// Reconnect: replace the session with a new one (fresh id) -> the view is
     /// recreated and the underlying process restarts.
-    func reconnect(_ session: Session) {
+    ///
+    /// `fromFile`: logons to take from the file although they are in 1Password.
+    func reconnect(_ session: Session, fromFile: Set<LogonPart> = []) {
         guard let idx = sessions.firstIndex(where: { $0.id == session.id }) else { return }
-        // Re-read the password from the node instead of reusing the one captured when the
-        // tab was first opened. Editing the credentials of a failed session and hitting
-        // Reconnect otherwise retried with the stale password — the only way to pick up the
-        // change was closing the tab and opening it again from the sidebar. Everything else
-        // (host, user, domain) is already read live from the node at connect time.
-        // A temporary session has nothing stored to re-read: it keeps what it was given.
-        var fresh = Session(title: session.title, kind: session.kind, node: session.node,
-                            password: session.temporary ? session.password : decryptedPassword(for: session.node),
-                            panel: session.panel,
-                            gatewayPassword: session.temporary ? session.gatewayPassword
-                                                               : decryptedGatewayPassword(for: session.node),
-                            temporary: session.temporary,
-                            hops: hops(for: session.node))
+        stopReading(session.id)
+        // The password is read again, from the node or from 1Password, instead of reusing the
+        // one captured when the tab was first opened. Editing the credentials of a failed
+        // session and hitting Reconnect otherwise retried with the stale password — the only
+        // way to pick up the change was closing the tab and opening it again from the sidebar.
+        // Everything else (host, user, domain) is already read live from the node at connect
+        // time. A temporary session has nothing stored to re-read: it keeps what it was given.
+        var fresh = Session(title: session.title, kind: session.kind, node: session.node, panel: session.panel)
+        fresh.template = session.template
+        fresh.temporary = session.temporary
+        fresh.filePassword = session.filePassword
+        fresh.fileGatewayPassword = session.fileGatewayPassword
         fresh.nameInTitle = session.nameInTitle
+        fresh.fromFile = fromFile
+        prepare(&fresh)
         endedSessions.remove(session.id)
         sessions[idx] = fresh
         selectedSessionID = fresh.id
         selectedPanel = fresh.panel
+        startReading(fresh)
     }
 
     func duplicate(_ session: Session) {
@@ -1212,9 +1235,10 @@ final class AppModel: ObservableObject {
 
     /// A connection that is not part of the configuration (see RDPLaunch).
     func connectTemporary(_ node: MRNGNode, password: String) {
-        let session = Session(title: node.name, kind: .rdp, node: node, password: password,
-                              panel: node.panel.isEmpty ? "General" : node.panel,
-                              temporary: true)
+        var session = Session(title: node.name, kind: .rdp, node: node,
+                              panel: node.panel.isEmpty ? "General" : node.panel)
+        session.temporary = true
+        session.filePassword = password
         open(session, nameInTitle: .plain)
     }
 
@@ -1293,12 +1317,14 @@ final class AppModel: ObservableObject {
 
     /// Values are substituted already quoted, so a template writes `ping %Host%`, not
     /// `ping "%Host%"` — quoting a macro yourself now nests quotes instead of protecting it.
-    func substituteMacros(_ template: String, node: MRNGNode) -> String {
+    ///
+    /// The user name and domain are the session's: they may come from 1Password.
+    func substituteMacros(_ template: String, node: MRNGNode, username: String, domain: String) -> String {
         var s = template
         let map: [String: String] = [
             "%Host%": node.hostname, "%Hostname%": node.hostname,
-            "%Username%": node.username, "%User%": node.username,
-            "%Port%": "\(node.port)", "%Domain%": node.domain,
+            "%Username%": username, "%User%": username,
+            "%Port%": "\(node.port)", "%Domain%": domain,
             "%Name%": node.name, "%Description%": node.descr,
         ]
         for (k, v) in map { s = s.replacingOccurrences(of: k, with: Self.shellQuoted(v)) }
@@ -1319,15 +1345,9 @@ final class AppModel: ObservableObject {
 
     /// Run an external tool in a terminal tab (via /bin/sh -lc).
     func runTool(_ tool: ExternalTool, on node: MRNGNode, title: String? = nil) {
-        let cmd = substituteMacros(tool.commandLine, node: node)
-        let session = Session(
-            title: title ?? "\(tool.name): \(node.name)",
-            kind: .externalTool,
-            node: node,
-            password: tool.commandLine.contains("%Password%") ? decryptedPassword(for: node) : "",
-            panel: node.panel.isEmpty ? "General" : node.panel,
-            command: cmd
-        )
+        var session = Session(title: title ?? "\(tool.name): \(node.name)", kind: .externalTool, node: node,
+                              panel: node.panel.isEmpty ? "General" : node.panel)
+        session.template = tool.commandLine
         let around: Session.NameInTitle? = switch title {
         case nil: Session.NameInTitle(prefix: "\(tool.name): ")
         case node.name: .plain
@@ -1339,14 +1359,8 @@ final class AppModel: ObservableObject {
     /// Open an SFTP tab (a terminal running sftp) for an SSH connection.
     func openSFTP(_ node: MRNGNode) {
         guard !node.isContainer else { return }
-        let session = Session(
-            title: node.name + " (SFTP)",
-            kind: .sftp,
-            node: node,
-            password: decryptedPassword(for: node),
-            panel: node.panel.isEmpty ? "General" : node.panel,
-            hops: hops(for: node)
-        )
+        let session = Session(title: node.name + " (SFTP)", kind: .sftp, node: node,
+                              panel: node.panel.isEmpty ? "General" : node.panel)
         open(session, nameInTitle: Session.NameInTitle(suffix: " (SFTP)"))
     }
 
@@ -1361,13 +1375,6 @@ final class AppModel: ObservableObject {
     func updateTitleFromTerminal(_ id: UUID, _ title: String) {
         guard updateTabTitleFromTerminal else { return }
         renameSession(id, to: title)
-    }
-
-    func copyPassword(_ session: Session) {
-        // From the node, not the session's snapshot: after editing the credentials of an
-        // open tab, the snapshot still holds what was used at connect time.
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(decryptedPassword(for: session.node), forType: .string)
     }
 
     /// Send Ctrl+Alt+Del to the given RDP session.

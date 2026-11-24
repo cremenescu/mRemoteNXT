@@ -177,6 +177,7 @@ final class WindowRegistry: ObservableObject {
         // list is deliberately left alone too, so reopening the file restores its tabs.
         if let entry = entries.first(where: { $0.window === window }) {
             entry.observers.forEach(NotificationCenter.default.removeObserver)
+            entry.model?.stopAllReading()
             if frontModel === entry.model { frontModel = nil }
         }
         entries.removeAll { $0.window === window }

@@ -322,8 +322,8 @@ final class RDPNSView: NSView, RDPClientDelegate, SessionPreviewing {
         desktop = CGSize(width: t.w, height: t.h)
 
         let node = session.node
-        var user = node.username
-        var domain = node.domain
+        var user = session.username
+        var domain = session.domain
         if domain.isEmpty, let r = user.range(of: "\\") {
             domain = String(user[..<r.lowerBound])
             user = String(user[r.upperBound...])
@@ -383,8 +383,8 @@ final class RDPNSView: NSView, RDPClientDelegate, SessionPreviewing {
         guard node.hasGateway else { return }
         let (host, port) = RDPFile.splitHostPort(node.gatewayHostname, defaultPort: 443)
         let same = node.gatewayUseConnectionCredentials == "Yes"
-        var gwUser = same ? user : node.gatewayUsername
-        var gwDomain = same ? domain : node.gatewayDomain
+        var gwUser = same ? user : session.gatewayUsername
+        var gwDomain = same ? domain : session.gatewayDomain
         if gwDomain.isEmpty, let r = gwUser.range(of: "\\") {
             gwDomain = String(gwUser[..<r.lowerBound])
             gwUser = String(gwUser[r.upperBound...])

@@ -421,6 +421,7 @@ struct AppearanceSettings: View {
                     }
                 }
             }
+            OnePasswordSettings()
         }
         .formStyle(.grouped)
     }

@@ -4,6 +4,7 @@
 
 import SwiftUI
 import SwiftTerm
+import MRNGCore
 import AppKit
 
 /// Cursor blink speed for the embedded terminal. `off` = steady block, no blink.
@@ -604,7 +605,7 @@ struct TerminalContainer: NSViewRepresentable {
         let node = session.node
         let host = node.hostname
         let port = node.port
-        let user = node.username
+        let user = session.username
         let target = user.isEmpty ? host : "\(user)@\(host)"
 
         switch session.kind {
@@ -614,7 +615,7 @@ struct TerminalContainer: NSViewRepresentable {
             // job from the outside and had to be installed separately; there is no reason to
             // shell out to a second process for a prompt this app can already see.
             return Launch(executable: "/usr/bin/ssh",
-                           args: ["-p", "\(port)"] + jumpArgs(session) + [
+                           args: ["-p", "\(port)"] + jumpArgs(session) + keyArgs(session) + [
                 "-o", "UserKnownHostsFile=\(appKnownHostsPath())",
                 "-o", "StrictHostKeyChecking=accept-new",
                 target,
@@ -623,7 +624,7 @@ struct TerminalContainer: NSViewRepresentable {
             return Launch(executable: "/usr/bin/telnet", args: [host, "\(port)"])
         case .sftp:
             return Launch(executable: "/usr/bin/sftp",
-                           args: ["-P", "\(port)"] + jumpArgs(session) + [
+                           args: ["-P", "\(port)"] + jumpArgs(session) + keyArgs(session) + [
                 // SFTP spells the port with an uppercase -P, but reads -J the same way.
                 "-o", "UserKnownHostsFile=\(appKnownHostsPath())",
                 "-o", "StrictHostKeyChecking=accept-new",
@@ -654,17 +655,35 @@ struct TerminalContainer: NSViewRepresentable {
     /// password appears here: those are answered on the terminal, one machine at a time.
     static func jumpArgs(_ session: Session) -> [String] {
         guard !session.hops.isEmpty else { return [] }
-        return ["-J", session.hops.map(\.spec).joined(separator: ",")]
+        return ["-J", session.hops.map(\.spec).joined(separator: ",")] + jumpKeyArgs(session)
     }
+
+    /// The key this session logs on with, when its 1Password item is an SSH key.
+    static func keyArgs(_ session: Session) -> [String] {
+        guard !session.publicKey.isEmpty, let file = try? SSHAgentKey.write(session.publicKey, in: keysDirectory)
+        else { return [] }
+        return SSHAgentKey.options(file)
+    }
+
+    /// The same for the jump hosts, which do not see options given to the target.
+    private static func jumpKeyArgs(_ session: Session) -> [String] {
+        let keys = session.hops.compactMap { hop -> (host: String, publicKeyFile: URL)? in
+            guard !hop.publicKey.isEmpty, let file = try? SSHAgentKey.write(hop.publicKey, in: keysDirectory)
+            else { return nil }
+            return (hop.host, file)
+        }
+        // The temporary folder, because its path has no spaces (see writeJumpConfiguration).
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("mRemoteNXT-ssh")
+        guard let file = try? SSHAgentKey.writeJumpConfiguration(keys, in: folder) else { return [] }
+        return ["-F", file.path]
+    }
+
+    /// Public keys only: what ssh needs in order to pick one of the agent's keys.
+    private static var keysDirectory: URL { AppSupport.directory.appendingPathComponent("keys") }
 
     /// App-specific known_hosts (separate from ~/.ssh/known_hosts), so we don't
     /// collide with old system entries and we can auto-accept on first connect.
     static func appKnownHostsPath() -> String {
-        let fm = FileManager.default
-        let base = (fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-                    ?? URL(fileURLWithPath: NSHomeDirectory()))
-            .appendingPathComponent("mRemoteNXT", isDirectory: true)
-        try? fm.createDirectory(at: base, withIntermediateDirectories: true)
-        return base.appendingPathComponent("known_hosts").path
+        AppSupport.directory.appendingPathComponent("known_hosts").path
     }
 }

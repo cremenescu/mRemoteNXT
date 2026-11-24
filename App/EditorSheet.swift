@@ -299,11 +299,19 @@ struct EditorSheet: View {
                               "RDGatewayUseConnectionCredentials", "InheritRDGatewayUseConnectionCredentials",
                               fallback: "Yes",
                               options: [PickerOption("Yes", t("Editor.Gateway.SameCredentials")),
-                                        PickerOption("No", t("Editor.Gateway.SeparateCredentials"))])
+                                        // Its own from the file and its own from 1Password are
+                                        // one choice here; the source below tells them apart.
+                                        PickerOption(gatewayOwnMode(node), t("Editor.Gateway.SeparateCredentials"))])
             if node.gatewayUseConnectionCredentials != "Yes" {
+                gatewaySourceRow(node)
+                if node.gatewayUsesOnePassword { itemRow(node, .gateway) }
                 inheritableField(t("Editor.Field.Username"), node, "RDGatewayUsername", "InheritRDGatewayUsername")
                 inheritableField(t("Editor.Field.Domain"), node, "RDGatewayDomain", "InheritRDGatewayDomain")
-                gatewayPasswordRow(node)
+                if node.gatewayUsesOnePassword {
+                    onePasswordNotes(node, .gateway)
+                } else {
+                    gatewayPasswordRow(node)
+                }
             }
         }
         Text(t("Editor.GatewayHint")).font(.caption).foregroundStyle(.secondary)
@@ -331,6 +339,115 @@ struct EditorSheet: View {
                 gatewayPasswordPlain = model.decryptedGatewayPassword(for: node)
             }
             Spacer()
+        }
+    }
+
+    // MARK: - 1Password
+
+    /// The two places with credentials of their own, and the attributes each keeps them in.
+    private enum ItemSlot {
+        case connection, gateway
+        var reference: String { self == .connection ? "UserViaAPI" : "RDGatewayUserViaAPI" }
+        var provider: String { self == .connection ? "ExternalCredentialProvider" : "RDGatewayExternalCredentialProvider" }
+        var storedPassword: String { self == .connection ? "Password" : "RDGatewayPassword" }
+        func inherit(_ key: String) -> String { "Inherit" + key }
+    }
+
+    /// Where the credentials come from. A provider this app does not use, set in mRemoteNG, is
+    /// shown by its name and left alone unless another source is picked.
+    @ViewBuilder private func sourceRow(_ node: MRNGNode, _ slot: ItemSlot, current: String,
+                                        pick: @escaping (String) -> Void) -> some View {
+        let known = ["None", OnePasswordReference.providerName]
+        let shown = known.first { $0.caseInsensitiveCompare(current) == .orderedSame } ?? current
+        HStack(spacing: 8) {
+            label(t("Editor.Field.Source"))
+            Picker("", selection: Binding(get: { shown }, set: { pick($0) })) {
+                Text(t("Editor.Source.File")).tag("None")
+                Text(verbatim: "1Password").tag(OnePasswordReference.providerName)
+                if !known.contains(shown) { Text(shown).tag(shown) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .disabled(node.attributes[slot.inherit(slot.provider)] == "true")
+            inheritToggle(node, slot.provider, slot.inherit(slot.provider))
+            Spacer()
+        }
+    }
+
+    @ViewBuilder private func connectionSourceRow(_ node: MRNGNode) -> some View {
+        sourceRow(node, .connection, current: node.credentialProvider) { picked in
+            node.attributes["ExternalCredentialProvider"] = picked
+            node.attributes["InheritExternalCredentialProvider"] = "false"
+            model.markDirty()
+        }
+    }
+
+    /// For the gateway, mRemoteNG splits it in two: the mode says that a provider is used and
+    /// the provider says which. One source here, so both are set together.
+    @ViewBuilder private func gatewaySourceRow(_ node: MRNGNode) -> some View {
+        let viaProvider = node.gatewayUseConnectionCredentials == MRNGNode.gatewayProviderMode
+        sourceRow(node, .gateway, current: viaProvider ? node.gatewayCredentialProvider : "None") { picked in
+            if picked == "None" {
+                node.attributes["RDGatewayUseConnectionCredentials"] = "No"
+            } else {
+                node.attributes["RDGatewayUseConnectionCredentials"] = MRNGNode.gatewayProviderMode
+                node.attributes["RDGatewayExternalCredentialProvider"] = picked
+                node.attributes["InheritRDGatewayExternalCredentialProvider"] = "false"
+            }
+            node.attributes["InheritRDGatewayUseConnectionCredentials"] = "false"
+            model.markDirty()
+        }
+    }
+
+    /// The value "its own" stands for in the gateway's picker: the one it has, so that opening
+    /// the picker does not move a gateway off its provider.
+    private func gatewayOwnMode(_ node: MRNGNode) -> String {
+        let mode = node.gatewayUseConnectionCredentials
+        return mode == MRNGNode.gatewayProviderMode ? mode : "No"
+    }
+
+    @ViewBuilder private func itemRow(_ node: MRNGNode, _ slot: ItemSlot) -> some View {
+        let key = slot.reference, inheritKey = slot.inherit(slot.reference)
+        let inheriting = node.attributes[inheritKey] == "true"
+        OnePasswordItemRow(
+            reference: Binding(
+                get: { inheriting ? (node.resolved(key, inheritKey: inheritKey) ?? "") : (node.attributes[key] ?? "") },
+                set: { typed in
+                    node.attributes[key] = Self.reference(from: typed, replacing: node.attributes[key] ?? "")
+                    node.attributes[inheritKey] = "false"
+                    model.markDirty()
+                }),
+            inheriting: inheriting, labelWidth: 90) {
+                inheritToggle(node, key, inheritKey)
+            }
+    }
+
+    /// What is typed stays as typed. What is pasted may be 1Password's Copy Secret Reference,
+    /// which goes one step too far and names a field: that step comes off.
+    private static func reference(from typed: String, replacing old: String) -> String {
+        let line = typed.components(separatedBy: .newlines).joined()
+        guard line.count > old.count + 5, let pasted = OnePasswordReference(pasted: line) else { return line }
+        return pasted.text
+    }
+
+    /// Under the rows of a 1Password source: what the other fields are for, and the password
+    /// that stayed behind in the file.
+    @ViewBuilder private func onePasswordNotes(_ node: MRNGNode, _ slot: ItemSlot) -> some View {
+        Text(t("Editor.OnePasswordHint")).font(.caption).foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        if !(node.attributes[slot.storedPassword] ?? "").isEmpty {
+            HStack(spacing: 8) {
+                Text(t("Editor.StoredPassword")).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(t("Editor.StoredPasswordDelete")) {
+                    node.attributes[slot.storedPassword] = ""
+                    model.markDirty()
+                    loadPasswords(node)
+                }
+                .controlSize(.small)
+                .fixedSize()
+            }
         }
     }
 
@@ -438,10 +555,20 @@ struct EditorSheet: View {
     }
 
     @ViewBuilder private func credentialsSection(_ node: MRNGNode) -> some View {
-        let passwordInherited = node.attributes["InheritPassword"] == "true"
         sectionTitle(t("Editor.Category.Credentials"))
+        connectionSourceRow(node)
+        if node.usesOnePassword { itemRow(node, .connection) }
         inheritableField(t("Editor.Field.Username"), node, "Username", "InheritUsername")
         inheritableField(t("Editor.Field.Domain"), node, "Domain", "InheritDomain")
+        if node.usesOnePassword {
+            onePasswordNotes(node, .connection)
+        } else {
+            passwordRow(node)
+        }
+    }
+
+    @ViewBuilder private func passwordRow(_ node: MRNGNode) -> some View {
+        let passwordInherited = node.attributes["InheritPassword"] == "true"
         HStack {
             label(t("Editor.Field.Password"))
             Group {
@@ -554,10 +681,15 @@ struct EditorSheet: View {
     private func load() {
         guard let node else { return }
         snapshot = node.attributes
-        passwordPlain = model.decryptedPassword(for: node)
+        loadPasswords(node)
         originalPasswordPlain = passwordPlain
-        gatewayPasswordPlain = model.decryptedGatewayPassword(for: node)
         dirtyAtOpen = model.dirty
+    }
+
+    /// The password fields, as the file has them now.
+    private func loadPasswords(_ node: MRNGNode) {
+        passwordPlain = model.decryptedPassword(for: node)
+        gatewayPasswordPlain = model.decryptedGatewayPassword(for: node)
     }
 
     private func discard() {
