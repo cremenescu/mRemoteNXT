@@ -366,6 +366,7 @@ Zaufanie zapamietuje dokladnie ten certyfikat dla tego hosta. Zapytamy ponownie,
 "Editor.Resolution.Fullscreen" = "Pełny ekran";
 "Editor.Field.AutomaticResize" = "Podążaj za oknem przy zmianie rozmiaru";
 "Editor.ResolutionHint" = "Dopasuj do okna: pulpit przyjmuje rozmiar karty. Inteligentny rozmiar: rozmiar karty w chwili połączenia, potem skalowany. Pełny ekran: rozdzielczość ekranu, skalowana w karcie i 1:1 na pełnym ekranie. Stały rozmiar jest skalowany w karcie.";
+"Editor.ResolutionFixedNote" = "mRemoteNG 1.78 otwiera stały rozmiar jako Inteligentny rozmiar i traci go przy zapisie pliku.";
 "Settings.OptimizeForRetina" = "Optymalizuj RDP dla Retina";
 "Settings.OptimizeForRetinaNote" = "Włączone: zdalny pulpit dostaje każdy piksel ekranu Retina, a Windows odpowiednio skaluje interfejs. Wyłączone: działa w rozmiarze w punktach — cztery razy mniej pikseli do przesłania i wszystko narysowane większe. Dotyczy sesji otwartych później.";
 "Settings.Interpolation" = "Skalowany obraz RDP";

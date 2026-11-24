@@ -366,6 +366,7 @@ Lui faire confiance mémorise exactement ce certificat pour cet hôte. La questi
 "Editor.Resolution.Fullscreen" = "Plein écran";
 "Editor.Field.AutomaticResize" = "Suivre la fenêtre quand elle est redimensionnée";
 "Editor.ResolutionHint" = "Ajuster à la fenêtre : le bureau prend la taille de l'onglet. Taille intelligente : la taille de l'onglet à la connexion, mise à l'échelle ensuite. Plein écran : la résolution de l'écran, mise à l'échelle dans l'onglet et 1:1 en plein écran. Une taille fixe est mise à l'échelle dans l'onglet.";
+"Editor.ResolutionFixedNote" = "mRemoteNG 1.78 ouvre une taille fixe en Taille intelligente et la perd lorsqu'il enregistre le fichier.";
 "Settings.OptimizeForRetina" = "Optimiser RDP pour Retina";
 "Settings.OptimizeForRetinaNote" = "Activé : le bureau distant reçoit chaque pixel d'un écran Retina et Windows met son interface à l'échelle. Désactivé : il tourne à la taille en points — quatre fois moins de pixels à envoyer, et tout y est dessiné plus grand. S'applique aux sessions ouvertes ensuite.";
 "Settings.Interpolation" = "Image RDP mise à l'échelle";

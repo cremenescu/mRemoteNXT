@@ -269,6 +269,12 @@ struct EditorSheet: View {
         }
         Text(t("Editor.ResolutionHint")).font(.caption).foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
+        // mRemoteNG 1.78, whose files these are, no longer has the fixed sizes: it reads one as
+        // SmartSize, and that is what it saves.
+        if node.resolution.hasPrefix("Res"), ["2.8", "2.9"].contains(model.doc?.confVersion ?? "") {
+            Text(t("Editor.ResolutionFixedNote")).font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     /// The fixed sizes mRemoteNG offers (its RDPResolutions enum, without the "Res").

@@ -366,6 +366,7 @@ Buna güvenmek, bu sunucu için tam olarak bu sertifikayı hatırlar. Değişirs
 "Editor.Resolution.Fullscreen" = "Tam ekran";
 "Editor.Field.AutomaticResize" = "Pencere yeniden boyutlandırıldığında onu izle";
 "Editor.ResolutionHint" = "Pencereye sığdır: masaüstü sekmenin boyutunu alır. Akıllı boyut: bağlanırken sekmenin boyutu, sonra ölçeklenir. Tam ekran: ekranın çözünürlüğü, sekmede ölçeklenir ve tam ekranda 1:1 olur. Sabit bir boyut sekmeye ölçeklenir.";
+"Editor.ResolutionFixedNote" = "mRemoteNG 1.78 sabit boyutu Akıllı boyut olarak açar ve dosyayı kaydederken kaybeder.";
 "Settings.OptimizeForRetina" = "RDP'yi Retina için optimize et";
 "Settings.OptimizeForRetinaNote" = "Açık: uzak masaüstü Retina ekranın her pikselini alır ve Windows arayüzünü buna göre ölçekler. Kapalı: nokta boyutunda çalışır — gönderilecek piksellerin dörtte biri, her şey daha büyük çizilir. Daha sonra açılan oturumlara uygulanır.";
 "Settings.Interpolation" = "Ölçeklenmiş RDP görüntüsü";

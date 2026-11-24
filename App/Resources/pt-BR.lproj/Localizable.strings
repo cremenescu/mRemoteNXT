@@ -366,6 +366,7 @@ Confiar nele memoriza este certificado exato para este host. Você será pergunt
 "Editor.Resolution.Fullscreen" = "Tela cheia";
 "Editor.Field.AutomaticResize" = "Acompanhar a janela ao redimensionar";
 "Editor.ResolutionHint" = "Ajustar à janela: a área de trabalho assume o tamanho da aba. Tamanho inteligente: o tamanho da aba ao conectar, escalado depois. Tela cheia: a resolução da tela, escalada na aba e 1:1 em tela cheia. Um tamanho fixo é escalado na aba.";
+"Editor.ResolutionFixedNote" = "O mRemoteNG 1.78 abre um tamanho fixo como Tamanho inteligente e o perde ao salvar o arquivo.";
 "Settings.OptimizeForRetina" = "Otimizar RDP para Retina";
 "Settings.OptimizeForRetinaNote" = "Ligado: a área de trabalho remota recebe cada pixel de uma tela Retina, e o Windows ajusta a escala da interface. Desligado: roda no tamanho em pontos — um quarto dos pixels a enviar, e tudo desenhado maior. Vale para sessões abertas depois.";
 "Settings.Interpolation" = "Imagem RDP escalada";

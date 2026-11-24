@@ -368,6 +368,7 @@ Daca ai incredere, exact acest certificat este retinut pentru acest host. Vei fi
 "Editor.Resolution.Fullscreen" = "Ecran complet";
 "Editor.Field.AutomaticResize" = "Urmeaza fereastra cand e redimensionata";
 "Editor.ResolutionHint" = "Potrivit ferestrei: desktopul ia marimea tabului. Smart size: marimea tabului la conectare, scalata dupa aceea. Ecran complet: rezolutia ecranului, scalata in tab si 1:1 in full screen. O marime fixa se scaleaza in tab.";
+"Editor.ResolutionFixedNote" = "mRemoteNG 1.78 o deschide ca Smart size si o pierde cand salveaza.";
 "Settings.OptimizeForRetina" = "Optimizeaza RDP pentru Retina";
 "Settings.OptimizeForRetinaNote" = "Pornit: desktopul remote primeste fiecare pixel al unui ecran Retina, iar Windows isi scaleaza interfata pe masura. Oprit: ruleaza la marimea in puncte — un sfert din pixeli de trimis si totul desenat mai mare. Se aplica sesiunilor deschise de acum incolo.";
 "Settings.Interpolation" = "Imaginea RDP scalata";

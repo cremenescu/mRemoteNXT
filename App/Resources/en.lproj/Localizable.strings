@@ -366,6 +366,7 @@ Trusting it remembers this exact certificate for this host. You will be asked ag
 "Editor.Resolution.Fullscreen" = "Full screen";
 "Editor.Field.AutomaticResize" = "Follow the window as it is resized";
 "Editor.ResolutionHint" = "Fit to window: the desktop takes the tab's size. Smart size: the tab's size at connect time, scaled afterwards. Full screen: the screen's resolution, scaled into the tab and 1:1 in full screen. A fixed size is scaled into the tab.";
+"Editor.ResolutionFixedNote" = "mRemoteNG 1.78 opens a fixed size as Smart size, and loses it when it saves the file.";
 "Settings.OptimizeForRetina" = "Optimize RDP for Retina";
 "Settings.OptimizeForRetinaNote" = "On: the remote desktop gets every pixel of a Retina display, and Windows scales its interface to match. Off: it runs at the size in points — a quarter of the pixels to send, and everything on it drawn larger. Applies to sessions opened afterwards.";
 "Settings.Interpolation" = "Scaled RDP image";
