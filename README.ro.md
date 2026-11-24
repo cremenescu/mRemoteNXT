@@ -16,7 +16,7 @@ Scris ca alternativa nativa Mac pentru cei care folosesc mRemoteNG pe Windows
 si nu vor sa renunte la arborele de conexiuni, parolele criptate si layout-ul
 cu tab-uri si paneluri.
 
-> Status: **alpha**. Functional zilnic pe ~700 conexiuni reale, dar sunt
+> Status: **beta**. Functional zilnic pe ~700 conexiuni reale, dar sunt
 > features lipsa si bug-uri care apar pe configuri exotice. Vezi
 > [Limitari cunoscute](#limitari-cunoscute).
 

@@ -17,7 +17,7 @@ Written as a native Mac alternative for people who use mRemoteNG on
 Windows and don't want to give up the connection tree, encrypted passwords
 and the tabs+panels layout.
 
-> Status: **alpha**. Used daily against ~700 real connections, but some
+> Status: **beta**. Used daily against ~700 real connections, but some
 > features are missing and exotic configurations can hit bugs. See
 > [Known limitations](#known-limitations).
 
@@ -131,7 +131,7 @@ mRemoteNXT**. The first copy that finds it off says so:
 
 ### Option A: pre-built `.dmg` (recommended)
 
-Download the latest `mRemoteNXT-vX.Y.Z-alpha.dmg` from
+Download the latest `mRemoteNXT-vX.Y.Z-beta.dmg` from
 [Releases](https://github.com/cremenescu/mRemoteNXT/releases),
 open it, drag the app to the Applications shortcut, then open it.
 

@@ -1,6 +1,6 @@
 # Contributing to mRemoteNXT
 
-Thanks for your interest! mRemoteNXT is an alpha-stage native macOS
+Thanks for your interest! mRemoteNXT is a beta-stage native macOS
 client for `confCons.xml` files from mRemoteNG. Help is welcome.
 
 ## Reporting bugs

@@ -40,7 +40,7 @@ final class WhatsNewStore: ObservableObject {
     private static let repo = "cremenescu/mRemoteNXT"
     private var loaded = false
 
-    /// The build's own version, as it appears in a tag: 0.8.9 for tag v0.8.9-alpha.
+    /// The build's own version, as it appears in a tag: 0.9.0 for tag v0.9.0-beta.
     static var runningVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
     }
@@ -98,8 +98,8 @@ final class WhatsNewStore: ObservableObject {
             let body = (item["body"] as? String) ?? ""
             let name = (item["name"] as? String) ?? tag
             let published = (item["published_at"] as? String)?.prefix(10) ?? ""
-            // Match on the version rather than on a reconstructed tag: the suffix has been
-            // -alpha so far, and guessing it here would break the day it is not. Anchored
+            // Match on the version rather than on a reconstructed tag: the suffix was -alpha
+            // and is now -beta, and guessing it here would break at the next change. Anchored
             // rather than a plain contains, or 0.8.1 would claim the notes of 0.8.10.
             let mine = !version.isEmpty && (tag == "v\(version)" || tag.hasPrefix("v\(version)-"))
             return ReleaseNote(id: tag, title: name, date: String(published), body: body,

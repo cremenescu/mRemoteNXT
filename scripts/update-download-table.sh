@@ -18,7 +18,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 badge() { # tag -> shields URL for that tag's downloads
     printf 'https://img.shields.io/github/downloads/%s/%s/total?label=%s&color=44cc11' \
-        "$REPO" "$1" "$(printf '%s' "$1" | sed 's/-alpha//')"
+        "$REPO" "$1" "$(printf '%s' "$1" | sed -E 's/-(alpha|beta)$//')"
 }
 
 build_table() { # $1 = en | ro

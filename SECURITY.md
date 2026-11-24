@@ -41,10 +41,10 @@ Out of scope:
 
 ## Supported versions
 
-This is alpha software. Only the latest release receives fixes. Older
+This is beta software. Only the latest release receives fixes. Older
 tags are not patched.
 
 | Version       | Supported |
 |---------------|-----------|
-| latest alpha  | yes       |
+| latest beta   | yes       |
 | anything else | no        |
