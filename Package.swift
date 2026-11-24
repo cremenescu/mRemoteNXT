@@ -11,5 +11,6 @@ let package = Package(
     targets: [
         .target(name: "MRNGCore"),
         .executableTarget(name: "mrngprobe", dependencies: ["MRNGCore"]),
+        .testTarget(name: "MRNGCoreTests", dependencies: ["MRNGCore"]),
     ]
 )
