@@ -106,6 +106,7 @@ public final class MRNGNode: Identifiable, Hashable {
         case "VNC": return "5900"
         case "HTTP": return "80"
         case "HTTPS": return "443"
+        case "IntApp": return "0"
         default: return "3389"
         }
     }
