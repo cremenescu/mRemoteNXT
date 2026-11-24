@@ -53,12 +53,19 @@ public struct OnePasswordReference: Equatable {
         self.init(vault: Self.decode(parts.vault), item: decoded, account: parts.account)
     }
 
-    /// The reference to write in the file. Identifiers and ordinary names need no escaping;
-    /// what would be read back as something else is escaped.
+    /// The reference to write in the file. Identifiers and ordinary names, spaces included,
+    /// need no escaping; what would be read back as something else is escaped.
     public var text: String {
         var out = "op://" + Self.encode(vault) + "/" + Self.encode(item)
         if !account.isEmpty { out += "?account=" + Self.encode(account) }
         return out
+    }
+
+    /// Whether the reference names the item by its 1Password identifier rather than its title.
+    public var isByID: Bool { Self.isID(item) }
+
+    private static func isID(_ s: String) -> Bool {
+        s.count == 26 && s.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) }
     }
 
     private static func split(_ text: String) -> (vault: String, path: String, account: String)? {
@@ -85,6 +92,7 @@ public struct OnePasswordReference: Equatable {
 
     private static func encode(_ s: String) -> String {
         var allowed = CharacterSet.urlPathAllowed
+        allowed.insert(" ")
         allowed.remove(charactersIn: "/?&=+%#;")
         return s.addingPercentEncoding(withAllowedCharacters: allowed) ?? s
     }

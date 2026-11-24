@@ -216,7 +216,8 @@ public final class MRNGNode: Identifiable, Hashable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
     /// "Yes" (log on to the gateway as the connection), "No" (its own credentials below),
-    /// or mRemoteNG's "SmartCard".
+    /// "ExternalCredentialProvider" (its own, from a provider; see Logon.swift), or
+    /// mRemoteNG's "SmartCard".
     public var gatewayUseConnectionCredentials: String {
         resolved("RDGatewayUseConnectionCredentials", inheritKey: "InheritRDGatewayUseConnectionCredentials") ?? "Yes"
     }

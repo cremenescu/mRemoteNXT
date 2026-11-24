@@ -380,7 +380,7 @@ final class RDPNSView: NSView, RDPClientDelegate, SessionPreviewing {
     private func applyGateway(to c: RDPClient, user: String, domain: String) {
         let node = session.node
         let usage = node.gatewayUsageMethod
-        guard usage == "Always" || usage == "Detect", !node.gatewayHostname.isEmpty else { return }
+        guard node.hasGateway else { return }
         let (host, port) = RDPFile.splitHostPort(node.gatewayHostname, defaultPort: 443)
         let same = node.gatewayUseConnectionCredentials == "Yes"
         var gwUser = same ? user : node.gatewayUsername

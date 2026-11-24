@@ -34,6 +34,20 @@ public struct OnePasswordCLI {
         return nil
     }
 
+    /// PATH as the user's shell has it. The shell is started as a terminal would start it,
+    /// because PATH is as often set for interactive shells only, and may say something of its
+    /// own on the way; the marks tell that apart from the answer.
+    public static func shellPath(shell: String = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh",
+                                 timeout: TimeInterval = 5) async -> String? {
+        let mark = "@@path@@"
+        let result = try? await OneShotProcess(executable: URL(fileURLWithPath: shell),
+                                               arguments: ["-l", "-i", "-c", "printf '\(mark)%s\(mark)' \"$PATH\""])
+            .run(timeout: timeout)
+        guard let result, !result.timedOut else { return nil }
+        let parts = String(decoding: result.stdout, as: UTF8.self).components(separatedBy: mark)
+        return parts.count >= 3 ? parts[parts.count - 2] : nil
+    }
+
     // MARK: - Commands
 
     /// Reads an item. Always from 1Password itself: op's own cache is turned off, so a
@@ -82,11 +96,20 @@ public struct OnePasswordCLI {
         do {
             try Task.checkCancellation()
             let result = try await OneShotProcess(executable: executable, arguments: arguments).run(timeout: timeout)
-            await Self.gate.leave()
-            if result.timedOut { throw OnePasswordError.timedOut }
-            guard result.status == 0 else {
-                throw OnePasswordError.classify(String(decoding: result.stderr, as: UTF8.self))
+            let error: OnePasswordError? = if result.timedOut {
+                .timedOut
+            } else if result.status != 0 {
+                .classify(String(decoding: result.stderr, as: UTF8.self))
+            } else {
+                nil
             }
+            // Whoever waits in line would put up the same prompt again: a dozen tabs reopened
+            // at launch would take a dozen refusals. They all get this answer instead.
+            switch error {
+            case .declined, .timedOut: await Self.gate.leave(failing: error)
+            default: await Self.gate.leave()
+            }
+            if let error { throw error }
             return result.stdout
         } catch is LaunchFailure {
             await Self.gate.leave()
@@ -121,7 +144,13 @@ actor SerialGate {
         }
     }
 
-    func leave() {
+    /// `failing` turns away everyone waiting, with that error.
+    func leave(failing error: Error? = nil) {
+        if let error {
+            let turnedAway = waiting
+            waiting = []
+            turnedAway.forEach { $0.resume.resume(throwing: error) }
+        }
         if waiting.isEmpty { busy = false } else { waiting.removeFirst().resume.resume() }
     }
 
